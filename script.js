@@ -66,7 +66,6 @@ const fragmentShader = `
         float r1 = 1.8;
         float r2 = 0.6;
 
-        float mouseDistort = dot(p, vec3(u_mouse.x, u_mouse.y, 0.0)) * 0.5;
         float displacement = fbm(p1 * 2.0 + u_time * 0.5);
 
         float torus = length(vec2(length(p1.xz) - r1, p1.y)) - r2;
@@ -198,6 +197,7 @@ document.addEventListener('mouseup', () => {
 const clock = new THREE.Clock();
 let frameCount = 0;
 let lastTime = 0;
+const fpsElement = document.getElementById('fps');
 
 function animate() {
     const time = clock.getElapsedTime();
@@ -205,7 +205,6 @@ function animate() {
 
     frameCount++;
     if (time - lastTime >= 1) {
-        const fpsElement = document.getElementById('fps');
         if (fpsElement) {
             fpsElement.innerText = frameCount;
         }
