@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VOID - Mathematical Sublime</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background: #1a1a1a;
+            color: #e0e0e0;
+            font-family: 'Inter', -apple-system, sans-serif;
+            overflow: hidden;
+            cursor: none;
+        }
+        
+        #canvas-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+        
+        .ui-layer {
+            position: fixed;
+            z-index: 10;
+            pointer-events: none;
+            width: 100%;
+            height: 100%;
+            padding: 40px 60px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        
+        .ui-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            text-transform: uppercase;
+            font-size: 11px;
+            letter-spacing: 0.15em;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.7);
+        }
+        
+        .ui-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            text-transform: uppercase;
+            font-size: 11px;
+            letter-spacing: 0.15em;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.7);
+            font-variant-numeric: tabular-nums;
+        }
+        
+        .center-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            pointer-events: none;
+            mix-blend-mode: exclusion;
+            z-index: 5;
+        }
+        
+        .center-text h1 {
+            font-size: 140px;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            line-height: 1;
+            color: rgba(255, 255, 255, 0.9);
+            margin: 0;
+        }
+        
+        .center-text p {
+            font-size: 11px;
+            letter-spacing: 0.4em;
+            text-transform: uppercase;
+            margin-top: 10px;
+            color: rgba(255, 255, 255, 0.6);
+            font-weight: 400;
+        }
+        
+        .cursor-ring {
+            position: fixed;
+            width: 40px;
+            height: 40px;
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 100;
+            transform: translate(-50%, -50%);
+            transition: width 0.3s, height 0.3s;
+            mix-blend-mode: difference;
+        }
+        
+        .cursor-dot {
+            position: fixed;
+            width: 4px;
+            height: 4px;
+            background: white;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 100;
+            transform: translate(-50%, -50%);
+        }
+        
+        @media (max-width: 768px) {
+            .center-text h1 { font-size: 80px; }
+            .ui-layer { padding: 20px 30px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="cursor-ring" id="cursor-ring"></div>
+    <div class="cursor-dot" id="cursor-dot"></div>
+
+    <div class="ui-layer">
+        <div class="ui-header">
+            <div>DR.KUN ARCHITECTURE</div>
+            <div>RAYMARCHING ENGINE // GLSL</div>
+        </div>
+        
+        <div class="center-text">
+            <h1>VOID</h1>
+            <p>MATHEMATICAL SUBLIME</p>
+        </div>
+        
+        <div class="ui-footer">
+            <div id="fps-counter">FPS: 60</div>
+            <div>[ GPU LOAD: 99% ]</div>
+        </div>
+    </div>
+
+    <div id="canvas-container"></div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        // Cursor interaction
+        const cursorRing = document.getElementById('cursor-ring');
+        const cursorDot = document.getElementById('cursor-dot');
+        let mouseX = 0, mouseY = 0;
+        let ringX = 0, ringY = 0;
+
+        document.addEventListener('mousemove', (e) => {
+            mouseX = e.clientX;
+            mouseY = e.clientY;
+            cursorDot.style.left = mouseX + 'px';
+            cursorDot.style.top = mouseY + 'px';
+        });
+
+        document.addEventListener('mousedown', () => {
+            cursorRing.style.width = '30px';
+            cursorRing.style.height = '30px';
+        });
+
+        document.addEventListener('mouseup', () => {
+            cursorRing.style.width = '40px';
+            cursorRing.style.height = '40px';
+        });
+
+        // Smooth cursor follow
+        function animateCursor() {
+            ringX += (mouseX - ringX) * 0.1;
+            ringY += (mouseY - ringY) * 0.1;
+            cursorRing.style.left = ringX + 'px';
+            cursorRing.style.top = ringY + 'px';
+            requestAnimationFrame(animateCursor);
+        }
+        animateCursor();
+
+        // FPS Counter
+        let lastTime = performance.now();
+        let frameCount = 0;
+        const fpsElement = document.getElementById('fps-counter');
+        
+        function updateFPS() {
+            const now = performance.now();
+            frameCount++;
+            if (now - lastTime >= 1000) {
+                fpsElement.textContent = `FPS: ${frameCount}`;
+                frameCount = 0;
+                lastTime = now;
+            }
+            requestAnimationFrame(updateFPS);
+        }
+        updateFPS();
+
+        // Three.js Raymarching Scene
+        const container = document.getElementById('canvas-container');
+        const scene = new THREE.Scene();
+        
+        const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+        const renderer = new THREE.WebGLRenderer({ 
+            antialias: false,
+            alpha: false,
+            powerPreference: "high-performance"
+        });
+        
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        container.appendChild(renderer.domElement);
+
+        // Raymarching Shader
+        const vertexShader = `
+            varying vec2 vUv;
+            void main() {
+                vUv = uv;
+                gl_Position = vec4(position, 1.0);
+            }
+        `;
+
+        const fragmentShader = `
+            precision highp float;
+            
+            uniform float uTime;
+            uniform vec2 uResolution;
+            uniform vec2 uMouse;
+            
+            varying vec2 vUv;
+            
+            #define MAX_STEPS 100
+            #define MAX_DIST 20.0
+            #define SURF_DIST 0.001
+            
+            // Noise functions
+            vec3 mod289(vec3 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
+            vec4 mod289(vec4 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
+            vec4 permute(vec4 x) { return mod289(((x*34.0)+1.0)*x); }
+            vec4 taylorInvSqrt(vec4 r) { return 1.79284291400159 - 0.85373472095314 * r; }
+            
+            float snoise(vec3 v) {
+                const vec2 C = vec2(1.0/6.0, 1.0/3.0);
+                const vec4 D = vec4(0.0, 0.5, 1.0, 2.0);
+                
+                vec3 i  = floor(v + dot(v, C.yyy));
+                vec3 x0 = v - i + dot(i, C.xxx);
+                
+                vec3 g = step(x0.yzx, x0.xyz);
+                vec3 l = 1.0 - g;
+                vec3 i1 = min(g.xyz, l.zxy);
+                vec3 i2 = max(g.xyz, l.zxy);
+                
+                vec3 x1 = x0 - i1 + C.xxx;
+                vec3 x2 = x0 - i2 + C.yyy;
+                vec3 x3 = x0 - D.yyy;
+                
+                i = mod289(i);
+                vec4 p = permute(permute(permute(
+                    i.z + vec4(0.0, i1.z, i2.z, 1.0))
+                    + i.y + vec4(0.0, i1.y, i2.y, 1.0))
+                    + i.x + vec4(0.0, i1.x, i2.x, 1.0));
+                    
+                float n_ = 0.142857142857;
+                vec3 ns = n_ * D.wyz - D.xzx;
+                
+                vec4 j = p - 49.0 * floor(p * ns.z * ns.z);
+                
+                vec4 x_ = floor(j * ns.z);
+                vec4 y_ = floor(j - 7.0 * x_);
+                
+                vec4 x = x_ *ns.x + ns.yyyy;
+                vec4 y = y_ *ns.x + ns.yyyy;
+                vec4 h = 1.0 - abs(x) - abs(y);
+                
+                vec4 b0 = vec4(x.xy, y.xy);
+                vec4 b1 = vec4(x.zw, y.zw);
+                
+                vec4 s0 = floor(b0)*2.0 + 1.0;
+                vec4 s1 = floor(b1)*2.0 + 1.0;
+                vec4 sh = -step(h, vec4(0.0));
+                
+                vec4 a0 = b0.xzyw + s0.xzyw*sh.xxyy;
+                vec4 a1 = b1.xzyw + s1.xzyw*sh.zzww;
+                
+                vec3 p0 = vec3(a0.xy, h.x);
+                vec3 p1 = vec3(a0.zw, h.y);
+                vec3 p2 = vec3(a1.xy, h.z);
+                vec3 p3 = vec3(a1.zw, h.w);
+                
+                vec4 norm = taylorInvSqrt(vec4(dot(p0,p0), dot(p1,p1), dot(p2,p2), dot(p3,p3)));
+                p0 *= norm.x;
+                p1 *= norm.y;
+                p2 *= norm.z;
+                p3 *= norm.w;
+                
+                vec4 m = max(0.6 - vec4(dot(x0,x0), dot(x1,x1), dot(x2,x2), dot(x3,x3)), 0.0);
+                m = m * m;
+                return 42.0 * dot(m*m, vec4(dot(p0,x0), dot(p1,x1), dot(p2,x2), dot(p3,x3)));
+            }
+            
+            float fbm(vec3 p) {
+                float value = 0.0;
+                float amplitude = 0.5;
+                float frequency = 1.0;
+                for(int i = 0; i < 5; i++) {
+                    value += amplitude * snoise(p * frequency);
+                    amplitude *= 0.5;
+                    frequency *= 2.0;
+                }
+                return value;
+            }
+            
+            // Rotation matrix
+            mat2 rot(float a) {
+                float s = sin(a);
+                float c = cos(a);
+                return mat2(c, -s, s, c);
+            }
+            
+            // SDF Primitives
+            float sdSphere(vec3 p, float r) {
+                return length(p) - r;
+            }
+            
+            float sdTorus(vec3 p, vec2 t) {
+                vec2 q = vec2(length(p.xz) - t.x, p.y);
+                return length(q) - t.y;
+            }
+            
+            // Smooth union
+            float smin(float a, float b, float k) {
+                float h = clamp(0.5 + 0.5*(b-a)/k, 0.0, 1.0);
+                return mix(b, a, h) - k*h*(1.0-h);
+            }
+            
+            // Map function - defines the scene
+            float map(vec3 p) {
+                // Animation variables
+                float t = uTime * 0.3;
+                
+                // Rotate entire space slowly
+                p.xz *= rot(t * 0.2);
+                p.yz *= rot(t * 0.1);
+                
+                // Morphing between torus and split spheres
+                float morph = sin(t) * 0.5 + 0.5; // 0 to 1
+                
+                // Base shape - Torus with noise displacement
+                vec3 q = p;
+                float noise = fbm(q * 1.5 + t * 0.5) * 0.3;
+                
+                // Torus parameters
+                float majorR = 1.2;
+                float minorR = 0.4 + noise * 0.3;
+                
+                // Two spheres approach
+                vec3 p1 = p - vec3(0.0, 0.0, 0.0);
+                vec3 p2 = p - vec3(0.0, 0.0, 0.0);
+                
+                // Separation animation
+                float sep = sin(t * 0.7) * 0.8;
+                p1.x += sep;
+                p2.x -= sep;
+                
+                float sphere1 = sdSphere(p1, 0.7 + noise * 0.2);
+                float sphere2 = sdSphere(p2, 0.7 + noise * 0.2);
+                float spheres = smin(sphere1, sphere2, 0.5);
+                
+                // Torus
+                float torus = sdTorus(p, vec2(majorR, minorR));
+                
+                // Blend between shapes
+                float d = mix(torus, spheres, smoothstep(0.3, 0.7, morph));
+                
+                // Additional surface detail
+                float detail = snoise(p * 8.0 + t) * 0.02;
+                d += detail;
+                
+                return d;
+            }
+            
+            // Calculate normal
+            vec3 calcNormal(vec3 p) {
+                vec2 e = vec2(0.001, 0.0);
+                return normalize(vec3(
+                    map(p + e.xyy) - map(p - e.xyy),
+                    map(p + e.yxy) - map(p - e.yxy),
+                    map(p + e.yyx) - map(p - e.yyx)
+                ));
+            }
+            
+            // Raymarching
+            float rayMarch(vec3 ro, vec3 rd) {
+                float dO = 0.0;
+                for(int i = 0; i < MAX_STEPS; i++) {
+                    vec3 p = ro + rd * dO;
+                    float dS = map(p);
+                    dO += dS;
+                    if(dO > MAX_DIST || abs(dS) < SURF_DIST) break;
+                }
+                return dO;
+            }
+            
+            // Lighting
+            float getLight(vec3 p, vec3 lp) {
+                vec3 l = normalize(lp - p);
+                vec3 n = calcNormal(p);
+                float dif = clamp(dot(n, l), 0.0, 1.0);
+                
+                // Shadow
+                float d = rayMarch(p + n * 0.02, l);
+                if(d < length(lp - p)) dif *= 0.2;
+                
+                return dif;
+            }
+            
+            void main() {
+                // UV coordinates
+                vec2 uv = (vUv - 0.5) * uResolution.xy / uResolution.y;
+                
+                // Camera setup
+                float t = uTime * 0.2;
+                vec3 ro = vec3(0.0, 0.0, 4.0);
+                
+                // Mouse interaction - subtle camera movement
+                float mx = (uMouse.x - 0.5) * 2.0;
+                float my = (uMouse.y - 0.5) * 2.0;
+                ro.xz *= rot(mx * 0.3);
+                ro.yz *= rot(my * 0.3);
+                
+                vec3 rd = normalize(vec3(uv, -1.5));
+                rd.xz *= rot(mx * 0.3);
+                rd.yz *= rot(my * 0.3);
+                
+                // Raymarch
+                float d = rayMarch(ro, rd);
+                
+                // Background color (dark charcoal like video)
+                vec3 bgColor = vec3(0.12, 0.12, 0.13);
+                
+                vec3 col = bgColor;
+                
+                if(d < MAX_DIST) {
+                    vec3 p = ro + rd * d;
+                    vec3 n = calcNormal(p);
+                    
+                    // Material - concrete/stone look
+                    vec3 material = vec3(0.85, 0.85, 0.87);
+                    
+                    // Lighting setup similar to video - soft directional
+                    vec3 lightPos = vec3(5.0, 5.0, 5.0);
+                    vec3 lightDir = normalize(lightPos);
+                    
+                    // Diffuse
+                    float diff = max(dot(n, lightDir), 0.0);
+                    
+                    // Ambient occlusion approximation
+                    float ao = 1.0;
+                    float aoRadius = 0.1;
+                    for(int i = 1; i <= 3; i++) {
+                        float fi = float(i);
+                        float aoStep = fi * aoRadius;
+                        float dist = map(p + n * aoStep);
+                        ao -= (aoStep - dist) / (fi * fi) * 0.3;
+                    }
+                    ao = clamp(ao, 0.0, 1.0);
+                    
+                    // Specular (soft)
+                    vec3 viewDir = -rd;
+                    vec3 halfDir = normalize(lightDir + viewDir);
+                    float spec = pow(max(dot(n, halfDir), 0.0), 32.0) * 0.3;
+                    
+                    // Fresnel effect
+                    float fresnel = pow(1.0 - abs(dot(n, viewDir)), 3.0) * 0.1;
+                    
+                    // Combine lighting
+                    col = material * (diff * 0.8 + 0.2) * ao + vec3(spec) + vec3(fresnel);
+                    
+                    // Depth fog for integration with background
+                    float fog = smoothstep(5.0, 15.0, d);
+                    col = mix(col, bgColor, fog * 0.5);
+                    
+                    // Contrast adjustment for that cinematic look
+                    col = pow(col, vec3(0.9));
+                    col = (col - 0.5) * 1.1 + 0.5;
+                }
+                
+                // Vignette
+                float vignette = 1.0 - length(vUv - 0.5) * 0.8;
+                col *= smoothstep(0.0, 1.0, vignette);
+                
+                // Film grain
+                float grain = fract(sin(dot(vUv * uTime, vec2(12.9898, 78.233))) * 43758.5453);
+                col += (grain - 0.5) * 0.03;
+                
+                gl_FragColor = vec4(col, 1.0);
+            }
+        `;
+
+        const geometry = new THREE.PlaneGeometry(2, 2);
+        const material = new THREE.ShaderMaterial({
+            vertexShader,
+            fragmentShader,
+            uniforms: {
+                uTime: { value: 0 },
+                uResolution: { value: new THREE.Vector2(window.innerWidth, window.innerHeight) },
+                uMouse: { value: new THREE.Vector2(0.5, 0.5) }
+            }
+        });
+
+        const plane = new THREE.Mesh(geometry, material);
+        scene.add(plane);
+
+        // Resize handler
+        window.addEventListener('resize', () => {
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            material.uniforms.uResolution.value.set(window.innerWidth, window.innerHeight);
+        });
+
+        // Mouse tracking for shader
+        window.addEventListener('mousemove', (e) => {
+            material.uniforms.uMouse.value.set(
+                e.clientX / window.innerWidth,
+                1.0 - e.clientY / window.innerHeight
+            );
+        });
+
+        // Animation loop
+        function animate() {
+            requestAnimationFrame(animate);
+            material.uniforms.uTime.value += 0.016;
+            renderer.render(scene, camera);
+        }
+        
+        animate();
+    </script>
+</body>
+</html>

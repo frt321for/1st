@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2026 DESIGN | PORTFOLIO</title>
+    <style>
+        /* --- 1. 核心变量与重置 --- */
+        :root {
+            --bg: #080808;
+            --surface: #121212;
+            --border: #2a2a2a;
+            --text-main: #ededed;
+            --text-muted: #888888;
+            --accent: #ffffff;
+            --spotlight: rgba(255, 255, 255, 0.08);
+            --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            background-color: var(--bg);
+            color: var(--text-main);
+            font-family: var(--font-sans);
+            overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
+            min-height: 100vh;
+        }
+
+        /* --- 2. 噪点纹理 (增加质感) --- */
+        .noise-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none;
+            z-index: 9999;
+            opacity: 0.05;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+        }
+
+        /* --- 3. 布局容器 --- */
+        .wrapper {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        /* --- 4. 头部排版 --- */
+        header {
+            margin-bottom: 80px;
+            padding-top: 60px;
+        }
+
+        .meta-line {
+            font-family: var(--font-mono);
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .status-dot {
+            width: 8px; height: 8px;
+            background-color: #00ff41;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 8px;
+            box-shadow: 0 0 10px rgba(0, 255, 65, 0.4);
+        }
+
+        h1 {
+            font-size: clamp(3rem, 8vw, 6rem);
+            font-weight: 500;
+            line-height: 1;
+            letter-spacing: -0.04em;
+            background: linear-gradient(to bottom right, #fff, #666);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 20px;
+        }
+
+        .bio {
+            font-size: 1.2rem;
+            color: var(--text-muted);
+            max-width: 600px;
+            line-height: 1.6;
+        }
+
+        /* --- 5. Bento Grid (便当盒布局) --- */
+        .bento-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            grid-template-rows: repeat(4, minmax(200px, auto));
+            gap: 16px;
+        }
+
+        /* 网格卡片基础样式 */
+        .card {
+            background-color: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 24px;
+            padding: 30px;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            transition: border-color 0.3s;
+            cursor: pointer;
+            group: card; /* 用于JS识别 */
+        }
+
+        /* Spotlight 光效层 */
+        .card::before {
+            content: "";
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: radial-gradient(
+                800px circle at var(--mouse-x) var(--mouse-y), 
+                var(--spotlight), 
+                transparent 40%
+            );
+            opacity: 0;
+            transition: opacity 0.5s;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .card:hover::before {
+            opacity: 1;
+        }
+
+        .card:hover {
+            border-color: rgba(255,255,255,0.2);
+        }
+
+        /* 卡片内容层 (置于光效之上) */
+        .card-content {
+            position: relative;
+            z-index: 2;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* --- 特殊卡片样式 --- */
+        
+        /* 1. 主展示区 (跨2列2行) */
+        .card-main {
+            grid-column: span 2;
+            grid-row: span 2;
+        }
+
+        /* 2. 长条区 (跨2列) */
+        .card-wide {
+            grid-column: span 2;
+        }
+
+        /* 3. 竖条区 (跨2行) */
+        .card-tall {
+            grid-row: span 2;
+        }
+
+        /* 卡片内部排版 */
+        .card-tag {
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            border: 1px solid var(--border);
+            padding: 4px 10px;
+            border-radius: 100px;
+            width: fit-content;
+            margin-bottom: auto;
+        }
+
+        .card h3 {
+            font-size: 1.5rem;
+            font-weight: 500;
+            margin: 15px 0 10px 0;
+            color: #fff;
+        }
+
+        .card p {
+            color: #888;
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+
+        .card-visual {
+            margin-top: 20px;
+            flex-grow: 1;
+            background: #1a1a1a;
+            border-radius: 12px;
+            overflow: hidden;
+            position: relative;
+            border: 1px solid var(--border);
+        }
+
+        /* 模拟一些极简的视觉元素 */
+        .abstract-circle {
+            width: 100px; height: 100px;
+            background: radial-gradient(circle, #333, transparent);
+            border-radius: 50%;
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            border: 1px solid #444;
+        }
+
+        .code-snippet {
+            font-family: var(--font-mono);
+            font-size: 0.7rem;
+            color: #666;
+            padding: 10px;
+            opacity: 0.7;
+        }
+
+        /* --- 6. 响应式 --- */
+        @media (max-width: 900px) {
+            .bento-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .card-main { grid-column: span 2; }
+            .card-wide { grid-column: span 2; }
+        }
+
+        @media (max-width: 600px) {
+            .bento-grid { display: flex; flex-direction: column; }
+            h1 { font-size: 2.5rem; }
+        }
+
+        /* --- 7. 页脚 --- */
+        footer {
+            margin-top: 80px;
+            border-top: 1px solid var(--border);
+            padding: 40px 0;
+            display: flex;
+            justify-content: space-between;
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        a { color: var(--text-main); text-decoration: none; }
+        a:hover { text-decoration: underline; }
+
+    </style>
+</head>
+<body>
+
+    <!-- 噪点层 -->
+    <div class="noise-overlay"></div>
+
+    <div class="wrapper">
+        <!-- 头部 -->
+        <header>
+            <div class="meta-line">
+                <span><span class="status-dot"></span>AVAILABLE FOR WORK</span>
+                <span id="time-display">00:00 UTC</span>
+            </div>
+            <h1>Building the<br>Digital Future.</h1>
+            <p class="bio">我是 Alex，一名追求极致体验的全栈工程师。我不写代码，我雕刻产品。专注于高性能 Web 渲染与极简交互设计。</p>
+        </header>
+
+        <!-- Bento Grid 核心区域 -->
+        <div class="bento-grid" id="cards-container">
+            
+            <!-- 1. 主项目展示 -->
+            <article class="card card-main">
+                <div class="card-content">
+                    <span class="card-tag">FEATURED PROJECT</span>
+                    <div class="card-visual" style="background: linear-gradient(45deg, #111, #1a1a1a); display:flex; align-items:center; justify-content:center;">
+                        <div style="width: 60%; height: 60%; background: #000; border-radius: 8px; border:1px solid #333; box-shadow: 0 20px 40px rgba(0,0,0,0.5);"></div>
+                    </div>
+                    <h3>NexOS System</h3>
+                    <p>基于 WebAssembly 的下一代浏览器操作系统概念验证。重构了文件系统的交互逻辑。</p>
+                </div>
+            </article>
+
+            <!-- 2. 技术栈 -->
+            <article class="card card-tall">
+                <div class="card-content">
+                    <span class="card-tag">STACK</span>
+                    <div class="card-visual" style="padding: 15px; display: flex; flex-direction: column; justify-content: center; gap: 10px;">
+                        <div class="code-snippet">> React 19</div>
+                        <div class="code-snippet">> TypeScript</div>
+                        <div class="code-snippet">> Rust / Wasm</div>
+                        <div class="code-snippet">> WebGL</div>
+                    </div>
+                    <h3>Core Tech</h3>
+                    <p>拥抱原生，极致性能。</p>
+                </div>
+            </article>
+
+            <!-- 3. 博客文章 -->
+            <article class="card">
+                <div class="card-content">
+                    <span class="card-tag">LATEST WRITING</span>
+                    <div style="margin-top: auto;">
+                        <h3>CSS is Logic</h3>
+                        <p>为什么现代 CSS 已经具备了图灵完备的特性。</p>
+                    </div>
+                </div>
+            </article>
+
+            <!-- 4. 数据展示 -->
+            <article class="card">
+                <div class="card-content">
+                    <span class="card-tag">STATS</span>
+                    <div style="flex-grow:1; display:flex; align-items:center; justify-content:center;">
+                        <h2 style="font-size: 3rem; color: #fff;">98<span style="font-size:1rem; color:#666;">%</span></h2>
+                    </div>
+                    <h3>Lighthouse</h3>
+                    <p>性能评分</p>
+                </div>
+            </article>
+
+            <!-- 5. 宽卡片 -->
+            <article class="card card-wide">
+                <div class="card-content">
+                    <span class="card-tag">DESIGN PHILOSOPHY</span>
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 20px;">
+                        <div style="width: 48%;">
+                            <h3>Less, but better.</h3>
+                            <p>删繁就简，把注意力归还给内容本身。</p>
+                        </div>
+                        <div class="abstract-circle"></div>
+                    </div>
+                </div>
+            </article>
+
+        </div>
+
+        <!-- 页脚 -->
+        <footer>
+            <div>© 2026 ALEX.DEV</div>
+            <div style="display: flex; gap: 20px;">
+                <a href="#">TWITTER / X</a>
+                <a href="#">GITHUB</a>
+                <a href="#">MAIL</a>
+            </div>
+        </footer>
+    </div>
+
+    <script>
+        // --- 1. Spotlight 鼠标光斑效果 ---
+        // 这种效果在 Linear, Vercel 等现代网站非常流行
+        // 核心原理：监听鼠标在 Grid 容器上的位置，动态更新每个卡片的 CSS 变量
+        
+        const container = document.getElementById('cards-container');
+        
+        container.onmousemove = e => {
+            for(const card of document.getElementsByClassName("card")) {
+                const rect = card.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+
+                // 将鼠标相对于卡片的坐标注入 CSS 变量
+                card.style.setProperty("--mouse-x", `${x}px`);
+                card.style.setProperty("--mouse-y", `${y}px`);
+            }
+        }
+
+        // --- 2. 实时时间显示 (增加一点极客感) ---
+        function updateTime() {
+            const now = new Date();
+            const timeString = now.toLocaleTimeString('en-US', { 
+                hour12: false, 
+                hour: '2-digit', 
+                minute: '2-digit',
+                second: '2-digit'
+            });
+            document.getElementById('time-display').textContent = timeString + " LOCAL";
+        }
+        setInterval(updateTime, 1000);
+        updateTime();
+
+    </script>
+</body>
+</html>
