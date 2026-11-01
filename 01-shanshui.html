@@ -1,0 +1,750 @@
+<!DOCTYPE html>
+<!--
+DIRECTION CONTRACT
+THESIS         用 CSS 的模糊、遮罩与渐变复刻「墨在生宣上洇散」的物理过程，而不是用几何多边形拼一座山。
+               拒绝水墨题材惯用的扁平矢量插画做法。
+OWN-WORLD      生宣暖褐底 + 五级墨阶（焦/浓/重/淡/清），全画无第二色相；
+               每一块山体都以 mask-image 渐隐收尾，不允许出现硬边。
+STORY          观者先看到留白与雾，再顺瀑布向下走到近岸的亭与松，最后被两行飞鸟带出画外。
+FIRST VIEWPORT 主峰偏右占上三分之二；瀑布自山凹垂下贯穿中景；云雾横腰切断远近；
+               松亭压左下角；右侧竖排题跋与朱印收边。
+SIGNATURE      山凹中那道瀑布——由「纸白 + 两侧墨线」夹出水柱，配溅雾呼吸与水纹下行。
+-->
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>溪山行旅 · 纯 CSS 水墨</title>
+<style>
+/* ==========================================================================
+   溪山行旅 —— 纯 CSS 水墨山水
+   约束：无 JS / 无 SVG / 无 Canvas / 无图片资源
+   技法映射：
+     宣纸   → 多层 radial-gradient 叠加 + 纤维纹 repeating-linear-gradient
+     远近   → filter: blur() 梯度 + opacity 梯度（空气透视 = 三远法）
+     墨韵   → mask-image 渐隐（模拟墨色洇散入纸，而非硬边）
+     皴法   → 斜向 repeating-linear-gradient + mix-blend-mode: multiply
+     松针   → repeating-conic-gradient 放射 + 椭圆 mask 裁成伞状
+     飞檐   → 多点 polygon 逼近凹曲线
+   ========================================================================== */
+
+:root{
+  --ink-900:#14120f;
+  --ink-700:#332f2a;
+  --ink-500:#5b564e;
+  --ink-300:#8a847a;
+  --ink-150:#aaa398;
+  --paper:#ece4d2;
+  --paper-warm:#e2d7bf;
+  --seal:#9e2f27;
+
+  --dur-mist: 46s;
+  --dur-fall: 1.1s;
+  --dur-bird: 26s;
+}
+
+*{ box-sizing:border-box; margin:0; padding:0; }
+
+html,body{ height:100%; }
+
+body{
+  min-height:100%;
+  display:grid;
+  place-items:center;
+  padding:clamp(12px,3vw,44px);
+  background:
+    radial-gradient(120% 90% at 50% 0%, #2a2723 0%, #17151300 60%),
+    linear-gradient(160deg,#211f1c,#121110 70%);
+  font-family:"Songti SC","STSong","SimSun","Noto Serif SC",serif;
+}
+
+/* ---------- 画卷外框：木轴 + 绫边 ---------- */
+.scroll{
+  width:min(100%,1180px);
+  padding:clamp(10px,1.6vw,20px);
+  border-radius:2px;
+  background:
+    linear-gradient(180deg,#6a5a44,#514431 12%,#5d4e3a 88%,#3f3527);
+  box-shadow:
+    0 40px 90px -30px rgba(0,0,0,.85),
+    0 0 0 1px rgba(255,255,255,.05) inset;
+}
+
+/* ---------- 宣纸 ---------- */
+.scene{
+  position:relative;
+  aspect-ratio:16/10;
+  overflow:hidden;
+  isolation:isolate;
+  background-color:var(--paper);
+  background-image:
+    /* 陈年茶渍：几处不规则暖斑 */
+    radial-gradient(38% 30% at 14% 78%, rgba(160,132,86,.14), transparent 70%),
+    radial-gradient(30% 24% at 82% 22%, rgba(150,124,80,.12), transparent 70%),
+    radial-gradient(22% 40% at 55% 96%, rgba(140,116,74,.10), transparent 72%),
+    /* 四角压暗：老纸边缘氧化 */
+    radial-gradient(120% 100% at 50% 50%, transparent 52%, rgba(94,78,52,.20) 100%),
+    /* 纸纤维：两组交错细纹 */
+    repeating-linear-gradient(92deg, rgba(120,100,68,.045) 0 1px, transparent 1px 4px),
+    repeating-linear-gradient(2deg,  rgba(120,100,68,.035) 0 1px, transparent 1px 6px),
+    linear-gradient(174deg,#f0e9d9,#e3d8c1);
+  box-shadow: 0 0 0 1px rgba(60,48,30,.35) inset;
+}
+
+/* ==========================================================================
+   1. 远山（最淡、最虚）—— 高远之始
+   ========================================================================== */
+.range{
+  position:absolute;
+  left:0; right:0;
+  pointer-events:none;
+}
+.range::after{ /* 山体本身 */
+  content:"";
+  position:absolute; inset:0;
+  background:linear-gradient(to bottom, var(--c1), var(--c2));
+  clip-path:var(--shape);
+  filter:blur(var(--soft));
+  -webkit-mask-image:linear-gradient(to bottom,#000 0%,#000 46%,transparent 96%);
+          mask-image:linear-gradient(to bottom,#000 0%,#000 46%,transparent 96%);
+}
+
+/* 最远一层：几乎只剩轮廓 */
+.range--far{
+  top:19%; height:26%;
+  --c1:rgba(138,132,122,.42);
+  --c2:rgba(138,132,122,.02);
+  --soft:3.2px;
+  --shape:polygon(
+    0% 100%, 0% 58%, 5% 46%, 9% 55%, 14% 38%, 18% 49%,
+    23% 33%, 28% 45%, 33% 29%, 38% 42%, 44% 31%, 50% 47%,
+    56% 36%, 62% 52%, 68% 41%, 74% 57%, 81% 45%, 88% 60%,
+    94% 50%, 100% 63%, 100% 100%);
+}
+
+/* 次远一层：稍浓，产生层叠推远 */
+.range--far2{
+  top:26%; height:24%;
+  --c1:rgba(112,106,96,.50);
+  --c2:rgba(112,106,96,.03);
+  --soft:2.2px;
+  --shape:polygon(
+    0% 100%, 0% 66%, 7% 54%, 13% 63%, 20% 44%, 27% 58%,
+    34% 47%, 41% 62%, 48% 50%, 56% 66%, 64% 54%, 72% 69%,
+    80% 58%, 88% 72%, 100% 62%, 100% 100%);
+}
+
+/* ==========================================================================
+   2. 主峰（近山 · 高远）—— 画面骨架，带皴法
+   ========================================================================== */
+.peak{
+  position:absolute;
+  left:37%; width:64%;
+  top:5%;  height:66%;
+  clip-path:polygon(
+    0% 100%, 3% 74%, 7% 61%, 11% 67%, 16% 47%, 21% 55%,
+    25% 33%, 30% 41%, 34% 18%, 38% 5%,  42% 21%, 46% 12%,
+    50% 30%, 55% 20%, 59% 42%, 64% 31%, 69% 52%, 75% 40%,
+    81% 58%, 87% 49%, 93% 65%, 100% 57%, 100% 100%);
+  background:
+    linear-gradient(102deg,
+      rgba(20,18,15,.80) 0%,
+      rgba(20,18,15,.52) 26%,
+      rgba(20,18,15,.14) 48%,
+      rgba(20,18,15,.34) 74%,
+      rgba(20,18,15,.66) 100%);
+  filter:blur(.35px);
+  -webkit-mask-image:linear-gradient(to bottom,#000 0%,#000 52%,rgba(0,0,0,.35) 82%,transparent 100%);
+          mask-image:linear-gradient(to bottom,#000 0%,#000 52%,rgba(0,0,0,.35) 82%,transparent 100%);
+}
+
+/* 皴：斧劈 + 披麻两组交叠，只压在背光面 */
+.peak__cun{
+  position:absolute; inset:0;
+  mix-blend-mode:multiply;
+  opacity:.55;
+  background-image:
+    repeating-linear-gradient(108deg, rgba(20,18,15,.42) 0 1px, transparent 1px 8px),
+    repeating-linear-gradient(96deg,  rgba(20,18,15,.26) 0 1px, transparent 1px 14px),
+    repeating-linear-gradient(122deg, rgba(20,18,15,.18) 0 1px, transparent 1px 5px);
+  -webkit-mask-image:
+    radial-gradient(80% 70% at 16% 62%, #000 0%, transparent 78%),
+    radial-gradient(52% 60% at 88% 74%, #000 0%, transparent 80%);
+          mask-image:
+    radial-gradient(80% 70% at 16% 62%, #000 0%, transparent 78%),
+    radial-gradient(52% 60% at 88% 74%, #000 0%, transparent 80%);
+  -webkit-mask-composite:source-over;
+}
+
+/* 山顶留白：飞白，让峰头透气 */
+.peak__blank{
+  position:absolute; inset:0;
+  background:radial-gradient(46% 22% at 39% 12%, rgba(236,228,210,.85), transparent 70%);
+}
+
+/* ==========================================================================
+   3. 瀑布 —— 位于主峰局部 30% 处的山凹
+   全局 x ≈ 37% + .30×64% ≈ 56.2%
+   全局 y 起点 ≈ 5% + .41×66% ≈ 32%
+   ========================================================================== */
+.fall{
+  position:absolute;
+  left:55.4%;
+  top:31.5%;
+  width:1.9%;
+  height:29%;
+  border-radius:40% 40% 30% 30% / 8% 8% 4% 4%;
+  background:
+    /* 主体：留白（纸色）即水，边缘两道墨线夹出水柱 */
+    linear-gradient(90deg,
+      rgba(20,18,15,.42) 0 8%,
+      rgba(248,244,234,.96) 14% 86%,
+      rgba(20,18,15,.36) 92% 100%);
+  filter:blur(.3px);
+  -webkit-mask-image:linear-gradient(to bottom,transparent 0,#000 7%,#000 84%,transparent 100%);
+          mask-image:linear-gradient(to bottom,transparent 0,#000 7%,#000 84%,transparent 100%);
+}
+/* 流动的水纹：垂直细条向下滚动 */
+.fall::before{
+  content:"";
+  position:absolute; inset:0;
+  background-image:repeating-linear-gradient(
+    to bottom,
+    rgba(20,18,15,.20) 0 2px,
+    transparent 2px 13px);
+  background-size:100% 26px;
+  animation:fallFlow var(--dur-fall) linear infinite;
+}
+@keyframes fallFlow{ to{ background-position:0 26px; } }
+
+/* 水柱两侧的溅雾 */
+.fall__haze{
+  position:absolute;
+  left:53.4%;
+  top:34%;
+  width:6%;
+  height:26%;
+  background:radial-gradient(50% 60% at 50% 40%, rgba(250,246,236,.72), transparent 72%);
+  filter:blur(5px);
+  animation:hazeBreath 5.5s ease-in-out infinite alternate;
+}
+@keyframes hazeBreath{ from{opacity:.55; transform:scaleY(.94);} to{opacity:.95; transform:scaleY(1.06);} }
+
+/* 落潭水花 */
+.fall__splash{
+  position:absolute;
+  left:52.2%;
+  top:58.4%;
+  width:8.6%;
+  height:5%;
+  background:
+    radial-gradient(60% 90% at 50% 60%, rgba(252,249,241,.92), transparent 74%),
+    radial-gradient(90% 60% at 44% 84%, rgba(20,18,15,.16), transparent 76%);
+  filter:blur(3.6px);
+  animation:splash 2.4s ease-in-out infinite alternate;
+}
+@keyframes splash{
+  from{ transform:scale(.9) translateY(1px); opacity:.7; }
+  to  { transform:scale(1.12) translateY(-2px); opacity:1; }
+}
+
+/* ==========================================================================
+   4. 中景左岭
+   ========================================================================== */
+.ridge-mid{
+  position:absolute;
+  left:-4%; width:56%;
+  top:33%;  height:31%;
+  clip-path:polygon(
+    0% 100%, 0% 62%, 5% 50%, 10% 58%, 16% 40%, 22% 52%,
+    28% 36%, 35% 49%, 42% 38%, 49% 55%, 57% 44%, 65% 60%,
+    74% 50%, 84% 66%, 92% 58%, 100% 72%, 100% 100%);
+  background:linear-gradient(115deg,
+    rgba(30,27,23,.62), rgba(30,27,23,.20) 55%, rgba(30,27,23,.44));
+  filter:blur(.9px);
+  -webkit-mask-image:linear-gradient(to bottom,#000 0%,#000 44%,transparent 92%);
+          mask-image:linear-gradient(to bottom,#000 0%,#000 44%,transparent 92%);
+}
+.ridge-mid__cun{
+  position:absolute; inset:0;
+  mix-blend-mode:multiply; opacity:.4;
+  background-image:repeating-linear-gradient(112deg, rgba(20,18,15,.30) 0 1px, transparent 1px 9px);
+  -webkit-mask-image:radial-gradient(70% 70% at 24% 66%, #000, transparent 78%);
+          mask-image:radial-gradient(70% 70% at 24% 66%, #000, transparent 78%);
+}
+
+/* ==========================================================================
+   5. 云雾带 —— 横断画面，是「远/近」的分割线，也是动效主体
+   ========================================================================== */
+.mist{
+  position:absolute;
+  left:-30%; width:170%;
+  pointer-events:none;
+  background:
+    radial-gradient(34% 58% at 12% 50%, rgba(248,243,232,.95), transparent 72%),
+    radial-gradient(26% 46% at 30% 62%, rgba(248,243,232,.80), transparent 74%),
+    radial-gradient(40% 62% at 52% 44%, rgba(248,243,232,.92), transparent 70%),
+    radial-gradient(24% 44% at 71% 60%, rgba(248,243,232,.78), transparent 76%),
+    radial-gradient(32% 54% at 88% 48%, rgba(248,243,232,.88), transparent 72%);
+  filter:blur(9px);
+}
+.mist--a{ top:41%; height:15%; opacity:.94; animation:drift var(--dur-mist) linear infinite; }
+.mist--b{ top:47%; height:12%; opacity:.72; animation:drift calc(var(--dur-mist)*1.55) linear infinite reverse; }
+.mist--c{ top:24%; height:11%; opacity:.5;  animation:drift calc(var(--dur-mist)*2.1) linear infinite; }
+.mist--d{ top:62%; height:14%; opacity:.62; animation:drift calc(var(--dur-mist)*1.25) linear infinite reverse; }
+
+@keyframes drift{
+  0%  { transform:translate3d(-8%,0,0)   scaleY(1); }
+  50% { transform:translate3d(4%,-1.2%,0) scaleY(1.14); }
+  100%{ transform:translate3d(-8%,0,0)   scaleY(1); }
+}
+
+/* 山腰缠绕的一缕：更窄更亮，强调「缭绕」 */
+.mist--wisp{
+  top:52%; height:6%;
+  left:18%; width:64%;
+  background:radial-gradient(50% 90% at 50% 50%, rgba(252,248,240,1), transparent 76%);
+  filter:blur(5px);
+  opacity:.9;
+  animation:wisp 19s ease-in-out infinite alternate;
+}
+@keyframes wisp{
+  from{ transform:translateX(-5%) scaleX(.9); opacity:.55; }
+  to  { transform:translateX(6%)  scaleX(1.16); opacity:1; }
+}
+
+/* ==========================================================================
+   6. 近岸坡石
+   ========================================================================== */
+.bank{
+  position:absolute;
+  left:-6%; width:64%;
+  top:60%;  height:44%;
+  clip-path:polygon(
+    0% 100%, 0% 44%, 4% 36%, 9% 43%, 15% 31%, 21% 40%,
+    27% 33%, 33% 45%, 40% 38%, 47% 52%, 54% 46%, 62% 60%,
+    70% 55%, 78% 70%, 86% 66%, 94% 82%, 100% 78%, 100% 100%);
+  background:linear-gradient(96deg,
+    rgba(16,14,12,.90), rgba(16,14,12,.52) 40%, rgba(16,14,12,.24) 62%, rgba(16,14,12,.58));
+  filter:blur(.25px);
+}
+.bank__cun{
+  position:absolute; inset:0;
+  mix-blend-mode:multiply; opacity:.6;
+  background-image:
+    repeating-linear-gradient(104deg, rgba(12,10,8,.5) 0 1.2px, transparent 1.2px 7px),
+    repeating-linear-gradient(78deg,  rgba(12,10,8,.3) 0 1px,   transparent 1px 12px);
+  -webkit-mask-image:radial-gradient(90% 80% at 30% 40%, #000, transparent 84%);
+          mask-image:radial-gradient(90% 80% at 30% 40%, #000, transparent 84%);
+}
+/* 岸上苔点：米点皴 */
+.bank__moss{
+  position:absolute; inset:0;
+  opacity:.5;
+  background-image:
+    radial-gradient(2.4px 1.6px at 18% 22%, rgba(12,10,8,.85), transparent),
+    radial-gradient(2px 1.4px  at 26% 30%, rgba(12,10,8,.75), transparent),
+    radial-gradient(2.6px 1.8px at 34% 24%, rgba(12,10,8,.8),  transparent),
+    radial-gradient(2px 1.4px  at 45% 36%, rgba(12,10,8,.7),  transparent),
+    radial-gradient(2.4px 1.6px at 57% 44%, rgba(12,10,8,.78), transparent),
+    radial-gradient(2px 1.4px  at 68% 52%, rgba(12,10,8,.66), transparent),
+    radial-gradient(2.6px 1.8px at 12% 40%, rgba(12,10,8,.8),  transparent),
+    radial-gradient(2px 1.4px  at 39% 52%, rgba(12,10,8,.7),  transparent);
+  background-size:52% 46%;
+}
+
+/* ==========================================================================
+   7. 松树 —— 主角配景
+   构造：trunk（渐细） + 若干 bough（repeating-conic-gradient 松针扇）
+   ========================================================================== */
+.pine{
+  position:absolute;
+  bottom:var(--b);
+  left:var(--x);
+  width:var(--w);
+  height:var(--h);
+  transform:scaleX(var(--flip,1));
+  z-index:5;
+}
+.pine__trunk{
+  position:absolute;
+  left:50%; bottom:0;
+  width:10%;
+  height:82%;
+  transform:translateX(-50%) rotate(var(--lean,-3deg));
+  transform-origin:bottom center;
+  background:linear-gradient(90deg, rgba(10,9,7,.95), rgba(10,9,7,.6) 60%, rgba(10,9,7,.88));
+  clip-path:polygon(28% 100%, 72% 100%, 60% 0%, 40% 0%);
+  border-radius:2px;
+}
+/* 树干上的鳞纹 */
+.pine__trunk::after{
+  content:"";
+  position:absolute; inset:0;
+  background-image:repeating-linear-gradient(to bottom, rgba(240,235,222,.5) 0 1px, transparent 1px 6px);
+  mix-blend-mode:screen; opacity:.5;
+}
+/* 出枝 */
+.pine__arm{
+  position:absolute;
+  height:2px;
+  background:linear-gradient(90deg, rgba(10,9,7,.92), rgba(10,9,7,.3));
+  transform-origin:left center;
+  border-radius:2px;
+}
+/* 松针扇面 */
+.pine__needle{
+  position:absolute;
+  width:var(--nw);
+  height:var(--nh);
+  background:repeating-conic-gradient(
+    from -96deg at 50% 100%,
+    rgba(14,20,14,.88) 0deg 1.1deg,
+    transparent 1.1deg 5.6deg);
+  -webkit-mask-image:radial-gradient(ellipse 100% 96% at 50% 100%, #000 42%, rgba(0,0,0,.55) 68%, transparent 86%);
+          mask-image:radial-gradient(ellipse 100% 96% at 50% 100%, #000 42%, rgba(0,0,0,.55) 68%, transparent 86%);
+  transform-origin:50% 100%;
+  filter:blur(.15px);
+  animation:needleSway var(--sway,7s) ease-in-out infinite alternate;
+}
+@keyframes needleSway{
+  from{ transform:rotate(var(--rot,0deg)) skewX(0deg); }
+  to  { transform:rotate(calc(var(--rot,0deg) + 1.6deg)) skewX(1.4deg); }
+}
+
+/* ==========================================================================
+   8. 亭台
+   ========================================================================== */
+.pavilion{
+  position:absolute;
+  left:29%; bottom:24%;
+  width:11.5%;
+  aspect-ratio:1/1.05;
+  z-index:6;
+  filter:drop-shadow(0 2px 2px rgba(20,18,15,.22));
+}
+/* 飞檐：多点 polygon 逼近两端上翘的凹曲线 */
+.pavilion__roof{
+  position:absolute;
+  left:-9%; top:6%;
+  width:118%; height:34%;
+  background:linear-gradient(180deg, rgba(18,16,13,.94), rgba(18,16,13,.62));
+  clip-path:polygon(
+    0% 66%,  4% 82%,  9% 90%,  16% 94%,
+    24% 82%, 32% 66%, 40% 48%, 50% 26%,
+    60% 48%, 68% 66%, 76% 82%, 84% 94%,
+    91% 90%, 96% 82%, 100% 66%,
+    88% 100%, 12% 100%);
+}
+/* 瓦垄 */
+.pavilion__roof::after{
+  content:"";
+  position:absolute; inset:0;
+  background-image:repeating-linear-gradient(90deg, rgba(236,228,210,.36) 0 1px, transparent 1px 5px);
+  mix-blend-mode:screen;
+}
+/* 宝顶 */
+.pavilion__finial{
+  position:absolute;
+  left:50%; top:0;
+  width:8%; height:11%;
+  transform:translateX(-50%);
+  background:rgba(18,16,13,.95);
+  border-radius:50% 50% 0 0;
+}
+/* 立柱 */
+.pavilion__post{
+  position:absolute;
+  top:40%; height:42%;
+  width:4.5%;
+  background:linear-gradient(90deg, rgba(14,12,10,.95), rgba(14,12,10,.55));
+  border-radius:1px;
+}
+.pavilion__post--l{ left:14%; }
+.pavilion__post--r{ right:14%; }
+.pavilion__post--ml{ left:33%; opacity:.62; }
+.pavilion__post--mr{ right:33%; opacity:.62; }
+/* 栏杆 */
+.pavilion__rail{
+  position:absolute;
+  left:11%; right:11%;
+  top:68%; height:8%;
+  background:
+    linear-gradient(180deg, rgba(16,14,11,.9) 0 22%, transparent 22% 78%, rgba(16,14,11,.9) 78%),
+    repeating-linear-gradient(90deg, rgba(16,14,11,.75) 0 1px, transparent 1px 6px);
+}
+/* 台基 */
+.pavilion__base{
+  position:absolute;
+  left:4%; right:4%;
+  top:82%; height:9%;
+  background:linear-gradient(180deg, rgba(16,14,11,.88), rgba(16,14,11,.5));
+  border-radius:1px;
+}
+
+/* ==========================================================================
+   9. 水面 —— 大量留白，只以横向淡墨线暗示
+   ========================================================================== */
+.water{
+  position:absolute;
+  left:0; right:0; bottom:0;
+  height:32%;
+  background-image:
+    linear-gradient(to right, transparent 4%,  rgba(60,56,48,.20) 22%, transparent 46%),
+    linear-gradient(to right, transparent 30%, rgba(60,56,48,.16) 58%, transparent 82%),
+    linear-gradient(to right, transparent 12%, rgba(60,56,48,.13) 40%, transparent 68%),
+    linear-gradient(to right, transparent 48%, rgba(60,56,48,.11) 74%, transparent 96%);
+  background-size:100% 1px,100% 1px,100% 1px,100% 1px;
+  background-position:0 22%, 0 38%, 0 56%, 0 74%;
+  background-repeat:no-repeat;
+  -webkit-mask-image:linear-gradient(to bottom, transparent, #000 30%, #000 70%, transparent);
+          mask-image:linear-gradient(to bottom, transparent, #000 30%, #000 70%, transparent);
+  animation:ripple 13s ease-in-out infinite alternate;
+}
+@keyframes ripple{
+  from{ background-position:0 22%, 0 38%, 0 56%, 0 74%; }
+  to  { background-position:2% 23%, -2% 37%, 1.5% 57%, -1% 73%; }
+}
+
+/* ==========================================================================
+   10. 飞鸟 —— 两组，寥寥数笔
+   结构：flight（水平位移） > bob（垂直起伏） > bird（振翅）
+   ========================================================================== */
+.flight{
+  position:absolute;
+  left:0;
+  animation:flyAcross var(--fd,var(--dur-bird)) linear infinite;
+  animation-delay:var(--delay,0s);
+  z-index:7;
+}
+@keyframes flyAcross{
+  0%  { transform:translateX(-14vw); opacity:0; }
+  8%  { opacity:.9; }
+  88% { opacity:.9; }
+  100%{ transform:translateX(112vw); opacity:0; }
+}
+.bob{
+  animation:bobY calc(var(--fd,var(--dur-bird)) / 7) ease-in-out infinite alternate;
+}
+@keyframes bobY{ from{ transform:translateY(0); } to{ transform:translateY(-14px); } }
+
+.bird{
+  position:relative;
+  width:var(--bw,18px);
+  height:calc(var(--bw,18px) * .4);
+}
+.bird::before,
+.bird::after{
+  content:"";
+  position:absolute;
+  top:0;
+  width:50%;
+  height:100%;
+  border-top:1.5px solid rgba(20,18,15,.82);
+  animation:flap var(--fl,.7s) ease-in-out infinite alternate;
+}
+.bird::before{
+  left:0;
+  border-radius:60% 100% 0 0 / 100% 100% 0 0;
+  transform-origin:right bottom;
+}
+.bird::after{
+  right:0;
+  border-radius:100% 60% 0 0 / 100% 100% 0 0;
+  transform-origin:left bottom;
+  animation-name:flapR;
+}
+@keyframes flap { from{ transform:rotate(-14deg) scaleY(.7);} to{ transform:rotate(10deg) scaleY(1.15);} }
+@keyframes flapR{ from{ transform:rotate(14deg)  scaleY(.7);} to{ transform:rotate(-10deg) scaleY(1.15);} }
+
+/* 单只鸟在群里的相对位置 */
+.bird--o{ position:absolute; }
+
+/* ==========================================================================
+   11. 题跋与印章
+   ========================================================================== */
+.colophon{
+  position:absolute;
+  right:3.2%;
+  top:7%;
+  writing-mode:vertical-rl;
+  text-orientation:upright;
+  color:rgba(28,25,20,.78);
+  font-size:clamp(11px,1.15vw,16px);
+  letter-spacing:.32em;
+  line-height:1.9;
+  text-shadow:0 0 1px rgba(236,228,210,.6);
+  z-index:8;
+}
+.colophon small{
+  font-size:.72em;
+  letter-spacing:.24em;
+  color:rgba(28,25,20,.55);
+}
+.seal{
+  display:block;
+  margin-top:.9em;
+  width:clamp(20px,2.1vw,30px);
+  aspect-ratio:1;
+  writing-mode:horizontal-tb;
+  display:grid;
+  place-items:center;
+  color:#f6ece0;
+  background:var(--seal);
+  border-radius:2px;
+  font-size:clamp(11px,1.15vw,16px);
+  letter-spacing:0;
+  box-shadow:0 0 0 1px rgba(158,47,39,.5), 0 1px 3px rgba(0,0,0,.25);
+  opacity:.9;
+  filter:contrast(1.05);
+}
+/* 印泥的斑驳 */
+.seal::after{
+  content:"";
+  position:absolute; inset:0;
+  background-image:
+    radial-gradient(1.5px 1.5px at 22% 30%, rgba(236,228,210,.5), transparent),
+    radial-gradient(2px 1.2px  at 68% 62%, rgba(236,228,210,.4), transparent),
+    radial-gradient(1.2px 2px  at 44% 80%, rgba(236,228,210,.35), transparent);
+}
+
+/* 左下角闲章 */
+.seal--corner{
+  position:absolute;
+  left:5%; bottom:6%;
+  z-index:8;
+  margin:0;
+}
+
+/* ==========================================================================
+   12. 无障碍：尊重 prefers-reduced-motion
+   ========================================================================== */
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{
+    animation-duration:.001ms !important;
+    animation-iteration-count:1 !important;
+    transition-duration:.001ms !important;
+  }
+}
+
+/* ---------- 小屏微调：竖屏时改用更方的画幅 ---------- */
+@media (max-aspect-ratio:1/1){
+  .scene{ aspect-ratio:4/5; }
+  .colophon{ font-size:11px; letter-spacing:.24em; }
+}
+</style>
+</head>
+<body>
+
+<div class="scroll">
+  <figure class="scene" role="img"
+    aria-label="纯 CSS 绘制的中国水墨山水：远山层叠，主峰高耸，山凹垂下一道瀑布落入寒潭，云雾横腰缭绕，近岸有松树三株与临水草亭，天际两行飞鸟掠过。">
+
+    <!-- 远山 -->
+    <div class="range range--far"></div>
+    <div class="range range--far2"></div>
+
+    <!-- 主峰 -->
+    <div class="peak">
+      <div class="peak__cun"></div>
+      <div class="peak__blank"></div>
+    </div>
+
+    <!-- 瀑布 -->
+    <div class="fall__haze"></div>
+    <div class="fall"></div>
+    <div class="fall__splash"></div>
+
+    <!-- 中景左岭 -->
+    <div class="ridge-mid"><div class="ridge-mid__cun"></div></div>
+
+    <!-- 云雾（分层，速度各异） -->
+    <div class="mist mist--c"></div>
+    <div class="mist mist--a"></div>
+    <div class="mist mist--b"></div>
+    <div class="mist mist--wisp"></div>
+
+    <!-- 近岸 -->
+    <div class="bank">
+      <div class="bank__cun"></div>
+      <div class="bank__moss"></div>
+    </div>
+
+    <!-- 松树 · 主株（近，最大） -->
+    <div class="pine" style="--x:12%; --b:20%; --w:15%; --h:30%; --lean:-4deg;">
+      <div class="pine__trunk"></div>
+      <div class="pine__arm" style="left:50%; top:18%; width:30%; transform:rotate(-24deg);"></div>
+      <div class="pine__arm" style="left:50%; top:34%; width:34%; transform:rotate(198deg);"></div>
+      <div class="pine__arm" style="left:50%; top:52%; width:26%; transform:rotate(-14deg);"></div>
+      <div class="pine__needle" style="--nw:56%; --nh:20%; left:56%;  top:6%;  --rot:6deg;  --sway:7s;"></div>
+      <div class="pine__needle" style="--nw:62%; --nh:22%; left:-16%; top:20%; --rot:-9deg; --sway:8.4s;"></div>
+      <div class="pine__needle" style="--nw:52%; --nh:19%; left:52%;  top:34%; --rot:11deg; --sway:6.2s;"></div>
+      <div class="pine__needle" style="--nw:58%; --nh:20%; left:-8%;  top:48%; --rot:-6deg; --sway:9.1s;"></div>
+      <div class="pine__needle" style="--nw:46%; --nh:16%; left:26%;  top:-4%; --rot:1deg;  --sway:7.7s;"></div>
+    </div>
+
+    <!-- 松树 · 次株 -->
+    <div class="pine" style="--x:22%; --b:26%; --w:11%; --h:22%; --lean:5deg; --flip:-1;">
+      <div class="pine__trunk"></div>
+      <div class="pine__arm" style="left:50%; top:24%; width:30%; transform:rotate(-20deg);"></div>
+      <div class="pine__arm" style="left:50%; top:44%; width:28%; transform:rotate(200deg);"></div>
+      <div class="pine__needle" style="--nw:60%; --nh:22%; left:50%;  top:10%; --rot:8deg;  --sway:8s;"></div>
+      <div class="pine__needle" style="--nw:56%; --nh:20%; left:-12%; top:30%; --rot:-8deg; --sway:6.6s;"></div>
+      <div class="pine__needle" style="--nw:48%; --nh:17%; left:24%;  top:-2%; --rot:2deg;  --sway:9.4s;"></div>
+    </div>
+
+    <!-- 松树 · 远株（更淡，压在亭后） -->
+    <div class="pine" style="--x:43%; --b:29%; --w:8%; --h:16%; --lean:-6deg; opacity:.55; filter:blur(.5px); z-index:4;">
+      <div class="pine__trunk"></div>
+      <div class="pine__arm" style="left:50%; top:30%; width:32%; transform:rotate(-18deg);"></div>
+      <div class="pine__needle" style="--nw:62%; --nh:24%; left:44%;  top:12%; --rot:7deg;  --sway:10s;"></div>
+      <div class="pine__needle" style="--nw:54%; --nh:20%; left:-10%; top:32%; --rot:-7deg; --sway:11s;"></div>
+    </div>
+
+    <!-- 亭台 -->
+    <div class="pavilion">
+      <div class="pavilion__finial"></div>
+      <div class="pavilion__roof"></div>
+      <div class="pavilion__post pavilion__post--l"></div>
+      <div class="pavilion__post pavilion__post--ml"></div>
+      <div class="pavilion__post pavilion__post--mr"></div>
+      <div class="pavilion__post pavilion__post--r"></div>
+      <div class="pavilion__rail"></div>
+      <div class="pavilion__base"></div>
+    </div>
+
+    <!-- 水面 -->
+    <div class="water"></div>
+
+    <!-- 飞鸟 · 第一群（高处，快） -->
+    <div class="flight" style="top:14%; --fd:24s; --delay:-3s;">
+      <div class="bob">
+        <div class="bird" style="--bw:20px; --fl:.62s;"></div>
+        <div class="bird bird--o" style="--bw:14px; --fl:.74s; left:28px; top:11px;"></div>
+        <div class="bird bird--o" style="--bw:11px; --fl:.55s; left:52px; top:-6px;"></div>
+        <div class="bird bird--o" style="--bw:9px;  --fl:.83s; left:74px; top:17px;"></div>
+      </div>
+    </div>
+
+    <!-- 飞鸟 · 第二群（稍低，慢，更淡） -->
+    <div class="flight" style="top:23%; --fd:37s; --delay:-16s; opacity:.68;">
+      <div class="bob">
+        <div class="bird" style="--bw:13px; --fl:.78s;"></div>
+        <div class="bird bird--o" style="--bw:9px;  --fl:.66s; left:22px; top:9px;"></div>
+        <div class="bird bird--o" style="--bw:7px;  --fl:.9s;  left:40px; top:-5px;"></div>
+      </div>
+    </div>
+
+    <!-- 题跋 -->
+    <figcaption class="colophon">
+      溪山行旅
+      <small>丙午秋日写于纸上</small>
+      <span class="seal">墨</span>
+    </figcaption>
+
+    <span class="seal seal--corner">閒</span>
+  </figure>
+</div>
+
+</body>
+</html>

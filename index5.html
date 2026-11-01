@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#edeee8">
+  <meta name="description" content="四种天空，各自成景。晴天、大风、暴雨与暴雪的动态气象卡片。">
+  <title>气象之间 · Between Skies</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='18' fill='%232e3830'/%3E%3Ccircle cx='32' cy='32' r='12' fill='none' stroke='%23eceddf' stroke-width='2'/%3E%3Cpath d='M32 8v6m0 36v6M8 32h6m36 0h6M15 15l4 4m26 26 4 4M15 49l4-4m26-26 4-4' stroke='%23eceddf' stroke-width='2'/%3E%3C/svg%3E">
+  <style>
+    :root {
+      color-scheme: light;
+      --paper: #edeee8;
+      --ink: #30392f;
+      --muted: #858a7e;
+      --serif: "Noto Serif CJK SC", "Songti SC", "STSong", "SimSun", serif;
+      --sans: "Microsoft YaHei", "PingFang SC", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(--sans); -webkit-font-smoothing: antialiased; }
+    ::selection { background: #c3cebc; color: #253323; }
+    .page { max-width: 1496px; min-height: 100svh; margin: auto; padding: 34px 54px 27px; display: flex; flex-direction: column; justify-content: center; }
+    .topbar { display: flex; justify-content: space-between; align-items: center; gap: 24px; }
+    .brand { display: flex; align-items: center; gap: 11px; }
+    .brand-mark { width: 32px; height: 32px; fill: none; stroke: currentColor; stroke-width: 1.15; }
+    .brand-name { font-size: 17px; font-weight: 600; letter-spacing: 3px; }
+    .brand-english { margin-left: 10px; padding-left: 13px; border-left: 1px solid #c9cfc0; font-family: Arial, sans-serif; font-size: 9px; letter-spacing: 2.5px; color: #788170; }
+    .topbar-note { display: flex; align-items: center; gap: 10px; font-size: 10px; color: #7b8274; letter-spacing: 1.1px; }
+    .topbar-note::before { content: ""; width: 5px; height: 5px; border-radius: 50%; background: #9ca88b; }
+    .page-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 25px; margin: 35px 0 25px; }
+    h1 { margin: 0; font-family: var(--serif); font-size: 32px; font-weight: 400; letter-spacing: 2.4px; line-height: 1.5; }
+    .heading-caption { margin: 8px 0 1px; font-size: 11px; color: #858a7e; letter-spacing: 1.3px; }
+    .edition { padding-bottom: 4px; text-align: right; }
+    .edition span { display: block; font-family: Georgia, serif; font-size: 16px; font-style: italic; color: #6c7664; }
+    .edition small { display: block; font-family: Arial, sans-serif; font-size: 8px; letter-spacing: 2px; color: #999e91; margin-top: 6px; }
+    .weather-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 19px; }
+    .weather-card { position: relative; isolation: isolate; display: flex; flex-direction: column; height: clamp(470px, calc(100svh - 285px), 558px); overflow: hidden; border-radius: 23px; color: var(--text); background: var(--sky); box-shadow: inset 0 0 0 1px #ffffff30, 0 4px 5px #34433404, 0 18px 30px -23px #34433455; }
+    .weather-card::after { content: ""; position: absolute; inset: 0; z-index: 6; pointer-events: none; border-radius: inherit; box-shadow: inset 0 0 0 1px #ffffff22; }
+    .sunny { --sky: #e6bb75; --text: #544024; --rule: #78522c2c; --detail: #745a38; --dot: #9b642d; }
+    .windy { --sky: #718879; --text: #f0f1e5; --rule: #d8e6d12a; --detail: #c6d0be; --dot: #d6dfbd; }
+    .rainy { --sky: #29384d; --text: #edf1f6; --rule: #c6d9e624; --detail: #b0bfd0; --dot: #aac6ec; }
+    .snowy { --sky: #a2b7c7; --text: #354c5d; --rule: #4e6a7e2d; --detail: #627c8d; --dot: #526e82; }
+    .sky { position: absolute; inset: 0; overflow: hidden; pointer-events: none; z-index: -1; }
+    .sky > svg, .atmosphere { position: absolute; display: block; width: 100%; height: 100%; inset: 0; }
+    .atmosphere { z-index: 2; }
+    .card-head { position: relative; z-index: 4; padding: 25px 24px 0; }
+    .card-index { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-family: Arial, sans-serif; font-size: 8px; letter-spacing: 1.8px; color: var(--detail); }
+    .card-index > span:first-child { display: flex; gap: 9px; align-items: center; }
+    .card-index .index-number { opacity: .62; letter-spacing: .5px; }
+    .condition-mark { width: 21px; height: 21px; fill: none; stroke: currentColor; stroke-width: 1.2; stroke-linecap: round; stroke-linejoin: round; opacity: .8; }
+    .condition-name { margin: 16px 0 0; font-size: 23px; font-weight: 500; letter-spacing: 4px; line-height: 1.45; }
+    .condition-english { margin: 5px 0 0; font-family: Georgia, serif; font-size: 12px; font-style: italic; letter-spacing: .5px; color: var(--detail); }
+    .card-bottom { position: relative; z-index: 4; margin-top: auto; padding: 25px 24px 23px; }
+    .place { display: flex; align-items: center; gap: 7px; font-size: 10px; letter-spacing: 1px; margin-bottom: 13px; }
+    .place svg { width: 12px; height: 12px; fill: none; stroke: currentColor; stroke-width: 1.25; }
+    .place .place-en { margin-left: 2px; font-family: Arial, sans-serif; font-size: 7px; letter-spacing: 1.3px; opacity: .58; }
+    .temperature-row { display: flex; align-items: flex-end; justify-content: space-between; gap: 8px; }
+    .temperature { display: flex; align-items: flex-start; font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif; font-size: 67px; font-weight: 300; letter-spacing: -2.5px; line-height: .95; font-variant-numeric: lining-nums tabular-nums; }
+    .degree { font-size: 31px; font-weight: 300; line-height: 1; margin: 3px 0 0 2px; letter-spacing: 0; }
+    .temperature-range { padding-bottom: 6px; text-align: right; font-size: 9px; color: var(--detail); white-space: nowrap; }
+    .range-bar { display: block; width: 41px; height: 2px; margin: 7px 0 7px auto; background: var(--rule); border-radius: 2px; }
+    .range-bar::after { content: ""; display: block; width: 26px; height: 2px; border-radius: inherit; background: var(--dot); opacity: .6; }
+    .card-caption { margin: 17px 0 22px; font-size: 10px; line-height: 1.8; letter-spacing: .5px; color: var(--detail); }
+    .weather-stats { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 9px; margin: 0; padding-top: 17px; border-top: 1px solid var(--rule); }
+    .weather-stats dt { font-size: 9px; color: var(--detail); letter-spacing: .7px; }
+    .weather-stats dd { margin: 7px 0 0; font-family: "Segoe UI", Arial, var(--sans); font-size: 15px; line-height: 1.2; font-weight: 400; white-space: nowrap; }
+    .weather-stats dd span { font-family: Arial, var(--sans); font-size: 8px; color: var(--detail); margin-left: 3px; }
+    .weather-stats > div:last-child { text-align: right; }
+    .weather-stats > div:nth-child(2) { padding-left: 5px; }
+    .sunny .sky { background: radial-gradient(ellipse at 56% 29%, #f9e5b380 0, #f2d39800 47%), linear-gradient(160deg, #dcae69 0%, #efcf98 56%, #e5bd82 100%); }
+    .sunny .card-bottom { background: linear-gradient(transparent, #eac78da8 37%, #e8c58ef5 100%); }
+    .sun-halo { position: absolute; left: 52%; top: 28%; width: 108px; height: 108px; transform: translate(-50%,-50%); border-radius: 50%; background: #fff2c48c; box-shadow: 0 0 42px 27px #ffe9ad68, 0 0 85px 62px #ffe2a527; animation: sun-breath 7s ease-in-out infinite alternate; }
+    .sun { position: absolute; left: 52%; top: 28%; width: 77px; height: 77px; transform: translate(-50%,-50%); border-radius: 50%; background: radial-gradient(circle at 40% 35%, #fff9df, #fff1c3 71%, #ffe4a2); box-shadow: inset 0 0 16px #fff7df8a, 0 0 14px #fff2ce8f; }
+    .sun-orbit { position: absolute; width: 151px; height: 151px; left: 52%; top: 28%; transform: translate(-50%,-50%); border: 1px solid #ffefc72a; border-radius: 50%; }
+    .sun-orbit::after { content: ""; position: absolute; inset: -24px; border: 1px solid #fff0cf15; border-radius: 50%; }
+    .sun-rays { position: absolute; width: 250px; height: 250px; left: 52%; top: 28%; translate: -50% -50%; opacity: .42; background: repeating-conic-gradient(from 0deg, transparent 0deg 11deg, #fff4d319 12deg 14deg, transparent 15deg 30deg); mask-image: radial-gradient(circle, transparent 30%, black 46%, transparent 69%); animation: sunlight-turn 95s linear infinite; }
+    .sun-haze { position: absolute; width: 210px; height: 18px; left: -17%; top: 42%; background: #fff1cf; filter: blur(15px); opacity: .35; animation: warm-haze 17s ease-in-out infinite alternate; }
+    .sun-haze.two { left: 48%; top: 20%; width: 150px; opacity: .24; animation-delay: -9s; }
+    @keyframes sun-breath { from { opacity: .73; scale: .93; } to { opacity: 1; scale: 1.08; } }
+    @keyframes sunlight-turn { to { rotate: 360deg; } }
+    @keyframes warm-haze { from { transform: translateX(-8px); } to { transform: translateX(43px); } }
+
+    .windy .sky { background: radial-gradient(ellipse at 67% 27%, #a1b0a25c, transparent 50%), linear-gradient(155deg, #617c70 0%, #89a091 47%, #516d5c 100%); }
+    .windy .card-bottom { background: linear-gradient(transparent, #3f5b49a6 36%, #395440f5 100%); }
+    .wind-cloud { animation: wind-cloud-drift 19s ease-in-out infinite alternate; }
+    .wind-cloud.second { animation-delay: -12s; animation-duration: 24s; }
+    .wind-path { fill: none; stroke: #e7efd9; stroke-width: 1.35; stroke-linecap: round; }
+    .wind-path.base { opacity: .14; }
+    .wind-path.running { stroke-dasharray: 90 420; opacity: .6; animation: wind-flow 3.8s linear infinite; }
+    .wind-path.running.two { animation-delay: -1.6s; animation-duration: 4.4s; stroke-width: 1; opacity: .48; }
+    .wind-path.running.three { animation-delay: -2.8s; animation-duration: 3.2s; stroke-width: 1.2; opacity: .7; }
+    .grass-group { transform-origin: 236px 412px; animation: grass-sway 2.8s ease-in-out infinite alternate; }
+    .grass-group.second { transform-origin: 56px 417px; animation-delay: -.8s; animation-duration: 3.5s; }
+    @keyframes wind-flow { from { stroke-dashoffset: 510; } to { stroke-dashoffset: 0; } }
+    @keyframes wind-cloud-drift { from { transform: translateX(-22px); } to { transform: translateX(36px); } }
+    @keyframes grass-sway { from { transform: skewX(-4deg) rotate(-3deg); } to { transform: skewX(8deg) rotate(7deg); } }
+
+    .rainy .sky { background: radial-gradient(ellipse at 62% 30%, #60748c6b, transparent 52%), linear-gradient(150deg, #2a3549, #354b62 50%, #243446); }
+    .rainy .card-bottom { background: linear-gradient(transparent, #253649b8 33%, #223044fc 100%); }
+    .rain-cloud { animation: cloud-brood 8s ease-in-out infinite alternate; }
+    .lightning { opacity: 0; animation: lightning 12s linear infinite; }
+    .lightning-light { position: absolute; inset: 0; opacity: 0; background: radial-gradient(ellipse at 62% 33%, #d8e7ff70, transparent 64%); animation: lightning-wash 12s linear infinite; }
+    .rain-ripple { fill: none; stroke: #b5d4ec; stroke-width: .65; transform-box: fill-box; transform-origin: center; animation: ripple 3s ease-out infinite; }
+    .rain-ripple.two { animation-delay: -1.7s; }
+    .rain-ripple.three { animation-delay: -.8s; }
+    @keyframes cloud-brood { from { transform: translate(-3px, 0); } to { transform: translate(6px, 4px); } }
+    @keyframes lightning { 0%, 76%, 78%, 79.2%, 81%, 100% { opacity: 0; } 76.5%, 77% { opacity: .82; } 79.5%, 80% { opacity: .47; } }
+    @keyframes lightning-wash { 0%, 75.8%, 78%, 79.3%, 81%, 100% { opacity: 0; } 76.5%, 77% { opacity: .34; } 79.6%, 80% { opacity: .17; } }
+    @keyframes ripple { 0% { scale: .25; opacity: 0; } 18% { opacity: .34; } 100% { scale: 1.65; opacity: 0; } }
+
+    .snowy .sky { background: radial-gradient(ellipse at 55% 30%, #e4ebef8c, transparent 56%), linear-gradient(155deg, #91a9bc, #c1d2dc 54%, #bbcdd9); }
+    .snowy .card-bottom { background: linear-gradient(transparent, #cad9e3c2 35%, #d1dfe7fc 100%); }
+    .snow-fog { position: absolute; left: -24%; top: 37%; width: 141%; height: 84px; border-radius: 50%; background: #f3f8fb; filter: blur(20px); opacity: .23; animation: snow-fog-drift 11s ease-in-out infinite alternate; }
+    .snow-fog.second { top: 53%; opacity: .15; height: 38px; animation-delay: -5s; animation-duration: 8s; }
+    .snow-wisp { fill: none; stroke: #f6fbff; stroke-width: 1; stroke-linecap: round; opacity: .23; stroke-dasharray: 90 380; animation: wind-flow 7s linear infinite; }
+    .snow-wisp.second { animation-delay: -3s; }
+    @keyframes snow-fog-drift { from { transform: translateX(-15px) scaleY(.9); } to { transform: translateX(28px) scaleY(1.12); } }
+
+    .page-footer { display: flex; align-items: center; justify-content: space-between; gap: 20px; margin-top: 23px; font-size: 9px; letter-spacing: 1px; color: #8b9283; }
+    .footer-note { display: flex; align-items: center; gap: 11px; }
+    .palette { display: flex; gap: 4px; }
+    .palette i { width: 6px; height: 6px; border-radius: 50%; background: #d0ad71; }
+    .palette i:nth-child(2) { background: #718b73; }
+    .palette i:nth-child(3) { background: #516b8a; }
+    .palette i:nth-child(4) { background: #b1c4d2; }
+    .footer-credit { font-family: Arial, var(--sans); font-size: 8px; letter-spacing: 1.6px; }
+    .swipe-note { display: none; }
+
+    @media (min-width: 1600px) {
+      .page { max-width: 1540px; padding-inline: 64px; }
+      .weather-grid { gap: 24px; }
+      .weather-card { height: 600px; }
+      .card-head { padding: 28px 28px 0; }
+      .card-bottom { padding: 28px; }
+      .temperature { font-size: 73px; }
+      .card-caption { font-size: 11px; }
+      .weather-stats dt { font-size: 10px; }
+      .weather-stats dd { font-size: 16px; }
+    }
+    @media (max-width: 1180px) {
+      .page { padding-inline: 32px; }
+      .weather-grid { gap: 14px; }
+      .card-head { padding: 22px 20px 0; }
+      .card-bottom { padding: 22px 20px; }
+      .temperature { font-size: 60px; }
+      .degree { font-size: 27px; }
+      .card-index { font-size: 7px; letter-spacing: 1.3px; }
+      .card-caption { font-size: 9px; letter-spacing: 0; }
+      .weather-stats { gap: 5px; }
+      .weather-stats dt { font-size: 8px; }
+      .weather-stats dd { font-size: 14px; }
+      .weather-stats dd span { font-size: 7px; margin-left: 2px; }
+      .place .place-en { font-size: 6px; letter-spacing: .7px; }
+      .temperature-range { font-size: 8px; }
+    }
+    @media (max-width: 980px) {
+      .page { padding: 32px 26px 25px; }
+      .brand-name { font-size: 16px; }
+      .brand-english { font-size: 8px; letter-spacing: 1.7px; }
+      .topbar-note { font-size: 9px; }
+      h1 { font-size: 29px; }
+      .weather-grid { display: flex; margin-inline: -8px; padding: 0 8px 17px; gap: 18px; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: thin; scrollbar-color: #c2cab8 transparent; }
+      .weather-card { flex: 0 0 268px; height: 514px; scroll-snap-align: start; }
+      .card-head { padding: 24px 23px 0; }
+      .card-bottom { padding: 24px 23px; }
+      .temperature { font-size: 65px; }
+      .degree { font-size: 29px; }
+      .card-index { font-size: 8px; }
+      .card-caption { font-size: 10px; }
+      .weather-stats dt { font-size: 9px; }
+      .weather-stats dd { font-size: 15px; }
+      .weather-stats dd span { font-size: 8px; }
+      .swipe-note { display: block; margin: 12px 0 0; font-size: 9px; color: #858d7c; letter-spacing: 1px; text-align: right; }
+      .page-footer { margin-top: 19px; }
+    }
+    @media (max-width: 560px) {
+      .page { padding: 26px 22px 23px; justify-content: flex-start; }
+      .brand-mark { width: 28px; height: 28px; }
+      .brand { gap: 8px; }
+      .brand-name { font-size: 16px; letter-spacing: 2px; }
+      .brand-english { font-size: 6px; letter-spacing: 1.2px; padding-left: 9px; margin-left: 2px; }
+      .topbar-note { display: none; }
+      .page-heading { margin: 31px 0 24px; align-items: center; }
+      h1 { font-size: 25px; letter-spacing: 1.2px; }
+      .heading-caption { font-size: 9px; line-height: 1.8; letter-spacing: 1px; max-width: 235px; margin-top: 9px; }
+      .edition span { font-size: 14px; }
+      .edition small { font-size: 6px; letter-spacing: 1px; }
+      .weather-card { flex-basis: min(78vw, 304px); height: 508px; }
+      .weather-grid { margin-right: -22px; padding-right: 22px; gap: 15px; }
+      .page-footer { font-size: 8px; gap: 9px; letter-spacing: .4px; align-items: flex-start; }
+      .footer-credit { font-size: 6px; letter-spacing: .7px; text-align: right; line-height: 1.8; }
+      .footer-note { gap: 7px; }
+      .palette { gap: 3px; }
+      .palette i { width: 5px; height: 5px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation: none !important; }
+      .lightning { opacity: .18; }
+      .wind-path.running { stroke-dasharray: none; opacity: .32; }
+      .rain-ripple { opacity: .16; }
+      .snow-wisp { stroke-dasharray: none; }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <header class="topbar">
+      <div class="brand">
+        <svg class="brand-mark" viewBox="0 0 36 36" aria-hidden="true"><circle cx="18" cy="18" r="7.5"/><circle cx="18" cy="18" r="12.5" stroke-dasharray="1 4"/><path d="M18 1v4m0 26v4M1 18h4m26 0h4"/></svg>
+        <span class="brand-name">气象之间</span><span class="brand-english">BETWEEN SKIES</span>
+      </div>
+      <span class="topbar-note">每一片天空，都有自己的节奏</span>
+    </header>
+
+    <div class="page-heading">
+      <div><h1>四种天空，各自成景。</h1><p class="heading-caption">光的温度，风的形状，以及雨雪落下的瞬间。</p></div>
+      <div class="edition"><span>Weather portraits</span><small>VOL. 01 &nbsp; / &nbsp; ATMOSPHERES</small></div>
+    </div>
+
+    <section class="weather-grid" aria-label="四种天气的动态场景">
+      <article class="weather-card sunny" aria-labelledby="sunny-title">
+        <div class="sky" aria-hidden="true">
+          <div class="sun-rays"></div><div class="sun-halo"></div><div class="sun-orbit"></div><div class="sun"></div><div class="sun-haze"></div><div class="sun-haze two"></div>
+          <svg viewBox="0 0 320 558" preserveAspectRatio="none"><defs><linearGradient id="sun-dunes" x2="0" y2="1"><stop stop-color="#bf9461" stop-opacity=".3"/><stop offset="1" stop-color="#c29a66" stop-opacity=".75"/></linearGradient></defs><path d="M-20 365C39 317 85 336 143 312S252 331 342 282V558H-20Z" fill="#c69d64" opacity=".25"/><path d="M-23 393C63 354 117 405 187 357S271 345 341 331V558H-23Z" fill="url(#sun-dunes)"/><path d="M-25 434C56 387 99 441 182 412S274 391 341 407V558H-25Z" fill="#c49a63" opacity=".33"/><g fill="none" stroke="#876c3f" stroke-width=".7" opacity=".18"><path d="M268 379q-2-52-15-69m15 69q7-49 22-66m-21 64q-1-31-18-41M43 408q-3-37-17-59m18 59q7-33 19-43"/></g></svg>
+          <canvas class="atmosphere" data-weather="sun" aria-hidden="true"></canvas>
+        </div>
+        <div class="card-head"><div class="card-index"><span><span class="index-number">01</span> SOLAR HOURS</span><svg class="condition-mark" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5"/></svg></div><h2 class="condition-name" id="sunny-title">晴天</h2><p class="condition-english">A little golden.</p></div>
+        <div class="card-bottom"><div class="place"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M13 6.5C13 10 8 14 8 14S3 10 3 6.5a5 5 0 0 1 10 0Z"/><circle cx="8" cy="6.5" r="1.5"/></svg>丽江 <span class="place-en">LIJIANG</span></div><div class="temperature-row"><div class="temperature">24<span class="degree">°</span></div><div class="temperature-range">最高 26°<span class="range-bar"></span>最低 16°</div></div><p class="card-caption">把步子放慢，让阳光多停一会儿。</p><dl class="weather-stats"><div><dt>风速</dt><dd>6<span>km/h</span></dd></div><div><dt>湿度</dt><dd>38<span>%</span></dd></div><div><dt>体感</dt><dd>26<span>°C</span></dd></div></dl></div>
+      </article>
+
+      <article class="weather-card windy" aria-labelledby="windy-title">
+        <div class="sky" aria-hidden="true">
+          <svg viewBox="0 0 320 558" preserveAspectRatio="none"><defs><filter id="wind-soft"><feGaussianBlur stdDeviation="9"/></filter></defs><g fill="#e6eadc" filter="url(#wind-soft)" opacity=".16"><ellipse class="wind-cloud" cx="95" cy="150" rx="109" ry="14"/><ellipse class="wind-cloud second" cx="276" cy="238" rx="122" ry="21"/></g><g class="wind-path base"><path d="M-48 187C26 187 52 139 121 169S226 226 365 142"/><path d="M-53 242C33 257 58 199 137 217S266 269 367 195"/><path d="M-42 296C44 275 95 302 166 270S279 298 363 259"/></g><path class="wind-path running" d="M-48 187C26 187 52 139 121 169S226 226 365 142"/><path class="wind-path running two" d="M-53 242C33 257 58 199 137 217S266 269 367 195"/><path class="wind-path running three" d="M-42 296C44 275 95 302 166 270S279 298 363 259"/><path d="M-10 380Q73 311 152 349T337 305V558H-10Z" fill="#46634e" opacity=".35"/><path d="M-10 411Q111 359 199 390T337 369V558H-10Z" fill="#3a5942" opacity=".47"/><g fill="none" stroke="#d5ddbf" stroke-width=".8" opacity=".32" class="grass-group"><path d="M236 412Q227 341 189 308m47 104q1-63-23-106m23 106q10-52-8-82m8 82q-19-48-45-50m44 47q-11-32-44-31"/><path d="m189 308 10 5m-7 1 12 5m-7 1 10 5m6-19 1 10m0-4 6 9m-4-5 7 10"/></g><g fill="none" stroke="#b4c8a7" stroke-width=".8" opacity=".3" class="grass-group second"><path d="M56 417Q49 379 21 346m35 71q-1-49-18-71m18 71q9-36-4-59m4 59q-15-26-29-30"/></g></svg>
+          <canvas class="atmosphere" data-weather="wind" aria-hidden="true"></canvas>
+        </div>
+        <div class="card-head"><div class="card-index"><span><span class="index-number">02</span> RESTLESS AIR</span><svg class="condition-mark" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 8h13a3 3 0 1 0-3-3M2 12h17a3 3 0 1 1-3 3M5 17h5a2 2 0 1 1-2 2"/></svg></div><h2 class="condition-name" id="windy-title">大风</h2><p class="condition-english">Let the wind wander.</p></div>
+        <div class="card-bottom"><div class="place"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M13 6.5C13 10 8 14 8 14S3 10 3 6.5a5 5 0 0 1 10 0Z"/><circle cx="8" cy="6.5" r="1.5"/></svg>呼和浩特 <span class="place-en">HOHHOT</span></div><div class="temperature-row"><div class="temperature">16<span class="degree">°</span></div><div class="temperature-range">最高 19°<span class="range-bar"></span>最低 9°</div></div><p class="card-caption">树梢在摇晃，风有了自己的形状。</p><dl class="weather-stats"><div><dt>风速</dt><dd>42<span>km/h</span></dd></div><div><dt>湿度</dt><dd>26<span>%</span></dd></div><div><dt>阵风</dt><dd>54<span>km/h</span></dd></div></dl></div>
+      </article>
+
+      <article class="weather-card rainy" aria-labelledby="rainy-title">
+        <div class="sky" aria-hidden="true">
+          <div class="lightning-light"></div>
+          <svg viewBox="0 0 320 558" preserveAspectRatio="none"><defs><linearGradient id="rain-cloud-fill" x1="0" y1="0" x2=".3" y2="1"><stop stop-color="#748296"/><stop offset=".48" stop-color="#58687d"/><stop offset="1" stop-color="#35465e"/></linearGradient><linearGradient id="rain-cloud-front" x2="0" y2="1"><stop stop-color="#738398"/><stop offset="1" stop-color="#3d5068"/></linearGradient><filter id="rain-cloud-blur" x="-25%" y="-40%" width="150%" height="180%"><feGaussianBlur stdDeviation="4"/></filter><filter id="bolt-glow" x="-70%" y="-50%" width="240%" height="200%"><feGaussianBlur stdDeviation="4"/></filter></defs>
+            <g class="lightning"><path d="M188 182 163 225 182 223 151 279 212 214 190 215 212 177Z" fill="#d6e5ff" opacity=".65" filter="url(#bolt-glow)"/><path d="M188 182 166 224 183 221 157 270 206 216 187 218 208 180Z" fill="#e2edff" opacity=".85"/></g>
+            <g class="rain-cloud"><path d="M35 187c-4-25 15-47 41-44 5-31 40-44 64-23 20-36 70-27 76 9 37-3 61 21 57 51 21 10 22 34 4 43H46c-31-1-35-27-11-36Z" fill="url(#rain-cloud-fill)" filter="url(#rain-cloud-blur)" opacity=".86"/><path d="M74 179c0-21 26-37 45-22 15-26 52-23 63 3 24-10 49 7 47 31 30-3 43 17 24 30H67c-27-10-19-37 7-42Z" fill="url(#rain-cloud-front)" opacity=".63" filter="url(#rain-cloud-blur)"/></g>
+            <path d="M-15 414Q67 397 124 416T335 402V558H-15Z" fill="#25394e" opacity=".45"/><path d="M-5 442Q95 425 160 443T328 431" stroke="#7d9db7" stroke-width=".6" opacity=".24" fill="none"/><ellipse class="rain-ripple" cx="66" cy="395" rx="18" ry="3"/><ellipse class="rain-ripple two" cx="249" cy="416" rx="24" ry="3.5"/><ellipse class="rain-ripple three" cx="182" cy="381" rx="14" ry="2.5"/>
+          </svg>
+          <canvas class="atmosphere" data-weather="rain" aria-hidden="true"></canvas>
+        </div>
+        <div class="card-head"><div class="card-index"><span><span class="index-number">03</span> PLUVIAL MOOD</span><svg class="condition-mark" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 14a4 4 0 1 1 1-7 5 5 0 0 1 10-1 4 4 0 1 1 2 8M7 17l-1 3m6-3-1 3m6-3-1 3"/></svg></div><h2 class="condition-name" id="rainy-title">暴雨</h2><p class="condition-english">A city, softened.</p></div>
+        <div class="card-bottom"><div class="place"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M13 6.5C13 10 8 14 8 14S3 10 3 6.5a5 5 0 0 1 10 0Z"/><circle cx="8" cy="6.5" r="1.5"/></svg>深圳 <span class="place-en">SHENZHEN</span></div><div class="temperature-row"><div class="temperature">22<span class="degree">°</span></div><div class="temperature-range">最高 24°<span class="range-bar"></span>最低 20°</div></div><p class="card-caption">窗外是雨的节拍，窗内是片刻安静。</p><dl class="weather-stats"><div><dt>降雨</dt><dd>38<span>mm/h</span></dd></div><div><dt>湿度</dt><dd>94<span>%</span></dd></div><div><dt>风速</dt><dd>26<span>km/h</span></dd></div></dl></div>
+      </article>
+
+      <article class="weather-card snowy" aria-labelledby="snowy-title">
+        <div class="sky" aria-hidden="true">
+          <svg viewBox="0 0 320 558" preserveAspectRatio="none"><defs><linearGradient id="snow-peak" x1="0" y1="0" x2=".5" y2="1"><stop stop-color="#eff4f6"/><stop offset="1" stop-color="#b2c8d7"/></linearGradient><linearGradient id="snow-near" x2="0" y2="1"><stop stop-color="#dce7ed"/><stop offset="1" stop-color="#a7c0d1"/></linearGradient></defs><path d="M-43 341 47 251 79 283 153 193 206 262 242 234 353 332V558H-43Z" fill="#8faabd" opacity=".38"/><path d="m59 310 94-117 53 69 36-28 106 103V558H59Z" fill="url(#snow-peak)"/><path d="m153 193 6 79 32 17 15-27Z" fill="#8caabe" opacity=".6"/><path d="m153 193-40 50 23-7 8 20 9-23 18 16Z" fill="#f0f4f6"/><path d="m242 234-36 28 20 24 6-17 26 5Z" fill="#edf3f7" opacity=".8"/><path d="M-30 348 45 279 96 335 138 297 221 369 283 308 343 350V558H-30Z" fill="url(#snow-near)"/><path d="m45 279 8 57 17 7 26-8Z" fill="#96b1c4" opacity=".52"/><path d="m138 297-14 43 36 9 18-5Z" fill="#b0c7d6"/><path d="M-19 404Q89 357 167 393T338 387V558H-19Z" fill="#dce7eb" opacity=".7"/>
+            <g fill="#7793a6" opacity=".5"><path d="m42 353-10 18h6l-13 18h11l-12 18h30l-12-18h10l-12-18h6Z"/><path d="m274 344-8 15h5l-11 17h9l-11 16h27l-11-16h8l-11-17h5Z"/><path d="m290 366-6 12h4l-8 13h7l-8 13h21l-9-13h7l-9-13h4Z"/></g><path class="snow-wisp" d="M-19 188C53 173 80 208 153 186S250 172 338 153"/><path class="snow-wisp second" d="M-28 272C35 244 117 292 177 258S254 270 345 233"/>
+          </svg>
+          <div class="snow-fog"></div><div class="snow-fog second"></div>
+          <canvas class="atmosphere" data-weather="snow" aria-hidden="true"></canvas>
+        </div>
+        <div class="card-head"><div class="card-index"><span><span class="index-number">04</span> WINTER HUSH</span><svg class="condition-mark" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2v20M3.3 7l17.4 10M3.3 17 20.7 7M9 4l3 3 3-3M9 20l3-3 3 3M4 10l4-1-1-4m10 14-1-4 4-1M4 14l4 1-1 4m10-14-1 4 4 1"/></svg></div><h2 class="condition-name" id="snowy-title">暴雪</h2><p class="condition-english">The world, in a whisper.</p></div>
+        <div class="card-bottom"><div class="place"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M13 6.5C13 10 8 14 8 14S3 10 3 6.5a5 5 0 0 1 10 0Z"/><circle cx="8" cy="6.5" r="1.5"/></svg>哈尔滨 <span class="place-en">HARBIN</span></div><div class="temperature-row"><div class="temperature">−12<span class="degree">°</span></div><div class="temperature-range">最高 −8°<span class="range-bar"></span>最低 −16°</div></div><p class="card-caption">雪替大地留白，万物轻轻慢下来。</p><dl class="weather-stats"><div><dt>积雪</dt><dd>18<span>cm</span></dd></div><div><dt>风速</dt><dd>32<span>km/h</span></dd></div><div><dt>体感</dt><dd>−19<span>°C</span></dd></div></dl></div>
+      </article>
+    </section>
+
+    <p class="swipe-note">滑动，看看另一片天空 &nbsp; ⟶</p>
+    <footer class="page-footer"><div class="footer-note"><span class="palette" aria-hidden="true"><i></i><i></i><i></i><i></i></span><span>天气场景 · 示例数据</span></div><span class="footer-credit">A SMALL COLLECTION OF EVERYDAY ATMOSPHERES.</span></footer>
+  </main>
+
+  <script>
+    (() => {
+      const motionPreference = matchMedia('(prefers-reduced-motion: reduce)');
+      const count = { sun: 15, wind: 15, rain: 82, snow: 73 };
+      const scenes = [...document.querySelectorAll('.atmosphere')].map(canvas => ({
+        canvas,
+        ctx: canvas.getContext('2d'),
+        type: canvas.dataset.weather,
+        width: 0,
+        height: 0,
+        visible: true,
+        particles: [],
+      }));
+      const random = (min, max) => min + Math.random() * (max - min);
+      let frame = 0;
+      let lastTime = 0;
+      let elapsed = 0;
+
+      function particle(scene, scattered = true) {
+        const { type, width: w, height: h } = scene;
+        const p = { x: random(0, w), y: random(0, h), phase: random(0, Math.PI * 2), depth: random(.25, 1), angle: random(0, Math.PI * 2) };
+        if (type === 'sun') {
+          p.y = random(h * .19, h * .74);
+          p.radius = random(.6, 1.6);
+          p.speed = random(2, 6);
+        } else if (type === 'wind') {
+          p.x = scattered ? random(-w * .2, w * 1.1) : random(-55, -10);
+          p.y = random(h * .21, h * .6);
+          p.speed = random(45, 105);
+          p.radius = random(2, 4.7);
+        } else if (type === 'rain') {
+          p.y = scattered ? random(0, h) : random(-90, -20);
+          p.speed = 280 + p.depth * 250;
+          p.length = 11 + p.depth * 14;
+        } else {
+          p.x = scattered ? random(0, w) : random(-w * .15, w * 1.2);
+          p.y = scattered ? random(0, h) : random(-40, -5);
+          p.speed = 17 + p.depth * 34;
+          p.radius = .7 + p.depth * 1.7;
+          p.flake = p.depth > .91;
+        }
+        return p;
+      }
+
+      function resize(scene) {
+        const bounds = scene.canvas.getBoundingClientRect();
+        const pixelRatio = Math.min(devicePixelRatio || 1, 2);
+        scene.width = bounds.width;
+        scene.height = bounds.height;
+        scene.canvas.width = Math.round(bounds.width * pixelRatio);
+        scene.canvas.height = Math.round(bounds.height * pixelRatio);
+        scene.ctx.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
+        scene.particles = Array.from({ length: count[scene.type] }, () => particle(scene));
+        paint(scene, 0);
+      }
+
+      function paint(scene, dt) {
+        const { ctx, type, width: w, height: h } = scene;
+        ctx.clearRect(0, 0, w, h);
+        for (let i = 0; i < scene.particles.length; i++) {
+          let p = scene.particles[i];
+          if (type === 'sun') {
+            p.y -= p.speed * dt;
+            p.x += Math.sin(elapsed * .45 + p.phase) * 2.1 * dt;
+            if (p.y < h * .15) p.y = h * .76;
+            const breath = .5 + Math.sin(elapsed * .7 + p.phase) * .5;
+            ctx.fillStyle = `rgba(255,248,218,${.12 + breath * .35})`;
+            ctx.beginPath(); ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2); ctx.fill();
+          } else if (type === 'wind') {
+            p.x += p.speed * dt;
+            p.y += Math.sin(elapsed * 1.5 + p.phase) * 8 * dt;
+            p.angle += dt * (1 + p.depth);
+            if (p.x > w + 30) p = scene.particles[i] = particle(scene, false);
+            ctx.save();
+            ctx.translate(p.x, p.y);
+            ctx.rotate(p.angle);
+            ctx.scale(1, .42 + Math.abs(Math.sin(p.angle * .6)) * .4);
+            ctx.fillStyle = i % 3 === 0 ? 'rgba(222,203,144,.55)' : 'rgba(214,227,195,.4)';
+            ctx.beginPath();
+            ctx.moveTo(-p.radius * 1.4, 0);
+            ctx.quadraticCurveTo(0, -p.radius, p.radius * 1.4, 0);
+            ctx.quadraticCurveTo(0, p.radius, -p.radius * 1.4, 0);
+            ctx.fill();
+            ctx.strokeStyle = 'rgba(69,95,67,.4)';
+            ctx.lineWidth = .5;
+            ctx.beginPath(); ctx.moveTo(-p.radius, 0); ctx.lineTo(p.radius, 0); ctx.stroke();
+            ctx.restore();
+          } else if (type === 'rain') {
+            p.y += p.speed * dt;
+            p.x -= p.speed * .12 * dt;
+            if (p.y > h + 35 || p.x < -30) p = scene.particles[i] = particle(scene, false);
+            const topFade = Math.min(1, Math.max(0, (p.y - h * .2) / (h * .2)));
+            ctx.strokeStyle = `rgba(190,215,240,${(.13 + p.depth * .27) * topFade})`;
+            ctx.lineWidth = .4 + p.depth * .5;
+            ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(p.x - p.length * .12, p.y + p.length); ctx.stroke();
+          } else {
+            p.y += p.speed * dt;
+            p.x -= (19 + p.depth * 24 + Math.sin(elapsed * .8 + p.phase) * 15) * dt;
+            p.angle += dt * .65;
+            if (p.y > h + 12 || p.x < -22) p = scene.particles[i] = particle(scene, false);
+            const opacity = .3 + p.depth * .6;
+            ctx.fillStyle = `rgba(251,254,255,${opacity})`;
+            if (p.flake) {
+              ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.angle);
+              ctx.strokeStyle = `rgba(250,254,255,${opacity})`;
+              ctx.lineWidth = .65;
+              ctx.beginPath();
+              for (let arm = 0; arm < 6; arm++) {
+                const angle = arm * Math.PI / 3;
+                const r = p.radius * 1.8;
+                ctx.moveTo(0, 0); ctx.lineTo(Math.cos(angle) * r, Math.sin(angle) * r);
+                for (const direction of [-1, 1]) {
+                  const tip = angle + direction * .75;
+                  ctx.moveTo(Math.cos(angle) * r * .56, Math.sin(angle) * r * .56);
+                  ctx.lineTo(Math.cos(angle) * r * .56 - Math.cos(tip) * r * .35, Math.sin(angle) * r * .56 - Math.sin(tip) * r * .35);
+                }
+              }
+              ctx.stroke(); ctx.restore();
+            } else {
+              ctx.beginPath(); ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2); ctx.fill();
+            }
+          }
+        }
+      }
+
+      function animate(now) {
+        const dt = lastTime ? Math.min((now - lastTime) / 1000, .05) : 0;
+        lastTime = now;
+        elapsed += dt;
+        for (const scene of scenes) if (scene.visible) paint(scene, dt);
+        frame = requestAnimationFrame(animate);
+      }
+
+      function syncPlayback() {
+        cancelAnimationFrame(frame);
+        frame = 0;
+        lastTime = 0;
+        if (!motionPreference.matches && !document.hidden && scenes.some(scene => scene.visible)) {
+          frame = requestAnimationFrame(animate);
+        } else {
+          for (const scene of scenes) paint(scene, 0);
+        }
+      }
+
+      const resizeObserver = new ResizeObserver(entries => {
+        for (const entry of entries) {
+          const scene = scenes.find(item => item.canvas === entry.target);
+          resize(scene);
+        }
+      });
+      const visibilityObserver = new IntersectionObserver(entries => {
+        for (const entry of entries) {
+          const scene = scenes.find(item => item.canvas === entry.target);
+          scene.visible = entry.isIntersecting;
+        }
+        syncPlayback();
+      }, { threshold: 0 });
+
+      for (const scene of scenes) {
+        resize(scene);
+        resizeObserver.observe(scene.canvas);
+        visibilityObserver.observe(scene.canvas);
+      }
+      document.addEventListener('visibilitychange', syncPlayback);
+      motionPreference.addEventListener('change', syncPlayback);
+      syncPlayback();
+    })();
+  </script>
+</body>
+</html>

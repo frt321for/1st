@@ -1,0 +1,8 @@
+{
+  "name": "tidewhisper-harbour",
+  "version": "1.0.0",
+  "description": "汐语港 —— 一个 120 秒过完昼夜的 3D 箱庭海镇(零依赖,全程序化几何)",
+  "scripts": {
+    "start": "node server.js"
+  }
+}

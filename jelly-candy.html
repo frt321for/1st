@@ -1,0 +1,646 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>QQ 软糖</title>
+<style>
+html,body{margin:0;height:100%;overflow:hidden;background:#fdeee4;user-select:none;-webkit-user-select:none}
+canvas{display:block;width:100vw;height:100vh;touch-action:none}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script>
+const cv = document.getElementById('c'), ctx = cv.getContext('2d');
+const TAU = Math.PI * 2;
+const rnd = (a, b) => a + Math.random() * (b - a);
+const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
+const hsl = (h, s, l, a = 1) => `hsla(${h},${clamp(s, 0, 100)}%,${clamp(l, 0, 100)}%,${a})`;
+
+let W, H, DPR, FLOOR, S, PR, bgGrad, floorGrad;
+const G = 0.12, DAMP = 0.998, VMAX = 35;
+
+function resize() {
+  DPR = Math.min(2, devicePixelRatio || 1);
+  W = innerWidth; H = innerHeight;
+  cv.width = W * DPR; cv.height = H * DPR;
+  FLOOR = H - Math.max(26, H * 0.07);
+  S = clamp(Math.min(W, H) / 820, 0.62, 1.25);
+  if (PR === undefined) PR = 4.5 * S;
+  bgGrad = ctx.createLinearGradient(0, 0, 0, FLOOR);
+  bgGrad.addColorStop(0, '#fff7f0'); bgGrad.addColorStop(1, '#fde3d4');
+  floorGrad = ctx.createLinearGradient(0, FLOOR, 0, H);
+  floorGrad.addColorStop(0, '#f4cfbd'); floorGrad.addColorStop(1, '#eab9a2');
+}
+addEventListener('resize', resize);
+resize();
+
+/* ---------- 形状 ---------- */
+function param(f, n = 480) { const a = []; for (let i = 0; i < n; i++) a.push(f(i / n * TAU)); return a; }
+function polar(rf) { return param(t => { const r = rf(t); return { x: r * Math.cos(t), y: r * Math.sin(t) }; }); }
+const angUp = t => { const d = t + Math.PI / 2; return Math.atan2(Math.sin(d), Math.cos(d)); };
+
+const SHAPES = {
+  circle: () => polar(() => 1),
+  grape: () => param(t => ({ x: .86 * Math.cos(t), y: Math.sin(t) })),
+  kiwi: () => param(t => ({ x: 1.12 * Math.cos(t), y: .9 * Math.sin(t) })),
+  lemon: () => param(t => { const c = Math.cos(t), k = 1 + .22 * Math.pow(Math.abs(c), 16); return { x: 1.12 * c * k, y: .8 * Math.sin(t) }; }),
+  strawberry: () => param(t => {
+    const c = Math.cos(t), s = Math.sin(t), u = (1 - c) / 2, w = 1 - .55 * Math.pow(u, 1.6);
+    return { x: Math.sign(s) * Math.pow(Math.abs(s), .75) * .98 * w, y: -c * 1.05 };
+  }),
+  watermelon: () => param(t => {
+    if (t < Math.PI) return { x: 1.2 * Math.cos(t), y: -.3 + Math.sin(t) };
+    const u = (t - Math.PI) / Math.PI;
+    return { x: -1.2 + 2.4 * u, y: -.3 - .07 * Math.sin(u * Math.PI) };
+  }),
+  peach: () => polar(t => { const d = angUp(t); return 1 - .15 * Math.exp(-d * d / .02) + .04 * Math.cos(2 * t); }),
+  cherry: () => polar(t => { const d = angUp(t); return 1 - .1 * Math.exp(-d * d / .03); }),
+  heart: () => param(t => {
+    const s = Math.sin(t);
+    return { x: s * s * s, y: -(13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t)) / 16 };
+  }),
+  star: () => polar(t => .8 + .28 * Math.cos(5 * (t + Math.PI / 2))),
+  bear: () => {
+    const C = [[0, -.55, .5], [-.4, -.95, .2], [.4, -.95, .2], [0, .25, .58], [-.56, .02, .22], [.56, .02, .22], [-.32, .82, .27], [.32, .82, .27]];
+    return polar(t => {
+      const dx = Math.cos(t), dy = Math.sin(t); let m = 0;
+      for (const [cx, cy, r] of C) {
+        const b = dx * cx + dy * cy, d = b * b - (cx * cx + cy * cy) + r * r;
+        if (d >= 0) m = Math.max(m, b + Math.sqrt(d));
+      }
+      return m;
+    });
+  }
+};
+const shapeCache = {};
+function getShape(name) {
+  if (shapeCache[name]) return shapeCache[name];
+  const raw = SHAPES[name]();
+  let per = 0;
+  for (let i = 0; i < raw.length; i++) { const a = raw[i], b = raw[(i + 1) % raw.length]; per += Math.hypot(b.x - a.x, b.y - a.y); }
+  return shapeCache[name] = { raw, per };
+}
+function resample(raw, N) {
+  const n = raw.length, L = [0];
+  for (let i = 1; i <= n; i++) { const a = raw[i - 1], b = raw[i % n]; L.push(L[i - 1] + Math.hypot(b.x - a.x, b.y - a.y)); }
+  const total = L[n], out = []; let j = 0;
+  for (let k = 0; k < N; k++) {
+    const s = k / N * total;
+    while (L[j + 1] < s) j++;
+    const t = (s - L[j]) / ((L[j + 1] - L[j]) || 1), a = raw[j], b = raw[(j + 1) % n];
+    out.push({ x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t });
+  }
+  return out;
+}
+function pip(x, y, P) {
+  let c = false;
+  for (let i = 0, j = P.length - 1; i < P.length; j = i++) {
+    const a = P[i], b = P[j];
+    if ((a.y > y) !== (b.y > y) && x < (b.x - a.x) * (y - a.y) / (b.y - a.y) + a.x) c = !c;
+  }
+  return c;
+}
+function randIn(poly, n, sc = 1) {
+  let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
+  for (const p of poly) { x0 = Math.min(x0, p.x); x1 = Math.max(x1, p.x); y0 = Math.min(y0, p.y); y1 = Math.max(y1, p.y); }
+  const out = []; let tries = 0;
+  while (out.length < n && tries++ < n * 40) {
+    const x = rnd(x0, x1), y = rnd(y0, y1);
+    if (pip(x / sc, y / sc, poly)) out.push({ x, y });
+  }
+  return out;
+}
+
+/* ---------- 糖果种类 ---------- */
+const KINDS = {
+  strawberry: { shape: 'strawberry', col: [354, 85, 50], size: 1.05, hl: [-.4, -.45] },
+  orange: { shape: 'circle', col: [30, 100, 55], size: 1 },
+  lemon: { shape: 'lemon', col: [50, 98, 57], size: .95, sugar: 1, hl: [-.45, -.3] },
+  watermelon: { shape: 'watermelon', col: [352, 85, 60], size: 1.05, hl: [-.5, -.22] },
+  kiwi: { shape: 'kiwi', col: [82, 70, 42], size: .95 },
+  peach: { shape: 'peach', col: [18, 95, 72], size: 1, sugar: 1 },
+  cherry: { shape: 'cherry', col: [350, 85, 36], size: .8 },
+  grape: { shape: 'grape', col: [278, 48, 40], size: .78 },
+  blueberry: { shape: 'circle', col: [228, 45, 38], size: .68 },
+  bear: { shape: 'bear', size: 1.1, hl: [-.22, -.78] },
+  heart: { shape: 'heart', col: [338, 85, 64], size: 1.05, sugar: 1, hl: [-.5, -.35] },
+  star: { shape: 'star', col: [44, 100, 58], size: 1.05, sugar: 1, hl: [-.3, -.3] }
+};
+const BEAR = [[356, 85, 50], [28, 100, 55], [50, 100, 58], [118, 60, 45], [40, 40, 90], [290, 50, 52]];
+const KIND_LIST = Object.keys(KINDS);
+
+const bodies = [];
+
+function makeBody(kind, x, y) {
+  const K = KINDS[kind], sh = getShape(K.shape);
+  const col = kind === 'bear' ? BEAR[Math.random() * BEAR.length | 0] : K.col;
+  const R = rnd(54, 64) * S * K.size;
+  const N = clamp(Math.round(sh.per * R / (7.5 * S)), 20, 96);
+  const pts0 = resample(sh.raw, N);
+  let sx = 0, sy = 0;
+  for (const p of pts0) { sx += p.x; sy += p.y; }
+  sx /= N; sy /= N;
+  const unit = pts0.map(p => ({ x: p.x - sx, y: p.y - sy }));
+  const rest = unit.map(p => ({ x: p.x * R, y: p.y * R }));
+  let qxx = 0, qxy = 0, qyy = 0, area = 0;
+  for (let i = 0; i < N; i++) {
+    const q = rest[i], q2 = rest[(i + 1) % N];
+    qxx += q.x * q.x; qxy += q.x * q.y; qyy += q.y * q.y;
+    area += q.x * q2.y - q2.x * q.y;
+  }
+  const det = qxx * qyy - qxy * qxy;
+  const b = {
+    kind, K, col, R, N, rest, unit, sx, sy,
+    pts: rest.map(q => ({ x: x + q.x, y: y + q.y, px: x + q.x, py: y + q.y })),
+    o: rest.map(() => ({ x: 0, y: 0 })),
+    iq: [qyy / det, -qxy / det, -qxy / det, qxx / det],
+    orient: Math.sign(area) || 1,
+    M: [1, 0, 0, 1], cx: x, cy: y,
+    k: rnd(.085, .12), beta: rnd(.3, .4),
+    alpha: col[2] > 85 ? .78 : .94,
+    grab: 0
+  };
+  prep(b);
+  bodies.push(b);
+  return b;
+}
+
+function prep(b) {
+  const raw = b.unit.map(p => ({ x: p.x + b.sx, y: p.y + b.sy }));
+  if (b.kind === 'strawberry') {
+    b.seeds = [];
+    for (let r = 0, y = -.78; y < .95; y += .2, r++)
+      for (let x = -1 + (r % 2) * .13; x < 1; x += .26) {
+        const px = x + rnd(-.03, .03), py = y + rnd(-.03, .03);
+        if (pip(px * 1.18, py * 1.1 + .05, raw)) b.seeds.push({ x: px, y: py });
+      }
+  } else if (b.kind === 'lemon') {
+    b.seeds = randIn(raw, 55, .9);
+  } else if (b.kind === 'kiwi') {
+    b.seeds = [];
+    for (let i = 0; i < 24; i++) {
+      const a = i / 24 * TAU + rnd(-.08, .08), r = rnd(.36, .5);
+      b.seeds.push({ x: Math.cos(a) * r * 1.12, y: Math.sin(a) * r * .9, a });
+    }
+  } else if (b.kind === 'watermelon') {
+    b.seeds = [];
+    for (let i = 0; i < 7; i++) {
+      const a = .45 + i * .37 + rnd(-.05, .05);
+      b.seeds.push({ x: .7 * Math.cos(a) * .95, y: -.3 + .58 * Math.sin(a), a });
+    }
+  }
+  if (b.K.sugar) b.dots = randIn(raw, 240).map(p => ({ x: p.x, y: p.y, r: rnd(.014, .03), a: rnd(0, TAU) }));
+}
+
+/* ---------- 物理 ---------- */
+function shapeMatch(b) {
+  const P = b.pts, Q = b.rest, N = b.N;
+  let cx = 0, cy = 0;
+  for (const p of P) { cx += p.x; cy += p.y; }
+  cx /= N; cy /= N;
+  let a00 = 0, a01 = 0, a10 = 0, a11 = 0;
+  for (let i = 0; i < N; i++) {
+    const px = P[i].x - cx, py = P[i].y - cy, q = Q[i];
+    a00 += px * q.x; a01 += px * q.y; a10 += py * q.x; a11 += py * q.y;
+  }
+  const th = Math.atan2(a10 - a01, a00 + a11);
+  const iq = b.iq;
+  let m00 = a00 * iq[0] + a01 * iq[2], m01 = a00 * iq[1] + a01 * iq[3];
+  let m10 = a10 * iq[0] + a11 * iq[2], m11 = a10 * iq[1] + a11 * iq[3];
+  const det = m00 * m11 - m01 * m10;
+  if (det > .05) { const s = 1 / Math.sqrt(det); m00 *= s; m01 *= s; m10 *= s; m11 *= s; }
+  else { const c = Math.cos(th), s = Math.sin(th); m00 = c; m01 = -s; m10 = s; m11 = c; }
+  // 刚性部分始终朝竖直方向回正，糖果不会一直躺着
+  const tu = b.grab ? clamp(th, -1, 1) * .7 : clamp(th, -.7, .7) * .45;
+  const c = Math.cos(tu), s = Math.sin(tu), be = b.beta;
+  const g00 = be * m00 + (1 - be) * c, g01 = be * m01 - (1 - be) * s;
+  const g10 = be * m10 + (1 - be) * s, g11 = be * m11 + (1 - be) * c;
+  b.M[0] = g00; b.M[1] = g01; b.M[2] = g10; b.M[3] = g11;
+  b.cx = cx; b.cy = cy;
+  const k = b.k;
+  for (let i = 0; i < N; i++) {
+    const p = P[i], q = Q[i];
+    p.x += (cx + g00 * q.x + g01 * q.y - p.x) * k;
+    p.y += (cy + g10 * q.x + g11 * q.y - p.y) * k;
+  }
+}
+
+function pairCollide(A, B, dist) {
+  const d0 = PR * 2, d02 = d0 * d0;
+  for (const pa of A.pts) {
+    if (pa.x < B.x0 - d0 || pa.x > B.x1 + d0 || pa.y < B.y0 - d0 || pa.y > B.y1 + d0) continue;
+    let best = 1e18, bp = null;
+    for (const pb of B.pts) {
+      const dx = pb.x - pa.x, dy = pb.y - pa.y, d2 = dx * dx + dy * dy;
+      if (d2 < best) { best = d2; bp = pb; }
+      if (dist && d2 < d02 && d2 > 1e-6) {
+        const d = Math.sqrt(d2), f = (d0 - d) / d * .5;
+        pa.x -= dx * f; pa.y -= dy * f; pb.x += dx * f; pb.y += dy * f;
+      }
+    }
+    if (bp && pip(pa.x, pa.y, B.pts)) {
+      const dx = bp.x - pa.x, dy = bp.y - pa.y;
+      pa.x += dx * .6; pa.y += dy * .6; bp.x -= dx * .3; bp.y -= dy * .3;
+    }
+  }
+}
+
+function collide() {
+  for (const b of bodies) {
+    let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
+    for (const p of b.pts) {
+      if (p.x < x0) x0 = p.x; if (p.x > x1) x1 = p.x;
+      if (p.y < y0) y0 = p.y; if (p.y > y1) y1 = p.y;
+    }
+    b.x0 = x0; b.x1 = x1; b.y0 = y0; b.y1 = y1;
+  }
+  const d0 = PR * 2;
+  for (let i = 0; i < bodies.length; i++)
+    for (let j = i + 1; j < bodies.length; j++) {
+      const A = bodies[i], B = bodies[j];
+      if (A.x1 + d0 < B.x0 || B.x1 + d0 < A.x0 || A.y1 + d0 < B.y0 || B.y1 + d0 < A.y0) continue;
+      pairCollide(A, B, true);
+      pairCollide(B, A, false);
+    }
+}
+
+function walls() {
+  const fl = FLOOR - PR, l = PR, r = W - PR;
+  for (const b of bodies) for (const p of b.pts) {
+    if (p.y > fl) {
+      const vy = p.y - p.py, vx = p.x - p.px;
+      p.y = fl; p.py = fl + vy * .15; p.px = p.x - vx * .82;
+    }
+    if (p.x < l) { const vx = p.x - p.px; p.x = l; p.px = l + vx * .2; }
+    else if (p.x > r) { const vx = p.x - p.px; p.x = r; p.px = r + vx * .2; }
+    if (p.y < -H * 1.5) { p.y = -H * 1.5; p.py = p.y; }
+  }
+}
+
+const ptrs = new Map();
+
+function step() {
+  for (const b of bodies) for (const p of b.pts) {
+    let vx = (p.x - p.px) * DAMP, vy = (p.y - p.py) * DAMP;
+    const v = Math.hypot(vx, vy);
+    if (v > VMAX) { vx *= VMAX / v; vy *= VMAX / v; }
+    p.px = p.x; p.py = p.y;
+    p.x += vx; p.y += vy + G;
+  }
+  for (const b of bodies) shapeMatch(b);
+  for (const pt of ptrs.values()) {
+    if (!pt.b) continue;
+    const P = pt.b.pts;
+    for (const it of pt.items) {
+      const q = P[it.i], f = it.w * .28;
+      q.x += (pt.x + it.ox - q.x) * f;
+      q.y += (pt.y + it.oy - q.y) * f;
+    }
+  }
+  collide();
+  walls();
+}
+
+function jump(b) {
+  const v0 = rnd(7, 9.5) * Math.sqrt(S), vx = rnd(-1.6, 1.6);
+  for (let i = 0; i < b.N; i++) {
+    const p = b.pts[i], q = b.rest[i];
+    const f = 1 - .35 * (q.y / b.R);
+    p.py = p.y + v0 * f;
+    p.px = p.x - vx - (q.x / b.R) * 1.4;
+  }
+}
+
+/* ---------- 交互 ---------- */
+function hit(x, y) {
+  for (let i = bodies.length - 1; i >= 0; i--) if (pip(x, y, bodies[i].o)) return bodies[i];
+  for (let i = bodies.length - 1; i >= 0; i--) {
+    const b = bodies[i];
+    if (Math.hypot(x - b.cx, y - b.cy) < b.R * .9) return b;
+  }
+  return null;
+}
+
+cv.addEventListener('pointerdown', e => {
+  cv.setPointerCapture(e.pointerId);
+  const x = e.clientX, y = e.clientY, b = hit(x, y);
+  const pt = { x, y, sx: x, sy: y, t: performance.now(), b, items: [], moved: 0 };
+  if (b) {
+    bodies.splice(bodies.indexOf(b), 1); bodies.push(b);
+    b.grab++;
+    const sg = b.R * .6;
+    b.pts.forEach((p, i) => {
+      const d2 = (p.x - x) ** 2 + (p.y - y) ** 2, w = Math.exp(-d2 / (2 * sg * sg));
+      if (w > .04) pt.items.push({ i, w, ox: p.x - x, oy: p.y - y });
+    });
+    cv.style.cursor = 'grabbing';
+  }
+  ptrs.set(e.pointerId, pt);
+});
+cv.addEventListener('pointermove', e => {
+  const pt = ptrs.get(e.pointerId);
+  if (pt) {
+    pt.x = e.clientX; pt.y = e.clientY;
+    pt.moved = Math.max(pt.moved, Math.hypot(pt.x - pt.sx, pt.y - pt.sy));
+  } else if (!ptrs.size) {
+    cv.style.cursor = hit(e.clientX, e.clientY) ? 'grab' : 'default';
+  }
+});
+function release(e) {
+  const pt = ptrs.get(e.pointerId);
+  if (!pt) return;
+  ptrs.delete(e.pointerId);
+  const tap = pt.moved < 8 && performance.now() - pt.t < 320;
+  if (pt.b) {
+    pt.b.grab--;
+    if (tap && e.type === 'pointerup') jump(pt.b);
+  } else if (tap && e.type === 'pointerup' && bodies.length < 26 && pt.y < FLOOR - 40) {
+    makeBody(KIND_LIST[Math.random() * KIND_LIST.length | 0], clamp(pt.x, 70, W - 70), pt.y);
+  }
+  cv.style.cursor = pt.b ? 'grab' : 'default';
+}
+cv.addEventListener('pointerup', release);
+cv.addEventListener('pointercancel', release);
+cv.addEventListener('contextmenu', e => e.preventDefault());
+
+/* ---------- 渲染 ---------- */
+function outline(b) {
+  const P = b.pts, n = b.N, o = b.o, off = PR * .95 * b.orient;
+  for (let i = 0; i < n; i++) {
+    const a = P[(i - 1 + n) % n], c = P[(i + 1) % n], p = P[i];
+    const tx = c.x - a.x, ty = c.y - a.y, l = Math.hypot(tx, ty) || 1;
+    o[i].x = p.x + ty / l * off; o[i].y = p.y - tx / l * off;
+  }
+  return o;
+}
+function tracePath(o) {
+  const n = o.length, a = o[n - 1], b = o[0];
+  ctx.beginPath();
+  ctx.moveTo((a.x + b.x) / 2, (a.y + b.y) / 2);
+  for (let i = 0; i < n; i++) {
+    const p = o[i], q = o[(i + 1) % n];
+    ctx.quadraticCurveTo(p.x, p.y, (p.x + q.x) / 2, (p.y + q.y) / 2);
+  }
+  ctx.closePath();
+}
+function ell(x, y, rx, ry, rot = 0) { ctx.moveTo(x + rx * Math.cos(rot), y + rx * Math.sin(rot)); ctx.ellipse(x, y, rx, ry, rot, 0, TAU); }
+function quad(x, y, r, a) {
+  const c = Math.cos(a) * r, s = Math.sin(a) * r;
+  ctx.moveTo(x + c, y + s); ctx.lineTo(x - s, y + c); ctx.lineTo(x - c, y - s); ctx.lineTo(x + s, y - c); ctx.closePath();
+}
+function leaf(x, y, rot, len, col) {
+  ctx.save(); ctx.translate(x, y); ctx.rotate(rot);
+  ctx.beginPath(); ctx.moveTo(0, 0);
+  ctx.quadraticCurveTo(len * .5, -len * .28, len, 0);
+  ctx.quadraticCurveTo(len * .5, len * .28, 0, 0);
+  const g = ctx.createLinearGradient(0, -len * .2, 0, len * .2);
+  g.addColorStop(0, hsl(col, 60, 50)); g.addColorStop(1, hsl(col, 65, 30));
+  ctx.fillStyle = g; ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,.35)'; ctx.lineWidth = len * .04;
+  ctx.beginPath(); ctx.moveTo(len * .1, -len * .03); ctx.quadraticCurveTo(len * .5, -len * .12, len * .85, -len * .02); ctx.stroke();
+  ctx.restore();
+}
+
+const DECO = {
+  strawberry(b) {
+    ctx.fillStyle = 'rgba(110,0,20,.3)'; ctx.beginPath();
+    for (const s of b.seeds) ell(s.x, s.y, .06, .075);
+    ctx.fill();
+    ctx.fillStyle = '#ffe08a'; ctx.beginPath();
+    for (const s of b.seeds) ell(s.x, s.y - .012, .025, .042);
+    ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,.55)'; ctx.beginPath();
+    for (const s of b.seeds) ell(s.x - .008, s.y - .03, .008, .012);
+    ctx.fill();
+  },
+  orange() {
+    ctx.fillStyle = hsl(40, 100, 70, .45);
+    for (let i = 0; i < 10; i++) {
+      const a0 = i * TAU / 10 + .05, a1 = (i + 1) * TAU / 10 - .05, m = (a0 + a1) / 2;
+      ctx.beginPath(); ctx.moveTo(Math.cos(m) * .1, Math.sin(m) * .1); ctx.arc(0, 0, .74, a0, a1); ctx.closePath(); ctx.fill();
+    }
+    ctx.strokeStyle = 'rgba(255,250,230,.75)'; ctx.lineWidth = .035; ctx.beginPath();
+    for (let i = 0; i < 10; i++) { const a = i * TAU / 10; ctx.moveTo(0, 0); ctx.lineTo(Math.cos(a) * .78, Math.sin(a) * .78); }
+    ctx.stroke();
+    ctx.lineWidth = .06; ctx.beginPath(); ctx.arc(0, 0, .8, 0, TAU); ctx.stroke();
+    ctx.strokeStyle = hsl(24, 100, 48, .9); ctx.lineWidth = .24; ctx.beginPath(); ctx.arc(0, 0, 1.0, 0, TAU); ctx.stroke();
+    ctx.fillStyle = 'rgba(255,250,235,.8)'; ctx.beginPath(); ctx.arc(0, 0, .07, 0, TAU); ctx.fill();
+  },
+  lemon(b) {
+    ctx.fillStyle = hsl(45, 90, 40, .16); ctx.beginPath();
+    for (const s of b.seeds) { ctx.moveTo(s.x + .022, s.y); ctx.arc(s.x, s.y, .022, 0, TAU); }
+    ctx.fill();
+  },
+  watermelon(b) {
+    ctx.strokeStyle = '#2d8a38'; ctx.lineWidth = .5;
+    ctx.beginPath(); ctx.ellipse(0, -.3, 1.2, 1, 0, 0, Math.PI); ctx.stroke();
+    ctx.strokeStyle = '#1f6b2a'; ctx.lineWidth = .06;
+    ctx.beginPath(); ctx.ellipse(0, -.3, 1.18, .98, 0, 0, Math.PI); ctx.stroke();
+    ctx.strokeStyle = 'rgba(232,248,210,.95)'; ctx.lineWidth = .12;
+    ctx.beginPath(); ctx.ellipse(0, -.3, 1.08, .88, 0, 0, Math.PI); ctx.stroke();
+    for (const s of b.seeds) {
+      ctx.save(); ctx.translate(s.x, s.y); ctx.rotate(s.a - Math.PI / 2);
+      ctx.fillStyle = '#2b1b17'; ctx.beginPath(); ctx.moveTo(0, -.09);
+      ctx.quadraticCurveTo(.065, .02, 0, .06); ctx.quadraticCurveTo(-.065, .02, 0, -.09); ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,255,.45)'; ctx.beginPath(); ell(-.012, 0, .01, .025); ctx.fill();
+      ctx.restore();
+    }
+  },
+  kiwi(b) {
+    const g = ctx.createRadialGradient(0, 0, .1, 0, 0, 1);
+    g.addColorStop(0, 'rgba(250,255,200,.85)'); g.addColorStop(.35, 'rgba(200,235,90,.35)'); g.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = g; ctx.fillRect(-1.4, -1.2, 2.8, 2.4);
+    ctx.strokeStyle = 'rgba(240,255,190,.35)'; ctx.lineWidth = .02; ctx.beginPath();
+    for (let i = 0; i < 30; i++) {
+      const a = i / 30 * TAU, c = Math.cos(a), s = Math.sin(a);
+      ctx.moveTo(c * .3 * 1.12, s * .3 * .9); ctx.lineTo(c * .78 * 1.12, s * .78 * .9);
+    }
+    ctx.stroke();
+    ctx.fillStyle = '#1c180e'; ctx.beginPath();
+    for (const s of b.seeds) ell(s.x, s.y, .055, .028, s.a);
+    ctx.fill();
+    ctx.fillStyle = '#f6f8d8'; ctx.beginPath(); ell(0, 0, .3, .2); ctx.fill();
+    ctx.strokeStyle = '#b9d35a'; ctx.lineWidth = .05; ctx.beginPath(); ctx.ellipse(0, 0, 1.02, .8, 0, 0, TAU); ctx.stroke();
+    ctx.strokeStyle = '#7a6528'; ctx.lineWidth = .16; ctx.beginPath(); ctx.ellipse(0, 0, 1.12, .9, 0, 0, TAU); ctx.stroke();
+  },
+  peach() {
+    const g = ctx.createRadialGradient(.35, .2, 0, .35, .2, .95);
+    g.addColorStop(0, 'rgba(240,60,70,.5)'); g.addColorStop(1, 'rgba(240,60,70,0)');
+    ctx.fillStyle = g; ctx.fillRect(-1.2, -1.2, 2.4, 2.4);
+    ctx.lineCap = 'round';
+    ctx.strokeStyle = 'rgba(170,50,40,.32)'; ctx.lineWidth = .05;
+    ctx.beginPath(); ctx.moveTo(.02, -.86); ctx.bezierCurveTo(.26, -.5, .22, .1, -.05, .5); ctx.stroke();
+    ctx.strokeStyle = 'rgba(255,255,255,.3)'; ctx.lineWidth = .03;
+    ctx.beginPath(); ctx.moveTo(-.04, -.8); ctx.bezierCurveTo(.18, -.48, .14, .05, -.1, .42); ctx.stroke();
+  },
+  cherry() {
+    ctx.lineCap = 'round';
+    ctx.strokeStyle = 'rgba(60,0,10,.35)'; ctx.lineWidth = .05;
+    ctx.beginPath(); ctx.moveTo(0, -.88); ctx.quadraticCurveTo(.06, -.6, 0, -.4); ctx.stroke();
+  },
+  grape() {
+    const g = ctx.createRadialGradient(.15, .2, 0, .15, .2, 1.1);
+    g.addColorStop(0, 'rgba(220,210,255,.0)'); g.addColorStop(.7, 'rgba(220,210,255,.12)'); g.addColorStop(1, 'rgba(220,210,255,.3)');
+    ctx.fillStyle = g; ctx.fillRect(-1.2, -1.2, 2.4, 2.4);
+    ctx.fillStyle = 'rgba(40,10,50,.35)'; ctx.beginPath(); ell(0, .92, .05, .035); ctx.fill();
+  },
+  blueberry() {
+    ctx.fillStyle = 'rgba(205,215,255,.2)'; ctx.fillRect(-1.2, -1.2, 2.4, 2.4);
+    ctx.save(); ctx.translate(0, -.6);
+    ctx.fillStyle = 'rgba(20,20,50,.75)'; ctx.beginPath();
+    for (let i = 0; i < 10; i++) {
+      const a = i / 10 * TAU - Math.PI / 2, r = i % 2 ? .08 : .22;
+      ctx[i ? 'lineTo' : 'moveTo'](Math.cos(a) * r, Math.sin(a) * r * .7);
+    }
+    ctx.closePath(); ctx.fill();
+    ctx.fillStyle = 'rgba(90,100,160,.6)'; ctx.beginPath(); ell(0, 0, .06, .04); ctx.fill();
+    ctx.restore();
+  },
+  bear() {
+    ctx.fillStyle = 'rgba(255,255,255,.13)'; ctx.beginPath();
+    ell(0, .32, .34, .4); ell(0, -.43, .2, .14); ctx.fill();
+    ctx.fillStyle = 'rgba(0,0,0,.16)'; ctx.beginPath();
+    ell(-.18, -.66, .05, .06); ell(.18, -.66, .05, .06); ell(0, -.5, .07, .05); ctx.fill();
+    ctx.fillStyle = 'rgba(0,0,0,.08)'; ctx.beginPath();
+    ell(-.4, -.95, .1, .1); ell(.4, -.95, .1, .1); ctx.fill();
+  }
+};
+
+const TOP = {
+  strawberry() {
+    ctx.save(); ctx.translate(0, -.98);
+    for (const a of [-.15, .45, 2.7, 3.3]) leaf(0, 0, a, .5, 112);
+    leaf(0, 0, Math.PI / 2, .32, 112);
+    ctx.fillStyle = '#4f8a2a'; ctx.beginPath(); ctx.roundRect(-.045, -.26, .09, .3, .04); ctx.fill();
+    ctx.restore();
+  },
+  cherry() {
+    ctx.lineCap = 'round';
+    ctx.strokeStyle = '#6a8c24'; ctx.lineWidth = .08;
+    ctx.beginPath(); ctx.moveTo(0, -.86); ctx.quadraticCurveTo(.05, -1.45, .45, -1.85); ctx.stroke();
+    ctx.strokeStyle = 'rgba(255,255,255,.35)'; ctx.lineWidth = .025;
+    ctx.beginPath(); ctx.moveTo(-.02, -.95); ctx.quadraticCurveTo(.02, -1.4, .38, -1.78); ctx.stroke();
+    leaf(.38, -1.7, -.35, .6, 105);
+  },
+  peach() { leaf(.04, -.86, -.55, .62, 108); },
+  grape() {
+    ctx.lineCap = 'round'; ctx.strokeStyle = '#6b4a2a'; ctx.lineWidth = .1;
+    ctx.beginPath(); ctx.moveTo(0, -.96); ctx.quadraticCurveTo(.02, -1.15, .1, -1.26); ctx.stroke();
+  }
+};
+
+function drawSugar(b) {
+  ctx.beginPath();
+  for (const s of b.dots) quad(s.x + .012, s.y + .016, s.r, s.a);
+  ctx.fillStyle = 'rgba(0,0,0,.1)'; ctx.fill();
+  ctx.beginPath();
+  for (const s of b.dots) quad(s.x, s.y, s.r, s.a);
+  ctx.fillStyle = 'rgba(255,255,255,.78)'; ctx.fill();
+}
+
+function highlight(b) {
+  const [hx, hy] = b.K.hl || [-.38, -.45], a = b.dots ? .45 : .8;
+  ctx.save(); ctx.translate(hx, hy); ctx.rotate(-.55); ctx.scale(1, .5);
+  const g = ctx.createRadialGradient(0, 0, 0, 0, 0, .36);
+  g.addColorStop(0, `rgba(255,255,255,${a})`); g.addColorStop(.6, `rgba(255,255,255,${a * .35})`); g.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, .36, 0, TAU); ctx.fill();
+  ctx.restore();
+  ctx.fillStyle = `rgba(255,255,255,${b.dots ? .55 : .95})`;
+  ctx.beginPath(); ell(hx - .06, hy + .02, .075, .045, -.55); ctx.moveTo(hx + .25, hy - .1); ctx.arc(hx + .22, hy - .1, .028, 0, TAU); ctx.fill();
+}
+
+function drawShadow(b) {
+  let y1 = -1e9, x0 = 1e9, x1 = -1e9;
+  for (const p of b.pts) { if (p.y > y1) y1 = p.y; if (p.x < x0) x0 = p.x; if (p.x > x1) x1 = p.x; }
+  const h = Math.max(0, FLOOR - y1 - PR), k = Math.max(0, 1 - h / (280 * S));
+  if (k <= 0) return;
+  const w = (x1 - x0) * .58 * (1 + h / (500 * S)), [hh, ss, ll] = b.col;
+  ctx.save(); ctx.translate((x0 + x1) / 2, FLOOR + 1); ctx.scale(1, Math.max(.06, 9 * S / w));
+  let g = ctx.createRadialGradient(0, 0, 0, 0, 0, w);
+  g.addColorStop(0, `rgba(90,40,30,${.3 * k})`); g.addColorStop(1, 'rgba(90,40,30,0)');
+  ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, w, 0, TAU); ctx.fill();
+  g = ctx.createRadialGradient(w * .15, 0, 0, w * .15, 0, w * .9);
+  g.addColorStop(0, hsl(hh, ss, ll, .4 * k)); g.addColorStop(1, hsl(hh, ss, ll, 0));
+  ctx.fillStyle = g; ctx.beginPath(); ctx.arc(w * .15, 0, w * .9, 0, TAU); ctx.fill();
+  ctx.restore();
+}
+
+function drawBody(b) {
+  const o = outline(b), R = b.R, [h, s, l] = b.col, cx = b.cx, cy = b.cy, M = b.M;
+  ctx.save();
+  tracePath(o);
+  const g = ctx.createRadialGradient(cx - R * .3, cy - R * .35, R * .05, cx, cy, R * 1.35);
+  g.addColorStop(0, hsl(h, s, l + 16, b.alpha)); g.addColorStop(.5, hsl(h, s, l, b.alpha)); g.addColorStop(1, hsl(h, s + 5, l - 18, b.alpha));
+  ctx.fillStyle = g; ctx.fill();
+  ctx.clip();
+
+  ctx.save();
+  ctx.transform(M[0], M[2], M[1], M[3], cx, cy); ctx.scale(R, R);
+  ctx.save(); ctx.translate(-b.sx, -b.sy); DECO[b.kind] && DECO[b.kind](b); ctx.restore();
+  const gg = ctx.createRadialGradient(.25, .45, 0, .25, .45, .8);
+  gg.addColorStop(0, hsl(h, s, l + 25, .35)); gg.addColorStop(1, hsl(h, s, l + 25, 0));
+  ctx.fillStyle = gg; ctx.fillRect(-2, -2, 4, 4);
+  ctx.restore();
+
+  tracePath(o);
+  ctx.lineWidth = R * .34; ctx.strokeStyle = hsl(h, s, l - 28, .17); ctx.stroke();
+  ctx.lineWidth = R * .08; ctx.strokeStyle = hsl(h, s, l - 30, .22); ctx.stroke();
+  ctx.save(); ctx.translate(R * .04, R * .06); tracePath(o);
+  ctx.lineWidth = R * .06; ctx.strokeStyle = 'rgba(255,255,255,.2)'; ctx.stroke(); ctx.restore();
+
+  ctx.save();
+  ctx.transform(M[0], M[2], M[1], M[3], cx, cy); ctx.scale(R, R);
+  if (b.dots) {
+    ctx.fillStyle = 'rgba(255,255,255,.08)'; ctx.fillRect(-2, -2, 4, 4);
+    ctx.save(); ctx.translate(-b.sx, -b.sy); drawSugar(b); ctx.restore();
+  }
+  highlight(b);
+  ctx.restore();
+  ctx.restore();
+
+  if (TOP[b.kind]) {
+    ctx.save();
+    ctx.transform(M[0], M[2], M[1], M[3], cx, cy); ctx.scale(R, R); ctx.translate(-b.sx, -b.sy);
+    TOP[b.kind](b);
+    ctx.restore();
+  }
+}
+
+function render() {
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  ctx.fillStyle = bgGrad; ctx.fillRect(0, 0, W, FLOOR);
+  ctx.fillStyle = floorGrad; ctx.fillRect(0, FLOOR, W, H - FLOOR);
+  ctx.fillStyle = 'rgba(255,255,255,.55)'; ctx.fillRect(0, FLOOR, W, 1.5);
+  for (const b of bodies) drawShadow(b);
+  for (const b of bodies) drawBody(b);
+}
+
+/* ---------- 启动 ---------- */
+function init() {
+  const all = ['strawberry', 'orange', 'lemon', 'watermelon', 'kiwi', 'peach', 'cherry', 'grape', 'blueberry', 'heart', 'star', 'bear', 'bear', 'bear'];
+  const count = clamp(Math.round(W * H / 70000), 7, all.length);
+  const list = all.sort(() => Math.random() - .5).slice(0, count);
+  const cols = Math.max(3, Math.floor(W / (150 * S)));
+  list.forEach((k, i) => {
+    const c = i % cols, r = i / cols | 0;
+    makeBody(k, (c + .5) * W / cols + rnd(-12, 12), -90 * S - r * 170 * S - rnd(0, 60));
+  });
+}
+init();
+
+const SUB = 1000 / 180;
+let last = performance.now(), acc = 0;
+function frame(t) {
+  acc += Math.min(100, t - last); last = t;
+  let n = 0;
+  while (acc >= SUB && n < 6) { step(); acc -= SUB; n++; }
+  if (n === 6) acc = 0;
+  render();
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

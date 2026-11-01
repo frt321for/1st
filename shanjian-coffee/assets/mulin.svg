@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 400" role="img"><title>暮林 · 山间来信咖啡包装插画</title><defs>
+    <linearGradient id="mulin-paper" x1="0" x2="1"><stop stop-color="#d2c7ad"/><stop offset=".075" stop-color="#e4dac2"/><stop offset=".25" stop-color="#f5eddc"/><stop offset=".69" stop-color="#f0e7d3"/><stop offset=".92" stop-color="#e5dac2"/><stop offset="1" stop-color="#c6b99d"/></linearGradient>
+    <linearGradient id="mulin-top" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#d8cdb4"/><stop offset=".45" stop-color="#f5efdf"/><stop offset="1" stop-color="#d5c8ad"/></linearGradient>
+    <linearGradient id="mulin-edge"><stop stop-color="#fffaf0" stop-opacity=".04"/><stop offset=".5" stop-color="#fffaf0" stop-opacity=".2"/><stop offset="1" stop-color="#1c251c" stop-opacity=".16"/></linearGradient>
+    <clipPath id="mulin-label"><rect x="51" y="110" width="199" height="210" rx="1"/></clipPath>
+  </defs>
+  <path d="M45 20 Q148 17 254 20 L257 75 L276 349 Q274 365 254 370 Q155 378 45 371 Q29 369 27 353 L43 76Z" fill="url(#mulin-paper)" stroke="#b7a98d" stroke-width=".7"/>
+  <path d="M45 20 Q146 17 254 20 L256 50 Q156 46 44 51Z" fill="url(#mulin-top)"/>
+  <path d="M47 28 Q148 25 251 28 M46 34 Q144 31 252 34 M46 43 Q145 39 253 43" fill="none" stroke="#bcae91" stroke-width=".7" opacity=".6"/>
+  <path d="M44 51 L43 86 L30 349 L50 340 L54 73Z" fill="#cabd9f" opacity=".55"/>
+  <path d="M252 52 L253 84 L274 349 L252 340 L247 72Z" fill="#baac8d" opacity=".28"/>
+  <path d="M31 352 Q159 361 274 350 L254 370 Q151 378 44 370Z" fill="#cfc2a6"/>
+  <path d="M51 343 Q151 351 252 343" fill="none" stroke="#b2a487" opacity=".5"/>
+  <circle cx="152" cy="79" r="8" fill="#d9cfb9" stroke="#c2b49a" stroke-width=".65"/>
+  <circle cx="152" cy="79" r="3" fill="#baac8f" opacity=".5"/>
+  <rect x="51" y="110" width="199" height="210" rx="1" fill="#765b49"/>
+  <g fill="#faf5e7" text-anchor="middle">
+    <path d="M127 131 L138 120 L149 130 L159 116 L177 134 M133 132 Q150 125 170 134" fill="none" stroke="#f1ead7" stroke-width="1.1" stroke-linecap="round"/>
+    <text x="150" y="159" font-size="19" font-family="SimSun, 'Songti SC', serif" letter-spacing="4">山间来信</text>
+    <text x="152" y="173" font-size="5.7" font-family="Arial, sans-serif" letter-spacing="2">MOUNTAIN LETTERS</text>
+    <path d="M73 185 H228" stroke="#f5eddb" stroke-width=".65" opacity=".45"/>
+    <text x="154" y="220" font-size="32" font-family="SimSun, 'Songti SC', serif" letter-spacing="8">暮林</text>
+    <text x="152" y="236" font-size="6.7" font-family="Arial, sans-serif" letter-spacing="1.3">DUSK IN THE WOODS</text>
+  </g>
+  <g clip-path="url(#mulin-label)" fill="none" stroke="#e7d8ca" stroke-width=".75" opacity=".4"><path d="M52 261 C84 237 94 254 125 227 S174 248 202 219 S239 210 250 219"/><path d="M52 269 C84 244 94 259 125 234 S174 252 202 226 S239 220 250 229"/><path d="M52 277 C84 251 94 264 125 241 S174 256 202 233 S239 230 250 239"/><path d="M52 285 C84 258 94 269 125 248 S174 260 202 240 S239 240 250 249"/><path d="M52 293 C84 265 94 274 125 255 S174 264 202 247 S239 250 250 259"/><path d="M52 301 C84 272 94 279 125 262 S174 268 202 254 S239 260 250 269"/><path d="M52 309 C84 279 94 284 125 269 S174 272 202 261 S239 270 250 279"/><path d="M52 317 C84 286 94 289 125 276 S174 276 202 268 S239 280 250 289"/><path d="M52 325 C84 293 94 294 125 283 S174 280 202 275 S239 290 250 299"/></g>
+  <rect x="51" y="287" width="199" height="33" fill="#765b49"/>
+  <text x="66" y="307" fill="#f7f0df" font-family="Georgia, serif" font-size="19">05</text>
+  <g fill="#f7f0df" font-family="Arial, sans-serif" font-size="5.8" letter-spacing=".7"><text x="97" y="301">BRAZIL · CERRADO</text><text x="97" y="312">DARK ROAST  /  250g</text></g>
+  <path d="M241 115 L246 115 L247 316 L241 316Z" fill="url(#mulin-edge)" opacity=".4"/>
+  <g stroke="#b8a88a" stroke-width=".45" opacity=".2" fill="none"><path d="M56 66 L60 95 M241 55 L233 91 M38 284 L43 329 M260 258 L266 334 M77 357 L225 357"/></g></svg>

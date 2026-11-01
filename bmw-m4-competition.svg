@@ -1,0 +1,170 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1200" viewBox="0 0 1600 1200" role="img" aria-labelledby="title description">
+  <title id="title">BMW M4 Competition — São Paulo Yellow</title>
+  <desc id="description">A clean side-profile vector illustration of a G82 BMW M4 Competition coupe facing right, finished in factory São Paulo Yellow with a black carbon roof, dark double-spoke wheels, and blue brake calipers. All colors are solid fills, with no gradients.</desc>
+  <defs>
+    <path id="body" d="M149 552 Q168 541 200 536 L359 521 C429 480 499 422 577 402 C641 386 745 385 817 399 C890 418 951 477 1008 526 L1357 548 Q1409 554 1437 575 L1454 605 Q1465 617 1462 639 L1455 707 Q1450 738 1427 749 L1328 759 L1316 754 L1316 701 C1316 638 1267 587 1205 587 C1142 587 1093 638 1093 701 L1093 757 L531 757 L528 701 C528 638 479 587 416 587 C353 587 303 638 303 701 L303 753 L203 746 Q158 741 148 716 L136 673 L138 596 Q140 564 149 552Z"/>
+    <clipPath id="body-clip"><use href="#body"/></clipPath>
+    <g id="spoke-pair">
+      <path d="M-10-16 -28-69 -24-78 -18-77 -2-21Z" fill="#8E9495"/>
+      <path d="M-8-18 -22-70 -20-76 -17-75 -2-21Z" fill="#D0D2CC"/>
+      <path d="M5-21 22-76 28-76 29-67 13-15Z" fill="#777E80"/>
+      <path d="M8-22 24-74 27-74 25-66 13-19Z" fill="#B9BEBB"/>
+      <path d="M-10-16 -28-69 -24-78 M13-15 29-67 28-76" fill="none" stroke="#353B3E" stroke-width="1.5"/>
+    </g>
+    <g id="rotor-holes" fill="#4F5557">
+      <circle cx="-15" cy="-56" r="2.1"/><circle cx="-7" cy="-45" r="1.7"/>
+      <circle cx="7" cy="-58" r="2.1"/><circle cx="15" cy="-46" r="1.7"/>
+    </g>
+    <g id="wheel">
+      <circle r="102" fill="#191D20"/>
+      <circle r="96.5" fill="none" stroke="#303538" stroke-width="2"/>
+      <path d="M-84-44 A95 95 0 0 1 78-53" fill="none" stroke="#44494A" stroke-width="2" stroke-linecap="round"/>
+      <path d="M-79 53 A95 95 0 0 0 81 49" fill="none" stroke="#101517" stroke-width="3"/>
+      <circle r="83" fill="#0F1417" stroke="#575E60" stroke-width="2.5"/>
+      <circle r="76" fill="#262C2F" stroke="#9CA3A2" stroke-width="2"/>
+      <circle r="62" fill="#858B89"/>
+      <circle r="57" fill="none" stroke="#A9ADAA" stroke-width="1"/>
+      <circle r="42" fill="none" stroke="#717977" stroke-width="1.5"/>
+      <use href="#rotor-holes"/><use href="#rotor-holes" transform="rotate(45)"/>
+      <use href="#rotor-holes" transform="rotate(90)"/><use href="#rotor-holes" transform="rotate(135)"/>
+      <use href="#rotor-holes" transform="rotate(180)"/><use href="#rotor-holes" transform="rotate(225)"/>
+      <use href="#rotor-holes" transform="rotate(270)"/><use href="#rotor-holes" transform="rotate(315)"/>
+      <path d="M43-38 Q51-42 57-31 L65-13 65 20 57 38 45 34 41 20 45 1 40-19Z" fill="#2467A5"/>
+      <path d="M53-26 57-18 57 20 52 27" fill="none" stroke="#6099C4" stroke-width="2"/>
+      <path d="M48-10 52-10 52 9 48 9Z" fill="#E5E8E3"/>
+      <circle r="29" fill="#303638"/>
+      <use href="#spoke-pair"/><use href="#spoke-pair" transform="rotate(72)"/>
+      <use href="#spoke-pair" transform="rotate(144)"/><use href="#spoke-pair" transform="rotate(216)"/>
+      <use href="#spoke-pair" transform="rotate(288)"/>
+      <circle r="17" fill="#565D5D" stroke="#171E20" stroke-width="2"/>
+      <g fill="#11181C" stroke="#A0A7A5" stroke-width="1">
+        <circle cy="-22" r="3"/><circle cx="20.92" cy="-6.8" r="3"/>
+        <circle cx="12.93" cy="17.8" r="3"/><circle cx="-12.93" cy="17.8" r="3"/>
+        <circle cx="-20.92" cy="-6.8" r="3"/>
+      </g>
+      <circle r="11" fill="#151D22" stroke="#C7CBC5" stroke-width="1"/>
+      <circle r="7" fill="#E8ECE6"/>
+      <path d="M0 0V-7A7 7 0 0 1 7 0ZM0 0V7A7 7 0 0 1-7 0Z" fill="#3B91CA"/>
+    </g>
+  </defs>
+
+  <path fill="#F5F4EF" d="M0 0H1600V1200H0Z"/>
+  <ellipse cx="802" cy="800" rx="657" ry="16" fill="#E3E3DA"/>
+  <ellipse cx="807" cy="797" rx="590" ry="8" fill="#CDCEC3"/>
+
+  <!-- Wheel wells and underbody -->
+  <path d="M179 665 1450 665 1427 755 1310 767 304 767 200 746Z" fill="#161D1D"/>
+  <path d="M298 713V700C298 633 349 581 416 581S534 633 534 700V747H1090V700C1090 633 1140 581 1205 581S1322 633 1322 700V726" fill="#282E27"/>
+  <use href="#wheel" transform="translate(416 698)"/>
+  <use href="#wheel" transform="translate(1205 701) scale(.98)"/>
+
+  <!-- Factory São Paulo Yellow bodywork -->
+  <use href="#body" fill="#DCE33E" stroke="#41452C" stroke-width="2.4" stroke-linejoin="round"/>
+  <g clip-path="url(#body-clip)">
+    <path d="M144 551 362 530 1010 535 1428 570 1396 585 1002 553 354 551 145 574Z" fill="#F0EF79"/>
+    <path d="M152 602C360 581 675 583 971 576L1438 595 1448 614C1290 598 1102 603 990 618L552 631 192 624Z" fill="#E7EB53"/>
+    <path d="M151 639 247 651C277 654 288 648 305 633L325 613 321 690 301 743 190 733 151 710Z" fill="#C4CD33"/>
+    <path d="M532 653C665 658 893 650 1067 624L1110 611 1098 673 1072 713 541 738Z" fill="#CCD634"/>
+    <path d="M542 698C712 710 923 688 1088 655L1087 713 1059 739 550 746Z" fill="#BBC72E"/>
+    <path d="M557 719C743 723 938 701 1069 680L1053 713 561 740Z" fill="#D9DF3D"/>
+    <path d="M1304 642 1363 628 1459 635 1445 720 1314 742Z" fill="#C1CC32"/>
+    <path d="M1327 698 1425 681 1449 683 1440 735 1321 751Z" fill="#A7B22C"/>
+    <path d="M145 716 279 731 298 750 192 743Z" fill="#8E9B2D"/>
+    <path d="M533 742 1089 719 1091 758 531 760Z" fill="#909F28"/>
+    <path d="M535 748 1086 731 1084 744 537 761Z" fill="#B4C12F"/>
+    <path d="M191 549 345 532 350 539 194 556Z" fill="#FAF39B"/>
+    <path d="M1031 535 1335 554 1383 565 1061 546Z" fill="#F7F18B"/>
+  </g>
+
+  <!-- Roofline and side glazing -->
+  <path d="M366 518C442 464 501 419 579 402C647 387 744 388 817 401C884 418 946 475 1001 526L978 526C926 477 875 433 810 416C750 401 649 403 588 415C512 431 452 477 394 519Z" fill="#252D2E"/>
+  <path d="M491 446C530 422 553 413 583 406C651 391 746 393 811 405" fill="none" stroke="#67706B" stroke-width="2.5" stroke-linecap="round"/>
+  <path d="M410 520C469 476 527 433 591 419C652 405 747 407 807 420C869 436 922 481 966 524Z" fill="#222D32" stroke="#131D23" stroke-width="3"/>
+  <path d="M424 514C480 474 533 438 592 426L592 517Z" fill="#5F7177"/>
+  <path d="M442 507C494 470 540 443 580 433L581 495Z" fill="#708086"/>
+  <path d="M609 422C669 411 750 414 805 427C855 440 905 478 949 517L609 517Z" fill="#52666F"/>
+  <path d="M627 423C684 416 751 419 800 431C828 438 856 453 883 473L626 453Z" fill="#687C83"/>
+  <path d="M810 433 918 514 944 515C902 478 855 443 810 433Z" fill="#809196"/>
+  <path d="M649 516 649 481Q648 466 662 465L683 465Q696 466 699 481L704 516Z" fill="#37474F"/>
+  <path d="M761 516 765 477Q766 465 779 465H798Q811 466 813 480L817 516Z" fill="#34464F"/>
+  <path d="M672 466 686 466 692 473 674 473Z" fill="#77868A"/>
+  <path d="M785 466 798 466 805 473 786 473Z" fill="#728188"/>
+  <path d="M586 420 606 417 607 521 585 521Z" fill="#1C272D"/>
+  <path d="M589 428V511" stroke="#49565B" stroke-width="2"/>
+  <path d="M403 522 972 527" fill="none" stroke="#131D23" stroke-width="6" stroke-linecap="round"/>
+  <path d="M408 527 975 531" fill="none" stroke="#EDF078" stroke-width="2"/>
+  <path d="M817 409C878 426 939 481 984 525" fill="none" stroke="#F1EE77" stroke-width="4"/>
+  <path d="M375 519C443 477 500 435 551 419" fill="none" stroke="#ECEF73" stroke-width="3"/>
+
+  <!-- Panel lines and shoulder crease -->
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M357 536C531 544 750 549 970 548L1370 575" stroke="#A3AF2B" stroke-width="2"/>
+    <path d="M213 596C389 583 658 584 924 578L1062 576" stroke="#A7B330" stroke-width="1.8"/>
+    <path d="M550 539 548 614 552 701Q553 718 571 719L982 711Q1003 711 1008 690L1038 582 1017 550 978 532" stroke="#73802A" stroke-width="2"/>
+    <path d="M558 546 557 611" stroke="#EEF071" stroke-width="1.5"/>
+    <path d="M1013 691 1043 583" stroke="#EDF06C" stroke-width="2"/>
+    <path d="M1009 529 1342 551Q1388 554 1420 571" stroke="#7F892C" stroke-width="1.8"/>
+    <path d="M178 621 171 675 182 705" stroke="#8C982D" stroke-width="1.8"/>
+    <path d="M1347 606 1389 612 1402 640" stroke="#7E8B2B" stroke-width="1.8"/>
+    <path d="M297 704C297 634 348 579 416 579C478 579 527 624 535 685" stroke="#A5B22E" stroke-width="3"/>
+    <path d="M306 650C325 609 365 586 407 585" stroke="#F3F07B" stroke-width="3"/>
+    <path d="M1087 695C1089 631 1139 579 1205 579C1265 579 1315 624 1322 683" stroke="#A8B52F" stroke-width="3"/>
+    <path d="M1099 646C1120 608 1158 585 1200 585" stroke="#F2F080" stroke-width="3"/>
+  </g>
+
+  <!-- Door handle and rear fuel flap -->
+  <path d="M587 557H626Q633 557 633 563Q632 569 626 569H587Q582 569 582 564Q582 558 587 557Z" fill="#BBC731" stroke="#97A52B" stroke-width="1.5"/>
+  <path d="M587 559H626Q629 559 629 562H585Z" fill="#F0EF79"/>
+  <path d="M589 568H625" fill="none" stroke="#6E7C2A" stroke-width="2" stroke-linecap="round"/>
+  <path d="M368 551H422Q427 551 427 556V579H364V556Q364 551 368 551Z" fill="none" stroke="#ACB82F" stroke-width="1.5"/>
+
+  <!-- M mirror with split aerodynamic mounting -->
+  <path d="M959 526 939 502 932 504 942 526Z" fill="#202C2D"/>
+  <path d="M947 529 973 516 977 521 963 535Z" fill="#313A30"/>
+  <path d="M937 497Q953 486 979 491L1002 500Q1006 504 1000 509L978 518 949 514 935 505Q932 501 937 497Z" fill="#202C2F" stroke="#151F23" stroke-width="2"/>
+  <path d="M940 497Q956 490 977 495L994 501 974 506 942 504Z" fill="#3F4A48"/>
+  <path d="M947 511 977 514 998 506" fill="none" stroke="#A7B38C" stroke-width="1.5"/>
+
+  <!-- Front fender air breather and M4 insignia -->
+  <path d="M1046 585 1093 586 1079 605 1043 609Z" fill="#263229"/>
+  <path d="M1049 588 1088 588 1083 592 1048 593Z" fill="#5D6840"/>
+  <path d="M1050 598 1077 596 1072 601 1049 604Z" fill="#101A1D"/>
+  <path d="M1049 580 1053 573H1057L1053 580Z" fill="#64BEE5"/>
+  <path d="M1054 580 1058 573H1062L1058 580Z" fill="#265A94"/>
+  <path d="M1059 580 1063 573H1067L1063 580Z" fill="#E34C48"/>
+  <path d="M1067 580 1070 573H1073L1073 577 1077 573H1080L1077 580H1075L1077 575 1072 580H1070L1071 575 1069 580Z M1084 573 1080 578H1085L1084 581 M1086 573 1084 578" fill="none" stroke="#313B2A" stroke-width="1"/>
+
+  <!-- Rear lip spoiler and taillamp -->
+  <path d="M164 536 205 531 346 523 359 528 206 541 164 543Z" fill="#1F2929"/>
+  <path d="M178 535 337 525" fill="none" stroke="#5F6957" stroke-width="2"/>
+  <path d="M143 565 182 559 262 558 248 578 181 581 140 578Z" fill="#431D25" stroke="#5A3626" stroke-width="1.5"/>
+  <path d="M149 566 182 564 252 563 247 569 180 570 148 573Z" fill="#F04643"/>
+  <path d="M155 574 184 572 238 572 234 576 183 577Z" fill="#B82C32"/>
+  <path d="M147 594 191 592" fill="none" stroke="#F0EE73" stroke-width="2.5"/>
+  <path d="M154 686 183 688 187 696 157 694Z" fill="#B43332"/>
+
+  <!-- Slender headlight and side intake -->
+  <path d="M1359 563 1406 568Q1426 573 1442 585L1445 599 1402 592 1366 580Z" fill="#25323A" stroke="#63704C" stroke-width="1.8"/>
+  <path d="M1368 568 1405 573 1433 586 1406 583 1375 577Z" fill="#94AAB0"/>
+  <path d="M1376 572 1384 581 1399 583 M1407 578 1415 587 1434 591" fill="none" stroke="#F3F7EE" stroke-width="4" stroke-linecap="square"/>
+  <path d="M1441 587 1447 591 1448 600 1442 598Z" fill="#CBDAB9"/>
+  <path d="M1427 619 1458 627 1453 673 1410 689 1408 678 1421 646Z" fill="#1B2729" stroke="#7C892F" stroke-width="2"/>
+  <path d="M1437 632 1451 635 1446 664 1421 675Z" fill="#34423B"/>
+  <path d="M1440 637 1433 663 M1446 639 1440 662" fill="none" stroke="#111D23" stroke-width="3"/>
+  <path d="M1457 613 1462 621 1459 666 1454 674Z" fill="#0F1C23"/>
+  <path d="M1356 706 1439 693 1448 698 1439 724 1343 740 1326 737Z" fill="#202D2B"/>
+  <path d="M1364 713 1429 704 1425 712 1357 724Z" fill="#3B4834"/>
+  <path d="M1376 717 1426 710" stroke="#596342" stroke-width="1.5"/>
+  <circle cx="1393" cy="647" r="4" fill="#C5D136" stroke="#939F2F" stroke-width="1"/>
+
+  <!-- Black side skirts and lower aero -->
+  <path d="M536 748 1086 738 1093 745 1092 761 531 769 528 760Z" fill="#202B29"/>
+  <path d="M548 750 1077 742 1066 748 547 758Z" fill="#47513A"/>
+  <path d="M541 762 1086 754" fill="none" stroke="#0F1B20" stroke-width="3"/>
+  <path d="M148 717 191 731 281 740 300 751 300 762 197 751 159 735Z" fill="#24302B"/>
+  <path d="M167 730 191 737 229 742 229 752 197 748 163 738Z" fill="#101C22"/>
+  <path d="M142 724 166 728 170 739 145 737Z" fill="#434A46"/>
+  <path d="M140 727 155 729 157 735 141 733Z" fill="#182125"/>
+  <path d="M1316 750 1432 737 1450 730 1447 742 1428 754 1320 766 1316 760Z" fill="#1E2B2A"/>
+  <path d="M1326 754 1425 744 1441 738" fill="none" stroke="#657044" stroke-width="2"/>
+</svg>

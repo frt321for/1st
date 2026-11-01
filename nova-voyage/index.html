@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#080b0d">
+    <meta name="description" content="宇宙再大，总有归途。新航 Nova Voyage，为每一次探索点亮归航的路。">
+    <title>404 · 迷失在星图之外 — 新航 Nova Voyage</title>
+    <link rel="icon" type="image/svg+xml" href="assets/nova-mark.svg">
+    <link rel="preload" href="assets/space-grotesk-regular.ttf" as="font" type="font/ttf" crossorigin>
+    <link rel="preload" href="assets/moon.webp" as="image">
+    <link rel="stylesheet" href="styles.css">
+    <script src="app.js" defer></script>
+  </head>
+  <body data-view="lost">
+    <a class="skip-link" href="#main">跳至主要内容</a>
+    <div class="starfield" id="starfield" aria-hidden="true"></div>
+    <div class="space-horizon" aria-hidden="true"></div>
+
+    <header class="site-header">
+      <a class="brand" href="#earth" aria-label="新航 Nova Voyage，返回地球站">
+        <svg class="brand-mark" viewBox="0 0 48 48" fill="none" aria-hidden="true">
+          <path d="M24 3 29.4 18.6 45 24 29.4 29.4 24 45 18.6 29.4 3 24 18.6 18.6Z" fill="currentColor"/>
+          <ellipse cx="24" cy="24" rx="22" ry="8" transform="rotate(-43 24 24)" stroke="var(--canvas)" stroke-width="2.5"/>
+          <path d="M7.9 40.1C-1.4 30.8 30.8-1.4 40.1 7.9" stroke="currentColor" stroke-width="1.1"/>
+        </svg>
+        <span class="brand-name">新航<span lang="en">NOVA VOYAGE</span></span>
+      </a>
+      <span class="header-motto" lang="en">A LITTLE FURTHER. A LITTLE WONDER.</span>
+      <button class="contact-trigger" type="button" data-contact>
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><ellipse cx="12" cy="12" rx="4" ry="8.5"/><path d="M4 9h16M4 15h16"/></svg>
+        地球联络站
+        <svg class="arrow-up" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M5 15 15 5M5 5h10v10"/></svg>
+      </button>
+    </header>
+
+    <main id="main">
+      <div class="navigation-status" role="status">
+        <span class="status-light" aria-hidden="true"></span>
+        <span id="status-label">航线偏离</span>
+        <span class="status-divider" aria-hidden="true"></span>
+        <span class="status-english" id="status-english" lang="en">OFF COURSE</span>
+      </div>
+
+      <div class="scene" id="scene" aria-hidden="true">
+        <div class="scene-grid"></div>
+        <svg class="orbit orbit-back" viewBox="0 0 960 400" fill="none">
+          <defs>
+            <linearGradient id="orbit-ink" x1="110" y1="330" x2="840" y2="80" gradientUnits="userSpaceOnUse"><stop stop-color="#c8d0bc" stop-opacity="0.12"/><stop offset=".5" stop-color="#c8d0bc" stop-opacity=".4"/><stop offset="1" stop-color="#c8d0bc" stop-opacity=".08"/></linearGradient>
+          </defs>
+          <ellipse cx="480" cy="205" rx="390" ry="112" transform="rotate(-19 480 205)" stroke="url(#orbit-ink)"/>
+          <ellipse cx="480" cy="205" rx="438" ry="142" transform="rotate(-19 480 205)" stroke="#b9c6b2" stroke-opacity=".055"/>
+          <path d="M480 18v18M480 374v18M224 205h16M720 205h16" stroke="#ced1bf" stroke-opacity=".18"/>
+        </svg>
+
+        <span class="four four-left">4</span>
+        <span class="four four-right">4</span>
+        <span class="home-letter home-letter-left">H</span>
+        <span class="home-letter home-letter-right">ME</span>
+
+        <div class="planet">
+          <img class="moon" src="assets/moon.webp" width="960" height="960" alt="" fetchpriority="high" draggable="false">
+          <img class="earth" src="assets/earth.webp" width="960" height="960" alt="" draggable="false">
+        </div>
+
+        <svg class="orbit orbit-front" viewBox="0 0 960 400" fill="none">
+          <defs>
+            <linearGradient id="trajectory" x1="128" y1="328" x2="833" y2="99" gradientUnits="userSpaceOnUse"><stop stop-color="#d5f585" stop-opacity="0"/><stop offset=".45" stop-color="#d5f585" stop-opacity=".34"/><stop offset=".82" stop-color="#d5f585" stop-opacity=".64"/><stop offset="1" stop-color="#d5f585" stop-opacity=".15"/></linearGradient>
+          </defs>
+          <path class="trajectory-line" d="M108 315C136 422 757 250 849 104" stroke="url(#trajectory)" stroke-width="1.2"/>
+          <g class="voyager" transform="translate(809 155) rotate(-33)">
+            <path d="M-15 0 11-8 4 1 1 12-3 3Z" fill="#d5f585"/>
+            <path d="m-6 4-9 7" stroke="#d5f585" stroke-opacity=".4"/>
+          </g>
+          <circle cx="168" cy="340" r="3" fill="#d5f585"/>
+          <circle cx="168" cy="340" r="8" stroke="#d5f585" stroke-opacity=".3"/>
+        </svg>
+
+        <div class="coordinate coordinate-left">
+          <span class="coordinate-cross">+</span>
+          <span lang="en">SECTOR <span id="sector-code">N—404</span></span>
+          <span class="coordinate-caption" id="sector-label">星图之外</span>
+        </div>
+        <div class="coordinate coordinate-right">
+          <span class="coordinate-line"></span>
+          <span id="location-label">你在这里</span>
+          <span class="coordinate-caption" lang="en" id="location-english">SOMEWHERE OUT THERE</span>
+        </div>
+        <span class="scene-index" lang="en">NV / EXPLORATION DIVISION</span>
+      </div>
+
+      <div class="copy-stage">
+        <section class="error-copy" aria-labelledby="error-title">
+          <p class="eyebrow" lang="en">LOST IN SPACE, FOUND IN WONDER.</p>
+          <h1 id="error-title" tabindex="-1"><span class="sr-only">404，</span>好像，走得太远了。</h1>
+          <p class="description">你寻找的页面，暂时偏离了我们的星图。<br>别担心，宇宙再大，总有归途。</p>
+          <div class="actions">
+            <a class="button button-primary" id="return-home" href="#earth">
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m4 11 8-7 8 7v9h-6v-6h-4v6H4Z"/><path d="M9 5V3"/></svg>
+              <span id="return-label">返回地球</span>
+              <svg class="button-arrow" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M4 10h12m-5-5 5 5-5 5"/></svg>
+            </a>
+            <button class="button button-secondary" id="go-back" type="button">
+              <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M7 4 3 8l4 4M3 8h9a5 5 0 0 1 0 10"/></svg>
+              返回上一站
+            </button>
+          </div>
+        </section>
+
+        <section class="home-copy" id="earth" aria-labelledby="home-title">
+          <p class="eyebrow" lang="en">THERE'S NO PLACE LIKE HOME.</p>
+          <h1 id="home-title" tabindex="-1">地球，久违了。</h1>
+          <p class="description">航线已重新连接。欢迎回到这颗蓝色星球。<br>休息一下，好奇心会带我们再次出发。</p>
+          <div class="actions">
+            <a class="button button-primary" href="#lost">
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m4 17 3-7 12-5-5 12-7 3 3-7 9-8"/></svg>
+              继续探索
+              <svg class="button-arrow" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M4 10h12m-5-5 5 5-5 5"/></svg>
+            </a>
+            <button class="button button-secondary" type="button" data-contact>打开地球联络站</button>
+          </div>
+        </section>
+      </div>
+
+      <p class="reassurance"><span aria-hidden="true">✦</span><span id="reassurance-text">偶尔迷航，也是探索的一部分。</span></p>
+      <div class="sr-only" id="journey-announcement" aria-live="polite" aria-atomic="true"></div>
+    </main>
+
+    <footer class="site-footer">
+      <div class="flight-path"><span class="tiny-earth" aria-hidden="true"></span><span>地球</span><span class="flight-line" aria-hidden="true"></span><span id="footer-destination">未知星域</span><span class="flight-code" lang="en">NV—404</span></div>
+      <span class="footer-tagline">向未知，再近一步。</span>
+      <span class="copyright" lang="en">© 2026 NOVA VOYAGE</span>
+    </footer>
+
+    <dialog class="contact-dialog" id="contact-dialog" aria-labelledby="contact-title">
+      <button class="dialog-close" id="close-contact" type="button" aria-label="关闭地球联络站"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m6 6 12 12M6 18 18 6"/></svg></button>
+      <span class="dialog-kicker" lang="en"><span class="status-light" aria-hidden="true"></span>GROUND CONTROL</span>
+      <h2 id="contact-title">这里是地球，收到。</h2>
+      <p>每一段探索，都值得平安归航。<br>你可以返回地球站，或保存当前位置，留作下次探索的线索。</p>
+      <div class="location-record"><span>当前航行记录</span><code id="current-location"></code></div>
+      <p class="copy-status" id="copy-status" role="status"></p>
+      <button class="button button-primary dialog-action" id="copy-location" type="button"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="8" y="8" width="12" height="13" rx="2"/><path d="M16 8V3H3v13h5"/></svg><span>复制航行信息</span></button>
+      <a class="dialog-home" href="#earth">返回地球站 <span aria-hidden="true">↗</span></a>
+    </dialog>
+    <noscript><style>.contact-trigger, [data-contact], #go-back { display: none; }</style></noscript>
+  </body>
+</html>

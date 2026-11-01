@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>环谷铁道 · HO 比例体素沙盘</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow:hidden}
+body{background:#08090c;font-family:"PingFang SC","Microsoft YaHei",sans-serif}
+#app{position:fixed;inset:0}
+canvas{display:block}
+#loader{position:fixed;inset:0;background:#08090c;z-index:50;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;color:#e8e4d8;transition:opacity .6s;visibility:visible}
+#loader.done{opacity:0;visibility:hidden}
+#loader b{font-size:20px;letter-spacing:.5em;text-indent:.5em}
+#loader i{font-style:normal;width:120px;height:2px;background:rgba(232,228,216,.15);position:relative;overflow:hidden;border-radius:2px}
+#loader i::after{content:"";position:absolute;inset:0;width:40%;background:#e8b23c;animation:ld 1s infinite}
+@keyframes ld{from{transform:translateX(-110%)}to{transform:translateX(280%)}}
+/* HUD */
+#hud{
+  position:fixed;left:24px;bottom:22px;z-index:20;color:#cfd3c8;font-size:12px;line-height:2;
+  letter-spacing:.08em;pointer-events:none;text-shadow:0 1px 4px rgba(0,0,0,.8);
+  background:rgba(10,11,14,.55);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:12px 18px;backdrop-filter:blur(6px);
+}
+#hud b{color:#e8b23c;font-weight:600}
+#clock{position:fixed;right:26px;top:22px;z-index:20;color:#e8e4d8;text-align:right;pointer-events:none}
+#clock .t{font-family:Consolas,monospace;font-size:26px;letter-spacing:.1em;text-shadow:0 2px 10px rgba(0,0,0,.8)}
+#clock .d{font-size:11px;letter-spacing:.3em;color:#b9b4a4;margin-top:2px}
+@media (max-width:640px){#hud{font-size:10.5px;left:12px;bottom:12px;right:12px}}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div id="loader"><b>环谷铁道</b><i></i></div>
+<div id="hud">
+  <b>操纵台</b> 在桌沿：<span id="hintTxt">拖动黄铜杠杆调速 · 拨动电闸开关灯 · 按下铜钮鸣笛</span><br>
+  <b>视角</b> 拖拽轻微环视 · 滚轮俯身细看 · <span id="dayHint">日夜正在自动流转</span>
+</div>
+<div id="clock"><div class="t" id="clockT">10:00</div><div class="d" id="clockD">环谷 · 晴</div></div>
+
+<script type="importmap">
+{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}
+</script>
+<script type="module">
+import * as THREE from 'three';
+import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
+
+/* ================= 基础 ================= */
+const app=document.getElementById('app');
+const renderer=new THREE.WebGLRenderer({antialias:true});
+renderer.setSize(innerWidth,innerHeight);
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+renderer.toneMapping=THREE.ACESFilmicToneMapping;
+app.appendChild(renderer.domElement);
+const scene=new THREE.Scene();
+scene.background=new THREE.Color(0x0e1420);
+scene.fog=new THREE.Fog(0x0e1420,10,26);
+const camera=new THREE.PerspectiveCamera(42,innerWidth/innerHeight,.05,60);
+camera.position.set(0,1.55,3.4);
+const controls=new OrbitControls(camera,renderer.domElement);
+controls.target.set(0,.55,-.1);
+controls.enableDamping=true;controls.dampingFactor=.07;
+controls.enablePan=false;controls.minDistance=1.6;controls.maxDistance=5.5;
+controls.minPolarAngle=Math.PI*.22;controls.maxPolarAngle=Math.PI*.49;
+controls.minAzimuthAngle=-.7;controls.maxAzimuthAngle=.7;
+
+/* 灯光 */
+const hemi=new THREE.HemisphereLight(0xbdd3e8,0x3a3226,.5);scene.add(hemi);
+const sun=new THREE.DirectionalLight(0xffe8c0,2.2);
+sun.position.set(4,6,3);sun.castShadow=true;
+sun.shadow.mapSize.set(2048,2048);
+sun.shadow.camera.left=-3;sun.shadow.camera.right=3;sun.shadow.camera.top=2.4;sun.shadow.camera.bottom=-2.4;
+scene.add(sun);
+const moon=new THREE.DirectionalLight(0x9fb8e8,.0);
+moon.position.set(-4,5,-2);scene.add(moon);
+scene.add(new THREE.AmbientLight(0x22283a,.5));
+
+/* ================= 材质与工具 ================= */
+const M=(c,o={})=>new THREE.MeshStandardMaterial({color:c,roughness:o.r??.8,metalness:o.m??.05,...(o.e?{emissive:o.e,emissiveIntensity:o.ei??1}:{}),...(o.flat?{flatShading:true}:{})});
+const wood=M(0x8a5f38,{r:.75}),darkWood=M(0x5e4023,{r:.8});
+const BALL=(x,y,z)=>new THREE.Vector3(x,y,z);
+function box(w,h,d,mat,x=0,y=0,z=0,parent=scene,shadow=true){
+  const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);
+  m.position.set(x,y,z);if(shadow){m.castShadow=true;m.receiveShadow=true}
+  parent.add(m);return m;
+}
+/* 体素格子辅助：把 instanced 方块铺在地上 */
+const voxel=new THREE.BoxGeometry(.04,.04,.04);
+function scatterInstanced(mat,list){ // list: [x,y,z,sx,sy,sz,ry]
+  const im=new THREE.InstancedMesh(voxel,mat,list.length);
+  const dummy=new THREE.Object3D();
+  list.forEach((v,i)=>{
+    dummy.position.set(v[0],v[1],v[2]);
+    dummy.scale.set(v[3]/.04,v[4]/.04,v[5]/.04);
+    dummy.rotation.y=v[6]||0;
+    dummy.updateMatrix();im.setMatrixAt(i,dummy.matrix);
+  });
+  im.castShadow=true;im.receiveShadow=true;scene.add(im);return im;
+}
+
+/* ================= 房间与桌子 ================= */
+const floor=new THREE.Mesh(new THREE.CircleGeometry(9,40),M(0x17151a,{r:.95}));
+floor.rotation.x=-Math.PI/2;floor.position.y=-.78;floor.receiveShadow=true;scene.add(floor);
+const backWall=new THREE.Mesh(new THREE.PlaneGeometry(12,5),M(0x101420,{r:.95}));
+backWall.position.set(0,1.5,-4.5);backWall.receiveShadow=true;scene.add(backWall);
+/* 桌腿×4 + 桌面 */
+[[-1.55,-1.1],[1.55,-1.1],[-1.55,1.1],[1.55,1.1]].forEach(([x,z])=>box(.09,.78,.09,darkWood,x,-.39,z));
+box(3.5,.07,2.5,wood,0,-.005+.035,0);
+const tableY=.07;   /* 桌面高度 */
+box(3.4,.05,2.2,darkWood,0,tableY+.06,-.15);  /* 沙盘底框 */
+const layoutY=tableY+.09; /* 沙盘地面 */
+
+/* ================= 轨道 ================= */
+/* 主线：椭圆闭环（中心 z=-.1） */
+const RX=1.32,RZ=.82,CX=0,CZ=-.18;
+const mainCurve=new THREE.EllipseCurve(CX,CZ,RX,RZ,0,Math.PI*2,false,0);
+const railMat=M(0x9c8a6a,{r:.5,m:.4});
+const tieMat=M(0x6b4a2c,{r:.85});
+const sleeperList=[],railPts=[[],[]];
+mainCurve.getPoints(240).forEach((p,i)=>{
+  const t=mainCurve.getTangent(i/240*Math.PI*2*0+((i)/240)*Math.PI*2);
+  const nx=-t.y,nz=t.x; // 法线
+  if(i%2===0)sleeperList.push([p.x,layoutY+.005,p.y,.11,.012,.03]);
+  railPts[0].push(new THREE.Vector3(p.x+nx*.028,layoutY+.018,p.y+nz*.028));
+  railPts[1].push(new THREE.Vector3(p.x-nx*.028,layoutY+.018,p.y-nz*.028));
+});
+scatterInstanced(tieMat,sleeperList);
+[railPts[0],railPts[1]].forEach(pts=>{
+  const curve=new THREE.CatmullRomCurve3(pts,true);
+  const geo=new THREE.TubeGeometry(curve,240,.006,6,true);
+  const m=new THREE.Mesh(geo,railMat);m.castShadow=true;m.receiveShadow=true;scene.add(m);
+});
+/* 车场岔道（直线，左后区） */
+function straightTrack(x0,z0,x1,z1){
+  const len=Math.hypot(x1-x0,z1-z0),ang=Math.atan2(z1-z0,x1-x0);
+  const g=new THREE.Group();
+  const n=Math.floor(len/.055);
+  for(let i=0;i<=n;i++){
+    const t=i/n;
+    box(.11,.012,.03,tieMat,x0+(x1-x0)*t,layoutY+.005,z0+(z1-z0)*t,g);
+  }
+  [-.028,.028].forEach(off=>{
+    const r=box(len,.012,.006,railMat,(x0+x1)/2-Math.sin(ang)*off,layoutY+.018,(z0+z1)/2+Math.cos(ang)*off,g);
+    r.rotation.y=-ang;
+  });
+  scene.add(g);
+}
+straightTrack(-1.36,-.62,-.58,-.62);
+straightTrack(-1.36,-.72,-.58,-.72);
+straightTrack(-1.36,-.82,-.58,-.82);
+
+/* ================= 转车台 + 机车库 ================= */
+const roundhouse=new THREE.Group();scene.add(roundhouse);
+box(.5,.14,.1,M(0x7d4a2e),-1.05,layoutY+.07,-1.14,roundhouse);         // 库房体
+/* 弧形车库背墙 */
+for(let i=0;i<9;i++){
+  const a=Math.PI*(1-i/8);
+  box(.09,.13,.045,M(0x8a5232),-1.05+Math.cos(a)*.26,layoutY+.065,-1.14-Math.sin(a)*.14,roundhouse);
+}
+/* 转台 */
+const turntable=new THREE.Group();
+turntable.position.set(-.62,layoutY,-1.08);scene.add(turntable);
+const ttBase=new THREE.Mesh(new THREE.CylinderGeometry(.13,.15,.03,24),M(0x555a60,{m:.6,r:.4}));
+ttBase.position.y=.015;ttBase.castShadow=true;ttBase.receiveShadow=true;turntable.add(ttBase);
+const ttDeck=new THREE.Group();turntable.add(ttDeck);
+const deck=new THREE.Mesh(new THREE.BoxGeometry(.26,.02,.06),M(0x777d84,{m:.5}));
+deck.position.y=.04;deck.castShadow=true;ttDeck.add(deck);
+box(.02,.014,.045,railMat,-.1,.052,0,ttDeck);box(.02,.014,.045,railMat,.1,.052,0,ttDeck);
+
+/* ================= 地形分区 ================= */
+/* 河与港池（右前，避开主线椭圆下弧 z≤0.64） */
+const water=new THREE.Mesh(new THREE.BoxGeometry(1.1,.02,.26),M(0x2e6b8a,{r:.25,m:.1,e:0x0d2c40,ei:.4}));
+water.position.set(1.05,layoutY+.008,.81);water.receiveShadow=true;scene.add(water);
+/* 港池（凹进岸线，位于椭圆内空地） */
+const pool=new THREE.Mesh(new THREE.BoxGeometry(.4,.02,.4),M(0x2e6b8a,{r:.25,m:.1,e:0x0d2c40,ei:.4}));
+pool.position.set(.62,layoutY+.008,.15);pool.receiveShadow=true;scene.add(pool);
+/* 港区地面 */
+box(.62,.02,.26,M(0x6f6a5c,{r:.9}),1.62,layoutY+.008,.81);
+/* 码头桩（贴水岸） */
+for(let i=0;i<5;i++)box(.02,.05,.02,darkWood,1.16+i*.06,layoutY+.03,.64);
+/* 集装箱堆 */
+const contColors=[0xc0503a,0x3a6ea8,0xd8a03c,0x4f8c5c];
+for(let i=0;i<8;i++){
+  const c=contColors[i%4];
+  box(.13,.055,.055,M(c,{r:.6}),1.14+(i%4)*.15,layoutY+.05+(i>3?.058:0),.86+Math.floor(i/4)*.09);
+}
+/* 仓库 */
+box(.34,.16,.2,M(0x8a8274,{r:.85}),1.5,layoutY+.09,.42);
+box(.36,.07,.22,M(0x5e4023),1.5,layoutY+.19,.42);
+/* 吊车（动画，臂限位摆向水域，永不扫向轨道） */
+const crane=new THREE.Group();crane.position.set(1.05,layoutY,.62);scene.add(crane);
+box(.05,.3,.05,M(0xd8b23c,{m:.4,r:.5}),0,.15,0,crane);
+const craneArm=new THREE.Group();craneArm.position.y=.3;crane.add(craneArm);
+box(.5,.035,.035,M(0xd8b23c,{m:.4,r:.5}),.22,0,0,craneArm);
+box(.02,.02,.02,M(0x444a52),.42,-.02,0,craneArm);
+const hook=new THREE.Group();hook.position.set(.42,0,0);craneArm.add(hook);
+const crate=box(.05,.05,.05,M(0x8a5f38),0,-.075,0,hook);
+/* 工业区（中部）：厂房+烟囱（置于椭圆内部空地） */
+const factory=new THREE.Group();scene.add(factory);
+factory.position.set(-.05,layoutY,-.88);
+box(.4,.18,.24,M(0x9a6a4c,{r:.85}),0,.09,0,factory);
+box(.42,.05,.26,M(0x4a4e56),0,.2,0,factory);
+const chimney=box(.06,.3,.06,M(0x8a4a3c),.14,.28,-.06,factory);
+box(.07,.03,.07,M(0x5c2c22),.14,.44,-.06,factory);
+/* 烟雾粒子 */
+const smoke=[];
+for(let i=0;i<14;i++){
+  const s=box(.03,.03,.03,new THREE.MeshStandardMaterial({color:0xc8ccd4,transparent:true,opacity:.5}),0,0,0,scene,false);
+  smoke.push({m:s,t:Math.random()});
+}
+/* 铁矿堆（椭圆内右侧空地） */
+const ore=new THREE.Mesh(new THREE.ConeGeometry(.09,.09,7),M(0x6a6e78,{flat:true}));
+ore.position.set(.98,layoutY+.045,-.55);ore.castShadow=true;ore.receiveShadow=true;scene.add(ore);
+
+/* ================= 车站（中部） ================= */
+const station=new THREE.Group();scene.add(station);
+station.position.set(0,layoutY,.32);
+box(.6,.03,.14,M(0x8d8474,{r:.9}),0,.02,0,station);       // 站台
+box(.06,.05,.14,M(0xd8cfa8),-.26,.055,0,station);          // 黄线
+const hall=box(.18,.14,.12,M(0xd8cfa8),-.1,.11,-.02,station);
+const roof=new THREE.Mesh(new THREE.ConeGeometry(.14,.08,4),M(0x8a3c2c));
+roof.position.set(-.1,.21,-.02);roof.rotation.y=Math.PI/4;roof.castShadow=true;station.add(roof);
+/* 雨棚柱+顶 */
+[.08,.3].forEach(x=>box(.014,.09,.014,M(0x4a4e56),x,.085,.05,station));
+box(.3,.014,.06,M(0x4a4e56),.19,.135,.05,station);
+/* 站牌 */
+box(.1,.03,.006,M(0x2c4a8a),-.1,.19,-.02,station);
+
+/* ================= 城镇（右后） ================= */
+const townGroup=new THREE.Group();scene.add(townGroup);
+const winMat=new THREE.MeshStandardMaterial({color:0x223,emissive:0xffd88a,emissiveIntensity:0});
+const houses=[];
+function house(x,z,rot,bodyC,roofC,w=.11){
+  const g=new THREE.Group();
+  box(w,.1,.09,M(bodyC,{r:.85}),0,.05,0,g);
+  const r=new THREE.Mesh(new THREE.ConeGeometry(w*.78,.07,4),M(roofC));
+  r.position.y=.135;r.rotation.y=Math.PI/4;r.castShadow=true;g.add(r);
+  const win=box(.02,.025,.005,winMat,0,.05,w/2+.003,g,false);
+  win.material=winMat;
+  g.position.set(x,layoutY,z);g.rotation.y=rot;
+  townGroup.add(g);houses.push(g);
+  return g;
+}
+house(.55,-1.35,.2,0xe8dcc0,0x8a3c2c);
+house(.78,-1.28,-.3,0xd8b890,0x4f6c8a);
+house(1.0,-1.42,.1,0xe0d0b0,0x6a5a8a);
+house(1.24,-1.3,-.15,0xcfc0a0,0x8a3c2c,.13);
+house(.5,-1.08,.4,0xe8dcc0,0x5c7086,.1);
+/* 教堂 */
+const church=new THREE.Group();church.position.set(.35,layoutY,-1.5);townGroup.add(church);
+box(.1,.2,.1,M(0xe8e0cc),0,.1,0,church);
+const spire=new THREE.Mesh(new THREE.ConeGeometry(.07,.16,4),M(0x4a5a7a));
+spire.position.y=.28;spire.rotation.y=Math.PI/4;spire.castShadow=true;church.add(spire);
+/* 路灯 */
+const lampMats=[];
+function lamp(x,z){
+  const g=new THREE.Group();g.position.set(x,layoutY,z);
+  box(.012,.14,.012,M(0x333840,{m:.5}),0,.07,0,g);
+  const bulbMat=new THREE.MeshStandardMaterial({color:0x444a52,emissive:0xffd88a,emissiveIntensity:0});
+  const b=new THREE.Mesh(new THREE.SphereGeometry(.018,8,8),bulbMat);b.position.y=.15;g.add(b);
+  lampMats.push(bulbMat);townGroup.add(g);
+}
+lamp(.3,.12);lamp(.95,-.35);lamp(.2,-.7);lamp(1.35,.5);
+/* 树（锥体） */
+const treeG=new THREE.ConeGeometry(.035,.09,6),treeM=M(0x3e6b3a,{flat:true});
+const treeM2=M(0x2e5230,{flat:true});
+[[-.15,-1.5],[.1,-1.62],[1.42,-1.5],[1.55,-1.28],[1.5,-.02],[-1.55,.1],[-1.6,-.3],[.05,.75],[.62,.86],[.78,.72]].forEach(([x,z],i)=>{
+  const t=new THREE.Mesh(i%2?treeG:new THREE.ConeGeometry(.03,.08,6),i%2?treeM:treeM2);
+  t.position.set(x,layoutY+.05,z);t.castShadow=true;scene.add(t);
+  box(.012,.02,.012,darkWood,x,layoutY+.01,z);
+});
+/* 小麦田（左侧，主线左下弧之外） */
+const field=new THREE.Mesh(new THREE.PlaneGeometry(.42,.4),M(0xb0a050,{r:.9}));
+field.rotation.x=-Math.PI/2;field.position.set(-1.45,layoutY+.011,.35);field.receiveShadow=true;scene.add(field);
+for(let i=0;i<40;i++){
+  box(.008,.02,.008,M(0xc8b860),-1.64+Math.random()*.36,layoutY+.025,.17+Math.random()*.36,scene,false);
+}
+
+/* 公路 + 小巴士（沙盘右缘内） */
+const road=new THREE.Mesh(new THREE.PlaneGeometry(.24,1.9),M(0x4a4d54,{r:.95}));
+road.rotation.x=-Math.PI/2;road.position.set(1.56,layoutY+.009,-.35);road.receiveShadow=true;scene.add(road);
+for(let i=0;i<9;i++)box(.015,.002,.03,M(0xd8cfa8),1.56,layoutY+.012,-1.2+i*.22,scene,false);
+const bus=new THREE.Group();scene.add(bus);
+box(.05,.045,.12,M(0xd88a3c),0,.045,0,bus);
+box(.05,.02,.1,M(0x28303c),0,.07,0,bus);
+
+/* ================= 车辆 ================= */
+function loco(color){
+  const g=new THREE.Group();
+  box(.075,.05,.19,M(color,{r:.45,m:.3}),0,.055,0,g);
+  box(.05,.05,.06,M(0x2c3038,{r:.5,m:.4}),0,.105,-.04,g);        // 驾驶室
+  box(.055,.06,.05,M(color,{m:.3,r:.4}),0,.1,.055,g);            // 锅炉前包
+  const chimney=box(.02,.045,.02,M(0x22262c),0,.13,.075,g);
+  box(.07,.02,.2,M(0x2c3038),0,.024,0,g);                        // 底盘
+  return g;
+}
+function wagon(color){
+  const g=new THREE.Group();
+  box(.07,.05,.16,M(color,{r:.7}),0,.055,0,g);
+  box(.072,.018,.162,M(0x2c3038),0,.024,0,g);
+  return g;
+}
+/* 主线列车（沿曲线） */
+const train=new THREE.Group();scene.add(train);
+const cars=[loco(0x3c5c3a),wagon(0x8a3c2c),wagon(0x3c5c8a),wagon(0xb08c3c)];
+cars.forEach((c,i)=>{train.add(c)});
+/* 车场停放列车（岔道 1） */
+const yardLoco=loco(0x5a4a7a);yardLoco.position.set(-.95,layoutY,-.72);scene.add(yardLoco);
+const yardW1=wagon(0x4a5a6a);yardW1.position.set(-.75,layoutY,-.72);scene.add(yardW1);
+/* 机车库内一台（车头朝库门） */
+const roundLoco=loco(0x7a4a2c);roundLoco.position.set(-1.05,layoutY,-1.02);scene.add(roundLoco);
+
+/* ================= 音频（汽笛） ================= */
+let AC=null;
+function ac(){if(!AC)AC=new (window.AudioContext||window.webkitAudioContext)();return AC}
+function whistle(){
+  try{
+    const a=ac(),t=a.currentTime;
+    [660,830].forEach(f=>{
+      const o=a.createOscillator(),g=a.createGain();
+      o.type='sawtooth';o.frequency.value=f;
+      const lp=a.createBiquadFilter();lp.type='lowpass';lp.frequency.value=1600;
+      g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.12,t+.06);
+      g.gain.setValueAtTime(.12,t+.5);g.gain.linearRampToValueAtTime(0,t+.8);
+      o.connect(lp).connect(g).connect(a.destination);o.start(t);o.stop(t+.85);
+    });
+  }catch(e){}
+  smoke.forEach(s=>{s.t=Math.min(s.t,.15)}); // 鸣笛喷烟
+}
+
+/* ================= 操纵台（桌沿实体控制） ================= */
+const consoleGroup=new THREE.Group();
+consoleGroup.position.set(0,tableY+.035,1.02);scene.add(consoleGroup);
+/* 底座 */
+box(.9,.045,.22,M(0x3c3226,{r:.8}),0,.02,0,consoleGroup);
+box(.94,.02,.24,M(0x2a2318),0,.05,0,consoleGroup);
+/* 1) 速度杠杆：滑槽 + 手柄（可拖） */
+const slotY=.055;
+box(.34,.008,.03,M(0x22262c),-.24,slotY,0,consoleGroup);
+const lever=new THREE.Group();consoleGroup.add(lever);
+const leverMat=M(0xd8b23c,{m:.8,r:.3});
+const leverStick=box(.016,.11,.016,leverMat,-.24,slotY+.055,0,lever);
+const leverKnob=new THREE.Mesh(new THREE.SphereGeometry(.024,12,12),M(0x8a3c2c,{r:.4}));
+leverKnob.position.set(-.24,slotY+.12,0);leverKnob.castShadow=true;lever.add(leverKnob);
+/* 速度刻度贴纸 */
+for(let i=0;i<5;i++)box(.006,.002,.012,M(0xe8e0c8),-.24-.15+i*.075,slotY+.006,.018,consoleGroup,false);
+/* 2) 电闸（灯光开关）：拨杆 */
+box(.06,.03,.04,M(0x2a2318),.12,slotY,0,consoleGroup);
+const toggle=new THREE.Group();toggle.position.set(.12,slotY+.02,0);consoleGroup.add(toggle);
+const tStick=box(.012,.05,.012,M(0xd8d0c0,{m:.3}),0,.02,0,toggle);
+const tKnob=new THREE.Mesh(new THREE.SphereGeometry(.014,10,10),M(0xc0503a));
+tKnob.position.set(0,.05,0);toggle.add(tKnob);
+/* 3) 汽笛铜钮 */
+const hornBtn=new THREE.Mesh(new THREE.CylinderGeometry(.024,.028,.02,20),M(0xb08830,{m:.9,r:.3}));
+hornBtn.position.set(.28,slotY+.02,0);hornBtn.castShadow=true;consoleGroup.add(hornBtn);
+/* 4) 日夜切换钮 */
+const dayBtn=new THREE.Mesh(new THREE.CylinderGeometry(.024,.028,.02,20),M(0x4a5a7a,{m:.6,r:.3}));
+dayBtn.position.set(.38,slotY+.02,0);dayBtn.castShadow=true;consoleGroup.add(dayBtn);
+/* 标签牌 */
+box(.2,.024,.006,M(0xe8e0c8),0,slotY+.095,.09,consoleGroup,false);
+
+/* ================= 状态与交互 ================= */
+const state={speed:.35,power:true,autoDay:true,dayT:.28,night:false};
+const ray=new THREE.Raycaster(),ptr=new THREE.Vector2();
+let dragging=null,dragOffset=0;
+const knobMin=-.39,knobMax=-.09;
+function leverSet(x){
+  const k=Math.max(0,Math.min(1,(x-knobMin)/(knobMax-knobMin)));
+  state.speed=k*.62;
+  const nx=knobMin+k*(knobMax-knobMin);
+  leverStick.position.x=nx;leverStick.position.y=slotY+.055;
+  leverKnob.position.x=nx;
+}
+leverSet(-.24);
+function setPower(on){
+  state.power=on;
+  toggle.rotation.z=on?.5:-.5;
+  lampMats.forEach(m=>m.emissiveIntensity=on?1.6:0);
+  winMat.emissiveIntensity=on?1.2:0;
+}
+setPower(true);
+const ndc=e=>{
+  ptr.x=(e.clientX/innerWidth)*2-1;ptr.y=-(e.clientY/innerHeight)*2+1;
+  ray.setFromCamera(ptr,camera);
+};
+function pick(){
+  const hits=ray.intersectObjects([leverKnob,leverStick,tKnob,hornBtn,dayBtn],false);
+  return hits.length?hits[0].object:null;
+}
+renderer.domElement.addEventListener('pointerdown',e=>{
+  ndc(e);
+  const hit=pick();
+  if(!hit)return;
+  if(hit===hornBtn){whistle();return}
+  if(hit===dayBtn){state.autoDay=false;state.night=!state.night;state.dayT=state.night?.85:.3;
+    document.getElementById('dayHint').textContent=state.night?'手动：夜':'手动：昼';return}
+  if(hit===tKnob||hit===tStick){setPower(!state.power);return}
+  if(hit===leverKnob||hit===leverStick){
+    dragging='lever';
+    controls.enabled=false;
+  }
+});
+addEventListener('pointermove',e=>{
+  if(dragging!=='lever')return;
+  ndc(e);
+  /* 把指针投影到操纵台平面 */
+  const plane=new THREE.Plane(new THREE.Vector3(0,1,0),-(tableY+.045));
+  const pt=new THREE.Vector3();
+  if(ray.ray.intersectPlane(plane,pt)){
+    const local=consoleGroup.worldToLocal(pt.clone());
+    leverSet(local.x);
+  }
+});
+addEventListener('pointerup',()=>{dragging=null;controls.enabled=true});
+/* hover 光标 */
+renderer.domElement.addEventListener('pointermove',e=>{
+  ndc(e);
+  const hit=pick();
+  renderer.domElement.style.cursor=hit?'pointer':'grab';
+});
+
+/* ================= 日夜循环 ================= */
+const skyDay=new THREE.Color(0x9fc3e8),skyDusk=new THREE.Color(0xe8956a),skyNight=new THREE.Color(0x0a1024);
+const fogDay=new THREE.Color(0xb8cfe4),fogNight=new THREE.Color(0x0d1428);
+const stars=new THREE.Group();scene.add(stars);
+for(let i=0;i<130;i++){
+  const s=new THREE.Mesh(new THREE.SphereGeometry(.006,4,4),new THREE.MeshBasicMaterial({color:0xdfe8ff,transparent:true}));
+  s.position.set((Math.random()-.5)*9,1.6+Math.random()*2.6,-3-Math.random()*1.5);
+  stars.add(s);
+}
+const sunBall=box(.12,.12,.12,new THREE.MeshBasicMaterial({color:0xffe8b0}),4,4,2,scene,false);
+const moonBall=box(.09,.09,.09,new THREE.MeshBasicMaterial({color:0xcfe0ff}),-4,4,-2,scene,false);
+function updateDay(dt){
+  if(state.autoDay)state.dayT=(state.dayT+dt/90)%1;
+  const a=state.dayT*Math.PI*2;
+  /* 太阳高度：正午最高 */
+  const sunY=Math.sin(a),isNight=sunY<-.06;
+  sun.position.set(Math.cos(a)*5,sunY*5+.5,2);
+  sunBall.position.set(Math.cos(a)*6,sunY*6+.4,3);
+  moonBall.position.set(Math.cos(a+Math.PI)*6,-sunY*6+.4,3);
+  const day=Math.max(0,Math.min(1,sunY*2+.28));
+  const dusk=Math.max(0,1-Math.abs(sunY)*3.4);
+  sun.intensity=day*2.4;
+  moon.intensity=(1-day)*1.0;
+  hemi.intensity=.3+day*.38;
+  const sky=new THREE.Color().copy(skyNight).lerp(skyDay,day).lerp(skyDusk,dusk*.7);
+  scene.background=sky;
+  scene.fog.color=new THREE.Color().copy(fogNight).lerp(fogDay,day);
+  /* 夜灯 */
+  const lit=state.power?(1-day):0;
+  lampMats.forEach(m=>m.emissiveIntensity=lit*1.8);
+  winMat.emissiveIntensity=lit*1.3;
+  stars.children.forEach(s=>{s.material.opacity=(1-day)*(.4+Math.random()*.6)});
+  sunBall.material.opacity=1;
+  moonBall.visible=isNight;sunBall.visible=!isNight;
+  /* 时钟 */
+  const hours=(state.dayT*24+6)%24;
+  document.getElementById('clockT').textContent=
+    String(Math.floor(hours)).padStart(2,'0')+':'+String(Math.floor(hours%1*60)).padStart(2,'0');
+  document.getElementById('clockD').textContent=isNight?'环谷 · 夜':'环谷 · 晴';
+}
+
+/* ================= 主循环 ================= */
+let trainT=0,craneT=0,ttT=0,busT=0;
+const clock=new THREE.Clock();
+const tmpP=new THREE.Vector3(),tmpT=new THREE.Vector3();
+function animate(){
+  requestAnimationFrame(animate);
+  const dt=Math.min(clock.getDelta(),.05);
+  /* 主线列车 */
+  if(state.power){
+    trainT=(trainT+dt*state.speed*.055)%1;
+  }
+  const u=mainCurve.getPoint(trainT);
+  const tangent=mainCurve.getTangent(trainT);
+  cars.forEach((c,i)=>{
+    const uu=(trainT - i*.028 + 1)%1;
+    const p=mainCurve.getPoint(uu);
+    const tg=mainCurve.getTangent(uu);
+    c.position.set(p.x,layoutY,p.y);
+    /* 车体长边沿局部 z 轴：局部 +z 对齐切线 */
+    c.rotation.y=Math.atan2(tg.x,tg.z);
+  });
+  /* 吊车（臂限位：只朝水域方向 ±x 摆，永不扫向轨道） */
+  craneT+=dt*.5;
+  craneArm.rotation.y=Math.PI/2+Math.sin(craneT*.7)*.7;
+  hook.position.y=Math.sin(craneT*1.3)*.04-.02;
+  /* 转台缓转 */
+  ttT+=dt*.15;
+  ttDeck.rotation.y=ttT;
+  /* 烟雾（跟随厂房烟囱世界位置） */
+  const sx=factory.position.x+.14, sz=factory.position.z-.06;
+  smoke.forEach(s=>{
+    s.t+=dt*.4;
+    if(s.t>1){s.t=0}
+    const k=s.t;
+    s.m.position.set(sx+Math.sin(k*9)*.015,layoutY+.46+k*.3,sz+Math.sin(k*7)*.012);
+    const sc=.03+k*.09;
+    s.m.scale.setScalar(sc/.03);
+    s.m.material.opacity=.5*(1-k);
+  });
+  /* 巴士沿路往返 */
+  busT+=dt*.12*(state.power?1:0);
+  const bz=.6-Math.sin(busT*Math.PI)*1.7;
+  bus.position.set(1.56,layoutY,bz);
+  bus.rotation.y=bz>.55?0:Math.PI;
+  /* 太阳月亮 */
+  updateDay(dt);
+  controls.update();
+  renderer.render(scene,camera);
+}
+addEventListener('resize',()=>{
+  camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth,innerHeight);
+});
+document.getElementById('loader').classList.add('done');
+animate();
+</script>
+</body>
+</html>

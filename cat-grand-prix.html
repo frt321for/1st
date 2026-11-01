@@ -1,0 +1,608 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#eeebf8">
+  <title>喵速方程式 · Meow Grand Prix</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #342c4b;
+      --paper: #f8f6fc;
+      --lavender: #ded9f3;
+      --coral: #ff715e;
+      --mint: #bce9d7;
+      --peach: #ffc778;
+      --muted: #857d99;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-width: 300px;
+      min-height: 100svh;
+      display: grid;
+      align-items: center;
+      background: #eeebf8;
+      color: var(--ink);
+      font-family: "Trebuchet MS", "Microsoft YaHei", sans-serif;
+    }
+    button { font: inherit; -webkit-tap-highlight-color: transparent; }
+    button:focus-visible { outline: 3px solid #665598; outline-offset: 5px; }
+    .app { width: min(1480px, calc(100% - 80px)); margin: 28px auto; }
+    .masthead { display: flex; align-items: center; justify-content: space-between; gap: 20px; margin-bottom: 20px; }
+    .brand { display: flex; align-items: center; gap: 13px; }
+    .brand-mark { width: 46px; height: 46px; flex: none; }
+    h1 { margin: 0; font-size: 23px; line-height: 1.3; font-weight: 800; letter-spacing: 1px; }
+    .brand-en { margin-top: 4px; font-size: 9px; font-weight: 800; letter-spacing: 3.3px; }
+    .edition { display: flex; align-items: center; gap: 10px; font-size: 11px; font-weight: 700; letter-spacing: 1.6px; }
+    .edition svg { width: 32px; height: 26px; }
+    .scene {
+      position: relative;
+      overflow: hidden;
+      aspect-ratio: 16 / 9;
+      border: 2px solid var(--ink);
+      border-radius: 25px;
+      background: #deddf7;
+      isolation: isolate;
+      box-shadow: 0 7px 0 #342c4b;
+    }
+    .scene-art { display: block; width: 100%; height: 100%; }
+    .race-top { position: absolute; top: 26px; left: 29px; right: 29px; display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; pointer-events: none; }
+    .location { display: flex; align-items: center; gap: 11px; }
+    .location-icon { width: 31px; height: 31px; }
+    .location-name { font-size: 13px; letter-spacing: 1.5px; font-weight: 800; }
+    .location-en { font-size: 8px; letter-spacing: 2.1px; margin-top: 4px; font-weight: 700; opacity: .6; }
+    .race-status { display: flex; align-items: center; gap: 13px; }
+    .position { background: var(--ink); border-radius: 9px; color: #fff5e7; padding: 8px 12px; font-size: 18px; font-style: italic; font-weight: 900; }
+    .lap { font-size: 11px; font-weight: 800; letter-spacing: 1px; }
+    .lap small { display: block; font-size: 8px; letter-spacing: 1.8px; opacity: .55; margin-bottom: 4px; }
+    .telemetry { position: absolute; left: 30px; bottom: 25px; color: #fff6e7; pointer-events: none; }
+    .speed-line { display: flex; align-items: baseline; gap: 8px; }
+    .speed-value { font-family: "Arial Black", "Trebuchet MS", sans-serif; font-size: clamp(34px, 4.2vw, 61px); font-weight: 900; font-style: italic; letter-spacing: -3px; line-height: 1; font-variant-numeric: tabular-nums; }
+    .speed-unit { font-size: 10px; font-weight: 800; letter-spacing: 1px; }
+    .rev-meter { display: flex; align-items: center; gap: 4px; margin-top: 9px; }
+    .rev-meter i { width: 5px; height: 9px; border-radius: 1px; background: #bce9d7; transform: skewX(-14deg); }
+    .rev-meter i:nth-child(n+12) { background: #ffe39c; }
+    .rev-meter i:nth-child(n+16) { background: #ff9780; }
+    .rev-meter i:nth-child(n+18) { opacity: .24; }
+    .gear { margin-left: 8px; font-size: 9px; font-weight: 800; letter-spacing: 1px; opacity: .8; }
+    .map { position: absolute; bottom: 20px; right: 27px; width: 135px; pointer-events: none; }
+    .map svg { display: block; width: 100%; overflow: visible; }
+    .map-label { text-align: center; color: #fff6e7; font-size: 8px; font-weight: 800; letter-spacing: 2px; opacity: .8; }
+    .boost-note { position: absolute; left: 50%; top: 19%; color: var(--ink); font-size: clamp(18px, 2.5vw, 33px); font-weight: 900; letter-spacing: 2px; font-style: italic; opacity: 0; transform: translate(-50%, 10px) rotate(-7deg) scale(.85); transition: opacity .18s, transform .24s; pointer-events: none; }
+    .boost-note span { display: inline-block; background: #fff1b7; padding: 8px 19px; border: 2px solid var(--ink); border-radius: 50% 45% 48% 30%; box-shadow: 3px 4px 0 var(--ink); }
+    .is-boosting .boost-note { opacity: 1; transform: translate(-50%, 0) rotate(-7deg) scale(1); }
+    .is-boosting .rev-meter i { opacity: 1; }
+    .footer { margin-top: 26px; display: flex; justify-content: space-between; align-items: center; gap: 20px; }
+    .driver-id { display: flex; align-items: center; gap: 11px; }
+    .driver-number { width: 38px; height: 38px; display: grid; place-items: center; border: 1.5px solid var(--ink); border-radius: 50%; background: var(--peach); font-size: 16px; font-weight: 900; font-style: italic; }
+    .driver-name { font-size: 12px; font-weight: 800; letter-spacing: .8px; }
+    .driver-caption { font-size: 10px; color: var(--muted); margin-top: 4px; }
+    .controls { display: flex; align-items: center; gap: 10px; }
+    .control { min-height: 44px; display: inline-flex; justify-content: center; align-items: center; gap: 8px; padding: 10px 16px; border: 1.5px solid var(--ink); border-radius: 12px; cursor: pointer; font-size: 12px; font-weight: 800; transition: transform .15s, background .15s, box-shadow .15s; }
+    .control svg { width: 17px; height: 17px; flex: none; }
+    .pause { background: transparent; color: var(--ink); }
+    .boost { background: var(--coral); color: var(--ink); box-shadow: 0 3px 0 var(--ink); padding-inline: 19px; }
+    .control:hover { transform: translateY(-2px); }
+    .boost:active { transform: translateY(3px); box-shadow: 0 0 0 var(--ink); }
+    .control:disabled { opacity: .42; cursor: default; transform: none; }
+    kbd { padding: 3px 5px; border: 1px solid #342c4b38; border-radius: 4px; font: 8px "Trebuchet MS", sans-serif; letter-spacing: .5px; }
+    .play-icon { display: none; }
+    .is-paused .pause-icon { display: none; }
+    .is-paused .play-icon { display: block; }
+    .ink { stroke: #342c4b; stroke-width: 5; stroke-linecap: round; stroke-linejoin: round; }
+    .thin-ink { stroke: #342c4b; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+    .cat-eyes { transform-box: fill-box; transform-origin: center; animation: blink 5.8s infinite; }
+    .scarf-end { transform-box: fill-box; transform-origin: right center; animation: flutter .19s ease-in-out infinite alternate; }
+    .tail-tip { transform-box: fill-box; transform-origin: right bottom; animation: tail-wave .65s ease-in-out infinite alternate; }
+    .flag { transform-box: fill-box; transform-origin: left center; animation: flag-wave .8s ease-in-out infinite alternate; }
+    .driver-bob { animation: head-bob .34s ease-in-out infinite alternate; }
+    .speed-streaks { opacity: .4; transition: opacity .3s; }
+    .streak { animation: streak .8s linear infinite; }
+    .streak:nth-child(2) { animation-delay: -.27s; animation-duration: 1.1s; }
+    .streak:nth-child(3) { animation-delay: -.6s; animation-duration: .7s; }
+    .streak:nth-child(4) { animation-delay: -.15s; animation-duration: .9s; }
+    .streak:nth-child(5) { animation-delay: -.45s; animation-duration: .6s; }
+    .is-boosting .speed-streaks { opacity: .95; }
+    .boost-flame { opacity: 0; transition: opacity .12s; }
+    .is-boosting .boost-flame { opacity: 1; }
+    .flame-tip { transform-box: fill-box; transform-origin: right center; animation: flame .1s ease-in-out infinite alternate; }
+    .is-paused .ambient { animation-play-state: paused; }
+    @keyframes blink { 0%, 43%, 46%, 91%, 94%, 100% { transform: scaleY(1); } 44.5%, 92.5% { transform: scaleY(.08); } }
+    @keyframes flutter { from { transform: rotate(-5deg) scaleY(.8); } to { transform: rotate(6deg) scaleY(1.08); } }
+    @keyframes tail-wave { from { transform: rotate(-3deg); } to { transform: rotate(5deg); } }
+    @keyframes flag-wave { from { transform: skewY(-4deg) scaleX(.93); } to { transform: skewY(5deg) scaleX(1); } }
+    @keyframes head-bob { from { transform: translateY(-1.8px) rotate(-.3deg); } to { transform: translateY(1.3px) rotate(.3deg); } }
+    @keyframes streak { from { transform: translateX(1600px); } to { transform: translateX(-1200px); } }
+    @keyframes flame { from { transform: scaleX(.78) scaleY(.85); } to { transform: scaleX(1.12) scaleY(1.12); } }
+    @media (min-width: 1700px) { .app { width: min(1640px, calc(100% - 100px)); } }
+    @media (max-width: 900px) {
+      .app { width: calc(100% - 36px); margin-block: 22px; }
+      .scene { aspect-ratio: 4 / 3; }
+      .race-top { top: 20px; left: 20px; right: 20px; }
+      .telemetry { left: 22px; bottom: 21px; }
+      .map { right: 19px; width: 110px; }
+      .boost-note { top: 22%; }
+    }
+    @media (max-width: 560px) {
+      body { align-items: start; }
+      .app { width: calc(100% - 24px); margin-block: 20px; }
+      .masthead { margin-bottom: 17px; gap: 9px; }
+      .brand { gap: 9px; }
+      .brand-mark { width: 38px; height: 38px; }
+      h1 { font-size: 19px; }
+      .brand-en { font-size: 7px; letter-spacing: 2.6px; }
+      .edition { font-size: 8px; letter-spacing: 1px; }
+      .edition svg { width: 24px; }
+      .scene { aspect-ratio: 1 / 1.1; border-radius: 19px; box-shadow: 0 5px 0 var(--ink); }
+      .race-top { top: 17px; left: 15px; right: 15px; }
+      .location { gap: 7px; }
+      .location-icon { width: 24px; height: 24px; }
+      .location-name { font-size: 10px; letter-spacing: 1px; }
+      .location-en { font-size: 6px; letter-spacing: 1px; }
+      .race-status { gap: 7px; }
+      .position { font-size: 14px; padding: 6px 8px; border-radius: 7px; }
+      .lap { font-size: 9px; }
+      .lap small { font-size: 6px; }
+      .telemetry { left: 17px; bottom: 19px; }
+      .speed-value { font-size: 37px; }
+      .speed-unit { font-size: 8px; }
+      .rev-meter { gap: 3px; margin-top: 7px; }
+      .rev-meter i { width: 3px; height: 7px; }
+      .gear { font-size: 7px; margin-left: 4px; }
+      .map { width: 87px; right: 16px; bottom: 16px; }
+      .map-label { font-size: 6px; letter-spacing: 1.5px; }
+      .boost-note { top: 23%; white-space: nowrap; }
+      .footer { margin-top: 24px; flex-wrap: wrap; gap: 18px; }
+      .driver-id { gap: 8px; }
+      .driver-number { width: 34px; height: 34px; font-size: 14px; }
+      .driver-name { font-size: 11px; }
+      .driver-caption { font-size: 9px; }
+      .controls { gap: 7px; }
+      .control { padding: 10px 12px; font-size: 11px; border-radius: 10px; gap: 5px; }
+      .control svg { width: 15px; height: 15px; }
+      kbd { display: none; }
+    }
+    @media (max-width: 380px) {
+      .edition span { display: none; }
+      .footer { justify-content: center; }
+      .driver-id { margin-right: auto; }
+      .controls { width: 100%; }
+      .control { flex: 1; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      html:not(.motion-enabled) .ambient { animation-play-state: paused; }
+      .control, .boost-note { transition: none; }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header class="masthead">
+      <div class="brand">
+        <svg class="brand-mark" viewBox="0 0 50 50" aria-hidden="true">
+          <rect x="2" y="2" width="46" height="46" rx="14" fill="#bce9d7" stroke="#342c4b" stroke-width="2"/>
+          <path d="M13 34C9 28 12 22 15 20L14 11L23 17H28L37 11L36 23C42 35 33 40 25 40C19 40 15 38 13 34Z" fill="#fff6e7" stroke="#342c4b" stroke-width="2.4" stroke-linejoin="round"/>
+          <path d="M18 26h3m9 0h3m-9 4 2 2 2-2m-2 2v3" fill="none" stroke="#342c4b" stroke-width="2.4" stroke-linecap="round"/>
+          <path d="m7 17 4 1m28 0 4-1" stroke="#342c4b" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+        <div><h1>喵速方程式</h1><div class="brand-en">MEOW GRAND PRIX</div></div>
+      </div>
+      <div class="edition">
+        <svg viewBox="0 0 36 28" aria-hidden="true"><path d="m5 26 4-23" stroke="#342c4b" stroke-width="2.2" stroke-linecap="round"/><path d="M9 3c8-6 15 7 24 1l-3 16c-9 6-16-7-24-1Z" fill="#faf6ed" stroke="#342c4b" stroke-width="1.8"/><path d="m10 3 7 1-1 5-7-1Zm13 4 8-1-1 5-8 1ZM8 13l7 1-1 5-7-1Zm13 3 8 1-1 4-8-1Z" fill="#342c4b"/></svg>
+        <span>LET’S GO, KITTY!</span>
+      </div>
+    </header>
+
+    <section class="scene" aria-label="小猫赛车动画">
+      <svg class="scene-art" viewBox="0 0 1440 850" preserveAspectRatio="xMidYMid slice" role="img" aria-labelledby="scene-title scene-description">
+        <title id="scene-title">橘猫车手在牛奶海岸赛道全速前进</title>
+        <desc id="scene-description">戴着薄荷绿头盔的可爱橘猫，握着方向盘驾驶珊瑚红色 07 号 F1 赛车。紫色山丘、欢呼的猫咪看台和红白路肩飞快掠过，车轮旋转，黄色围巾随风飘动。</desc>
+        <defs>
+          <linearGradient id="sky" x2="0" y2="1"><stop stop-color="#deddf8"/><stop offset="1" stop-color="#fff0dc"/></linearGradient>
+          <linearGradient id="track" x2="0" y2="1"><stop stop-color="#84859e"/><stop offset="1" stop-color="#676b86"/></linearGradient>
+          <linearGradient id="car-paint" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#ff9476"/><stop offset=".45" stop-color="#ff715e"/><stop offset="1" stop-color="#e75057"/></linearGradient>
+          <linearGradient id="visor" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#fff" stop-opacity=".4"/><stop offset=".55" stop-color="#d8f7e9" stop-opacity=".04"/><stop offset="1" stop-color="#82cdbc" stop-opacity=".3"/></linearGradient>
+          <pattern id="checkers" width="24" height="24" patternUnits="userSpaceOnUse"><rect width="24" height="24" fill="#fff5e7"/><path d="M0 0h12v12H0Zm12 12h12v12H12Z" fill="#453b59"/></pattern>
+          <pattern id="crowd" width="88" height="34" patternUnits="userSpaceOnUse">
+            <path d="M6 27V14l6 4 7-1 6-5 1 14Z" fill="#ffd498"/><path d="M39 28V12l7 5 7-1 5-4 1 16Z" fill="#ff9d8a"/><path d="M69 28V16l5 3 6-2 5-4 1 15Z" fill="#bce9d7"/>
+            <path d="M12 23h1m7-1h1m24 1h1m8-1h1m19 1h1m7-1h1" stroke="#574c6c" stroke-width="2.5" stroke-linecap="round"/>
+          </pattern>
+          <pattern id="asphalt-grain" width="80" height="62" patternUnits="userSpaceOnUse"><path d="M5 13h4m34 16h3m24 22h4M18 54h3" stroke="#fff" stroke-width="1.5" opacity=".13"/></pattern>
+          <pattern id="fence-grid" width="45" height="70" patternUnits="userSpaceOnUse"><path d="M0 0v70m0-35h45m0-35v70" fill="none" stroke="#777487" stroke-width="1.5" opacity=".5"/></pattern>
+          <g id="cloud-bank" fill="#fff9f2">
+            <path d="M64 189c-23-4-18-26 1-27-1-23 27-34 42-17 11-25 48-19 51 9 25-3 34 23 14 32Z"/>
+            <path d="M499 134c-20-2-22-23-2-29 0-27 36-38 52-15 21-14 40 0 40 16 22-2 28 20 10 28Z" opacity=".86"/>
+            <path d="M1124 240c-28-2-30-27-4-33-4-29 36-45 55-22 22-20 50-6 50 15 31-4 40 27 15 37Z"/>
+            <path d="M782 257h81m-511-44h50m893-96h68" fill="none" stroke="#fff9f2" stroke-width="8" stroke-linecap="round" opacity=".7"/>
+          </g>
+          <g id="hill-bank">
+            <path d="M0 413C97 320 157 332 225 380S371 419 473 332 609 338 681 373 808 385 891 299 1028 337 1103 375 1297 326 1440 413V555H0Z" fill="#b4afce"/>
+            <path d="M0 458C95 397 175 460 288 409S461 414 562 437 749 387 858 419 1019 445 1117 408 1293 391 1440 458V561H0Z" fill="#a0bcb6"/>
+            <path d="m853 337 36-38 36 25-30-5-12 17-11-7Z" fill="#e7e0ee" opacity=".8"/>
+            <path d="m464 340 19-16 25 11-17-1-10 10-8-7Z" fill="#e7e0ee" opacity=".8"/>
+          </g>
+          <g id="tree">
+            <path d="M0 0v-71" stroke="#5e7774" stroke-width="5" stroke-linecap="round"/>
+            <path d="M-25-26c-7-12 3-22 5-26-8-11 1-24 6-26-1-25 21-34 29-12 15 3 20 19 12 29 16 15 15 37-3 40-12 7-36 6-49-5Z" fill="#759f98"/>
+            <path d="M0-30v-49m0 36 12-12m-12 3-9-10" fill="none" stroke="#5e8b83" stroke-width="3" stroke-linecap="round"/>
+          </g>
+          <g id="scenery-bank">
+            <use href="#tree" x="44" y="449"/><use href="#tree" x="1124" y="430"/><use href="#tree" x="1173" y="440"/><use href="#tree" x="1328" y="449"/>
+            <g transform="translate(163 288)">
+              <path d="M17 38h345l17 133H0Z" fill="#8e87aa" stroke="#79758f" stroke-width="3"/>
+              <path d="M10 113h361M7 139h366M14 86h353" stroke="#c9c2d8" stroke-width="7"/>
+              <path d="M16 63h348v23H16Zm-3 27h355v23H13Zm-4 28h362v21H9Z" fill="url(#crowd)"/>
+              <path d="M-19 34 24 0h321l44 34Z" fill="#f7ebe6" stroke="#79758f" stroke-width="3" stroke-linejoin="round"/>
+              <path d="M24 0h321l12 10H12Z" fill="#ff9c8a"/>
+              <path d="M-19 34h408v12H-19Z" fill="#9f93b9"/>
+              <path d="M26 46v118m316-118v118" stroke="#77758f" stroke-width="7"/>
+              <path d="M64 0v-43m216 43v-43" stroke="#77758f" stroke-width="3"/>
+              <g class="flag ambient"><path d="M65-44h43l-9 12 9 12H65Z" fill="#ff9785"/><path d="M281-44h43l-9 12 9 12h-43Z" fill="#bce9d7"/></g>
+            </g>
+            <g transform="translate(788 340)">
+              <path d="M0 110V0m161 110V0" stroke="#89839b" stroke-width="8"/>
+              <rect x="-16" y="0" width="194" height="70" rx="12" fill="#fff0d8" stroke="#89839b" stroke-width="3"/>
+              <path d="m7 45 15-27 15 27m-23-9h17" fill="none" stroke="#ff8c76" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+              <text x="101" y="44" fill="#746682" text-anchor="middle" font-family="Trebuchet MS, sans-serif" font-size="23" font-style="italic" font-weight="900" letter-spacing="1">MEOW!</text>
+            </g>
+            <path d="M609 446v-61m0 5 59 15-59 12" fill="#e8ba91" stroke="#8e9597" stroke-width="3" stroke-linejoin="round"/>
+            <path d="M1390 453v-75m0 5 49 9-49 16" fill="#b9b1d5" stroke="#8e9597" stroke-width="3" stroke-linejoin="round"/>
+          </g>
+          <g id="barrier-bank">
+            <path d="M0 0h2880v24H0Z" fill="#e8dfea"/>
+            <path d="M0 24h2880v10H0Z" fill="#a696b2"/>
+            <path d="M0 0h130v24H0Zm240 0h130v24H240Zm240 0h130v24H480Zm240 0h130v24H720Zm240 0h130v24H960Zm240 0h130v24H1200Zm240 0h130v24H1440Zm240 0h130v24H1680Zm240 0h130v24H1920Zm240 0h130v24H2160Zm240 0h130v24H2400Zm240 0h130v24H2640Z" fill="#c4b7d9"/>
+          </g>
+          <path id="road-shape" d="M-150 578C365 462 975 393 1580 478V920H-150Z"/>
+          <g id="paw" fill="currentColor"><ellipse cx="0" cy="3" rx="12" ry="9"/><ellipse cx="-12" cy="-9" rx="5" ry="7" transform="rotate(-25 -12 -9)"/><ellipse cx="0" cy="-14" rx="5" ry="7"/><ellipse cx="12" cy="-9" rx="5" ry="7" transform="rotate(25 12 -9)"/></g>
+          <g id="wheel-back">
+            <circle r="59" fill="#302b43" stroke="#29263b" stroke-width="5"/>
+            <circle r="51" fill="#3d364f" stroke="#655975" stroke-width="2"/>
+            <circle r="45" fill="none" stroke="#ffd598" stroke-width="2.5"/>
+            <circle r="30" fill="#27273b" stroke="#7c738b" stroke-width="3"/>
+            <circle r="21" fill="#80788f"/><circle r="9" fill="#bfb2c7"/>
+          </g>
+          <g id="wheel-spokes" stroke="#302b43" stroke-width="6" stroke-linecap="round">
+            <path d="M0-10v-16m9 21 14-8M9 6l14 8M0 10v16M-9 6l-14 8m14-19-14-8"/>
+            <circle r="5" fill="#fff1d9" stroke="none"/>
+            <path d="M-17-45A48 48 0 0 1 18-44M26 41A48 48 0 0 1-6 48" fill="none" stroke="#ffe7b5" stroke-width="4"/>
+          </g>
+        </defs>
+
+        <path d="M0 0h1440v850H0Z" fill="url(#sky)"/>
+        <circle cx="1062" cy="203" r="92" fill="#ffe3a5"/>
+        <circle cx="1062" cy="203" r="105" fill="none" stroke="#ffecbf" stroke-width="2" opacity=".7"/>
+        <g id="clouds"><use href="#cloud-bank"/><use href="#cloud-bank" x="1440"/></g>
+        <path d="m833 170 9 5 9-5m-43 15 7 4 7-4" fill="none" stroke="#9a8eaf" stroke-width="2.5" stroke-linecap="round"/>
+        <g id="hills"><use href="#hill-bank"/><use href="#hill-bank" x="1440"/></g>
+        <path d="M0 454Q648 375 1440 449V850H0Z" fill="#b8cdb7"/>
+        <path d="M1440 343c-122 5-173 33-199 58s-41 39-135 48l-87 9 23 22 116-22c95-18 94-41 128-65 39-27 98-31 154-32Z" fill="#8d8c9e"/>
+        <path d="M1440 343c-122 5-173 33-199 58s-41 39-135 48" fill="none" stroke="#fff0dc" stroke-width="7"/>
+        <path d="M1440 343c-122 5-173 33-199 58s-41 39-135 48" fill="none" stroke="#ec9d92" stroke-width="7" stroke-dasharray="22 18"/>
+        <g id="trackside"><use href="#scenery-bank"/><use href="#scenery-bank" x="1440"/></g>
+        <path d="M0 467Q737 389 1440 464" fill="none" stroke="#d9ddd1" stroke-width="21"/>
+        <g transform="translate(-100 494) rotate(-2)">
+          <path d="M0-71h1730V0H0Z" fill="url(#fence-grid)" opacity=".5"/>
+          <g id="barriers"><use href="#barrier-bank"/></g>
+        </g>
+        <use href="#road-shape" fill="url(#track)"/>
+        <use href="#road-shape" fill="url(#asphalt-grain)"/>
+        <path d="M-150 578C365 462 975 393 1580 478" fill="none" stroke="#fff3df" stroke-width="19"/>
+        <path id="far-curb" d="M-150 578C365 462 975 393 1580 478" fill="none" stroke="#ef9696" stroke-width="19" stroke-dasharray="68 57"/>
+        <path d="M-140 679C443 540 1018 476 1612 551M-94 700C523 556 1013 507 1560 557" fill="none" stroke="#4d4e6c" stroke-width="5" opacity=".17"/>
+        <g transform="translate(-400 768) rotate(-6.5)">
+          <g id="road-marks" stroke="#e1dfe7" stroke-width="7" opacity=".57">
+            <path d="M0 0h140m220 0h140m220 0h140m220 0h140m220 0h140m220 0h140m220 0h140"/>
+          </g>
+        </g>
+        <path d="M-80 885 1530 685V990H-80Z" fill="#94bba7"/>
+        <path d="M-80 871 1530 671" fill="none" stroke="#514e70" stroke-width="41" opacity=".2"/>
+        <path d="M-80 883 1530 683" fill="none" stroke="#fff0df" stroke-width="37"/>
+        <path id="near-curb" d="M-80 883 1530 683" fill="none" stroke="#f28e85" stroke-width="37" stroke-dasharray="108 88"/>
+        <path d="M-80 906 1530 706" fill="none" stroke="#cfe0bd" stroke-width="7"/>
+        <g class="speed-streaks" fill="none" stroke="#fff5e9" stroke-linecap="round">
+          <path class="streak ambient" d="M-240 355h162m-194 0h12" stroke-width="3"/>
+          <path class="streak ambient" d="M-170 565h99m-133 0h15" stroke-width="3"/>
+          <path class="streak ambient" d="M-350 758h270m-321 0h24" stroke-width="4"/>
+          <path class="streak ambient" d="M-90 453h83" stroke-width="2"/>
+          <path class="streak ambient" d="M-260 681h138" stroke-width="3"/>
+        </g>
+
+        <ellipse id="car-shadow" cx="735" cy="707" rx="376" ry="24" fill="#35344f" opacity=".22" transform="rotate(-4 735 707)"/>
+        <g id="car" transform="translate(337 415) rotate(-4 350 220) scale(1.06)">
+          <g class="boost-flame">
+            <g class="flame-tip ambient">
+              <path d="M98 210C45 184-19 199-94 195l46 20-100 12c79 26 146 30 246 11Z" fill="#ffb65e"/>
+              <path d="M94 214C42 203 1 214-50 218l49 10-49 9c58 9 91 7 144-5Z" fill="#fff0b2"/>
+            </g>
+            <path d="m-80 185-31-6m45 78-34 7m-50-17-15 3" fill="none" stroke="#ffe2a0" stroke-width="5" stroke-linecap="round"/>
+          </g>
+          <g opacity=".96">
+            <g transform="translate(196 190) scale(.78)"><use href="#wheel-back"/></g>
+            <g transform="translate(593 188) scale(.79)"><use href="#wheel-back"/></g>
+            <path d="m387 182 205 5m-106-18 103 23m-190-25 179 48" fill="none" stroke="#342c4b" stroke-width="8" stroke-linecap="round"/>
+          </g>
+          <path d="m66 132 26 85h58l-26-85" fill="#46405a" class="ink"/>
+          <path d="M17 117h158l-7 24H15Z" fill="#ff9377" class="ink"/>
+          <path d="M13 104h159v17H13Z" fill="#fff1d6" class="ink"/>
+          <path d="M15 102v47l30 2v-47Z" fill="#f16c64" class="ink"/>
+          <path d="M157 102v47h21v-47Z" fill="#e55b61" class="ink"/>
+          <path d="M53 111h80" stroke="#ffab83" stroke-width="4" stroke-linecap="round"/>
+
+          <g class="tail-tip ambient">
+            <path d="M252 175c-37 11-73 2-91-21s-6-55-31-57c-16-1-18 18-11 27" fill="none" stroke="#342c4b" stroke-width="26" stroke-linecap="round"/>
+            <path d="M252 175c-37 11-73 2-91-21s-6-55-31-57c-16-1-18 18-11 27" fill="none" stroke="#ffc778" stroke-width="18" stroke-linecap="round"/>
+            <path d="m174 165 7-14m-26-4 14-10m-22-7 14-5" fill="none" stroke="#e39a57" stroke-width="7"/>
+          </g>
+          <path d="M210 166c-6-38 15-67 49-73h44c40 10 61 40 72 77l-29 34H235Z" fill="#bce9d7" class="ink"/>
+          <path d="m243 117 21 60m42-61-13 65" fill="none" stroke="#f7eee3" stroke-width="15"/>
+          <path d="m252 120 13 50m32-50-11 50" fill="none" stroke="#5d9f92" stroke-width="4"/>
+          <path d="M249 157h43v34h-43Z" fill="#f6e7cc" class="thin-ink"/>
+          <path d="M262 160v28m-4-14h22" stroke="#9e948d" stroke-width="3"/>
+
+          <g class="driver-bob ambient">
+            <g class="scarf-end ambient">
+              <path d="M239 105c-31-19-39-11-68-18s-36-18-67-8l27 13-29 14c52-9 67 27 129 15Z" fill="#ffda87" class="ink"/>
+              <path d="M218 108c-36-4-52-16-76-12" fill="none" stroke="#e4aa65" stroke-width="3" stroke-linecap="round"/>
+            </g>
+            <path d="m216-4-12-76c-1-9 6-12 13-7l59 40m54-1 42-43c7-7 14-3 14 5l-2 81" fill="#ffc778" class="ink"/>
+            <path d="m218-29-5-40 34 28m99 0 28-31-2 46" fill="#ed9b95" stroke="#dd9a83" stroke-width="2" stroke-linejoin="round"/>
+            <path d="M195 29c-6-57 20-96 80-99 67-5 111 31 119 76 7 43-15 82-56 98l-80-1c-36-8-61-34-63-74Z" fill="#bce9d7" class="ink"/>
+            <path d="M267-70c-14 16-17 36-14 64l19-2c-5-27 0-50 13-61Z" fill="#fff7e7"/>
+            <path d="M302-63c28 3 60 20 73 46" fill="none" stroke="#def7e6" stroke-width="9" stroke-linecap="round"/>
+            <path d="M204 40c4 33 21 52 48 62h90c21-9 34-20 43-37l-18 6-112 11Z" fill="#83c5b2"/>
+            <path d="M219 21c13-24 109-31 142-8 19 13 19 45 7 64-13 24-43 31-72 30-38-1-69-17-75-45-3-13-6-29-2-41Z" fill="#ffd08a" class="ink"/>
+            <path d="M229 22c5 1 8 7 9 14m-14 8 10 6m110-37-7 13m-82-19 6 12" fill="none" stroke="#df9a5d" stroke-width="7" stroke-linecap="round"/>
+            <path d="M250 81c9-13 27-16 43-9 13-10 29-9 39 3 8 10 2 22-7 27-24 8-55 1-72-9Z" fill="#fff0d4"/>
+            <ellipse cx="249" cy="68" rx="13" ry="8" fill="#f5a39a" opacity=".76"/><ellipse cx="352" cy="64" rx="13" ry="8" fill="#f5a39a" opacity=".76"/>
+            <g class="cat-eyes ambient" fill="#342c4b">
+              <ellipse cx="269" cy="47" rx="9" ry="13"/><ellipse cx="334" cy="43" rx="9" ry="13"/>
+              <ellipse cx="272" cy="43" rx="3" ry="4" fill="#fffaf0"/><ellipse cx="337" cy="39" rx="3" ry="4" fill="#fffaf0"/>
+            </g>
+            <path d="m258 26 17 2m49-5 16-6" fill="none" stroke="#805744" stroke-width="4" stroke-linecap="round"/>
+            <path d="M295 64q9-6 17 0l-8 8Z" fill="#b77274" stroke="#342c4b" stroke-width="2.4" stroke-linejoin="round"/>
+            <path d="M304 72v5c-1 9-12 11-15 2m15-2c3 8 13 6 15-1" fill="none" stroke="#342c4b" stroke-width="3.2" stroke-linecap="round"/>
+            <path d="m242 64-22-4m22 13-23 4m126-17 23-7m-22 15 24 2" fill="none" stroke="#a36d58" stroke-width="2.6" stroke-linecap="round"/>
+            <path d="M214 16c33-24 132-23 155 3 12 14 11 40-1 58-25 32-88 35-128 12-17-10-21-27-24-43Z" fill="url(#visor)" stroke="#342c4b" stroke-width="4"/>
+            <path d="M235 15q30-13 58-9m12 0h12" fill="none" stroke="#fffdf2" stroke-width="5" stroke-linecap="round" opacity=".8"/>
+            <circle cx="209" cy="42" r="14" fill="#f4eddb" class="thin-ink"/><circle cx="209" cy="42" r="5" fill="#94bcaf"/>
+            <path d="M207 55c2 28 25 44 57 40" fill="none" stroke="#342c4b" stroke-width="4"/>
+            <rect x="258" y="89" width="18" height="11" rx="5" fill="#342c4b"/>
+            <path d="M252 105q43 16 83-3l-4 18c-25 13-54 14-81 1Z" fill="#ffdb87" class="ink"/>
+          </g>
+
+          <g transform="rotate(-21 373 147)">
+            <path d="M373 150v58" stroke="#342c4b" stroke-width="9"/>
+            <ellipse cx="373" cy="145" rx="27" ry="35" fill="#665b74" stroke="#342c4b" stroke-width="10"/>
+            <path d="M350 143h45m-23 0v28" fill="none" stroke="#342c4b" stroke-width="7"/>
+            <circle cx="373" cy="144" r="8" fill="#f4cc81"/>
+            <rect x="365" y="123" width="16" height="7" rx="2" fill="#bce9d7"/>
+          </g>
+          <path d="M310 127c14-7 29 4 38 17l-17 23c-18-7-33-13-40-24" fill="#bce9d7" class="ink"/>
+          <path d="m326 141 14-7 14 13-15 17-14-9" fill="#fff2db" class="thin-ink"/>
+          <path d="M340 139c3-15 16-21 24-14 5 3 5 7 6 12 6 12-2 24-11 24-9 0-17-12-19-22Z" fill="#ffc778" class="ink"/>
+          <path d="m349 132 4 5m5-10 3 6" fill="none" stroke="#d89661" stroke-width="2.5" stroke-linecap="round"/>
+          <path d="M390 151c11 7 24 0 23-12-1-10-3-20-12-20-8 0-12 8-11 15Z" fill="#ffc778" class="ink"/>
+          <path d="m399 126 1 7m7-5 1 7" stroke="#d89661" stroke-width="2.5" stroke-linecap="round"/>
+
+          <path d="m126 198 82-31 132 3 74 32 174 3 44 38-112 18H190l-82-23Z" fill="#3c354e" class="ink"/>
+          <path d="M132 176c30-7 67-19 88-31l34 26h89c28-8 39-7 59 0 56 21 137 23 217 40 22 5 32 17 33 32l-177 10-133-17-117 8-91-7Z" fill="url(#car-paint)" class="ink"/>
+          <path d="M204 164c34 40 93 52 163 38l56-20-35-13-45 11h-91l-32-28Z" fill="#c74658"/>
+          <path d="M229 163c33 24 62 22 111 17l25-12" fill="none" stroke="#342c4b" stroke-width="7" stroke-linecap="round"/>
+          <path d="M199 192c41-9 95-10 154-2l68 17-40 42H194l-26-22Z" fill="url(#car-paint)" class="ink"/>
+          <path d="M202 199q66-17 139-1" fill="none" stroke="#ffb28c" stroke-width="6" stroke-linecap="round"/>
+          <path d="M195 237h190l-12 15H199Z" fill="#a7d5c4"/>
+          <path d="m403 182 70 16 165 26" fill="none" stroke="#ffb691" stroke-width="6" stroke-linecap="round"/>
+          <path d="M450 195 586 214l-5 14-143-18Z" fill="#ffe9cd"/>
+          <text x="498" y="212" transform="rotate(8 498 212)" fill="#6a4857" font-family="Trebuchet MS, sans-serif" font-size="10" font-weight="900" letter-spacing="1.2">MEOW RACING</text>
+          <path d="m141 245 51 9h194l38-11 221 1 9 14-222 2-41 10H167Z" fill="#383047" class="ink"/>
+          <path d="M198 258h179" stroke="#787083" stroke-width="3" stroke-linecap="round"/>
+          <path d="m408 224 164 10m-146 16 141-11m-107-37 104 33" fill="none" stroke="#342c4b" stroke-width="8" stroke-linecap="round"/>
+          <path d="m414 225 141 11" fill="none" stroke="#827586" stroke-width="2" stroke-linecap="round"/>
+          <path d="M615 235h88l8 29-99 11-10-19Z" fill="#ff826c" class="ink"/>
+          <path d="m606 250 102-3m-95 12 97-2" fill="none" stroke="#342c4b" stroke-width="4"/>
+          <path d="m694 215 19 3 4 55-20-2Z" fill="#bce9d7" class="ink"/>
+          <path d="m703 225 2 25" stroke="#edf2d7" stroke-width="4" stroke-linecap="round"/>
+          <path d="m108 204 70 19m-56 16 76-18" stroke="#342c4b" stroke-width="10" stroke-linecap="round"/>
+          <path d="M279 196h57q8 0 5 8l-12 28h-67l9-28q2-8 8-8Z" fill="#fff0d6" stroke="#342c4b" stroke-width="2.5"/>
+          <text x="301" y="224" text-anchor="middle" fill="#342c4b" font-family="Arial Black, sans-serif" font-size="30" font-weight="900" font-style="italic">07</text>
+          <g transform="translate(233 220) scale(.72)" color="#ffdfba"><use href="#paw"/></g>
+          <path d="M367 209q11-11 24 0-13 11-24 0l-9-7v14Z" fill="#ffe2b7"/>
+          <circle cx="385" cy="208" r="1.5" fill="#b96264"/>
+          <path d="M401 165v-23l21-4 6 15-20 5" fill="#ff9578" class="ink"/>
+          <path d="m406 145 14-3" stroke="#bce9d7" stroke-width="5" stroke-linecap="round"/>
+          <g transform="translate(123 232)">
+            <use href="#wheel-back"/>
+            <g id="rear-wheel-spin"><use href="#wheel-spokes"/></g>
+          </g>
+          <g transform="translate(578 242) scale(.91)">
+            <use href="#wheel-back"/>
+            <g id="front-wheel-spin"><use href="#wheel-spokes"/></g>
+          </g>
+          <path d="M69 214q1-26 22-38m439 54q1-25 19-37" fill="none" stroke="#8a7990" stroke-width="3" stroke-linecap="round" opacity=".65"/>
+        </g>
+
+        <g fill="none" stroke="#d6e4c2" stroke-width="4" stroke-linecap="round" opacity=".65">
+          <path d="m1260 824 17-8m51 10 11-15m-169 16 18-6m-29 0 6-12m220-42 12-6"/>
+        </g>
+      </svg>
+
+      <div class="race-top">
+        <div class="location">
+          <svg class="location-icon" viewBox="0 0 36 36" aria-hidden="true"><circle cx="18" cy="18" r="7" fill="#ffd795" stroke="#625373" stroke-width="1.8"/><path d="M18 3v4m0 22v4M3 18h4m22 0h4M7.4 7.4l3 3m15.2 15.2 3 3m0-21.2-3 3M10.4 25.6l-3 3" fill="none" stroke="#625373" stroke-width="1.8" stroke-linecap="round"/></svg>
+          <div><div class="location-name">牛奶海岸赛道</div><div class="location-en">MILK COAST CIRCUIT</div></div>
+        </div>
+        <div class="race-status"><div class="lap"><small>LAP</small><span id="lap-count">01</span></div><div class="position" aria-label="当前排名第一">P1</div></div>
+      </div>
+      <div class="boost-note" aria-hidden="true"><span>喵呜——全速！</span></div>
+      <div class="telemetry" aria-label="模拟赛车速度">
+        <div class="speed-line"><span class="speed-value" id="speed">294</span><span class="speed-unit">KM/H</span></div>
+        <div class="rev-meter" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><span class="gear">GEAR <span id="gear">7</span></span></div>
+      </div>
+      <div class="map" aria-hidden="true">
+        <svg viewBox="0 0 150 110">
+          <path d="M30 64C15 46 25 38 33 32L36 14 57 26C72 19 88 21 99 27L119 14 118 39C144 68 111 92 78 92 57 94 41 84 30 64Z" fill="none" stroke="#45435f" stroke-width="10" stroke-linejoin="round"/>
+          <path id="circuit-line" d="M30 64C15 46 25 38 33 32L36 14 57 26C72 19 88 21 99 27L119 14 118 39C144 68 111 92 78 92 57 94 41 84 30 64Z" fill="none" stroke="#e8e4dc" stroke-width="4" stroke-linejoin="round"/>
+          <path d="m24 64 12-4m-10 8 12-4" stroke="#49465f" stroke-width="2"/>
+          <circle id="map-dot-halo" cx="30" cy="64" r="10" fill="#ff9a7d" opacity=".25"/>
+          <circle id="map-dot" cx="30" cy="64" r="4.7" fill="#ff9a7d" stroke="#fff1d8" stroke-width="2"/>
+        </svg>
+        <div class="map-label">FOLLOW THE PAW</div>
+      </div>
+    </section>
+
+    <footer class="footer">
+      <div class="driver-id"><div class="driver-number">07</div><div><div class="driver-name">橘子 · 首席小猫车手</div><div class="driver-caption" id="driver-status">今日目标：追上那条小鱼。</div></div></div>
+      <div class="controls">
+        <button class="control pause" id="pause-button" type="button" aria-label="暂停动画">
+          <svg class="pause-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M6 4v12m8-12v12" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"/></svg>
+          <svg class="play-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="m6 3 11 7-11 7Z" fill="currentColor" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
+          <span id="pause-label">暂停</span>
+        </button>
+        <button class="control boost" id="boost-button" type="button" aria-label="全速冲刺，快捷键空格" aria-keyshortcuts="Space">
+          <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M11.5 1 3 11h6l-1 8 9-11h-6Z" fill="#fff0c9" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
+          <span>全速冲刺</span><kbd>SPACE</kbd>
+        </button>
+      </div>
+    </footer>
+  </main>
+  <script>
+    (() => {
+      const root = document.documentElement;
+      const byId = (id) => document.getElementById(id);
+      const clouds = byId('clouds');
+      const hills = byId('hills');
+      const trackside = byId('trackside');
+      const barriers = byId('barriers');
+      const farCurb = byId('far-curb');
+      const nearCurb = byId('near-curb');
+      const roadMarks = byId('road-marks');
+      const car = byId('car');
+      const shadow = byId('car-shadow');
+      const rearWheel = byId('rear-wheel-spin');
+      const frontWheel = byId('front-wheel-spin');
+      const speedLabel = byId('speed');
+      const lapLabel = byId('lap-count');
+      const gearLabel = byId('gear');
+      const pauseButton = byId('pause-button');
+      const pauseLabel = byId('pause-label');
+      const boostButton = byId('boost-button');
+      const driverStatus = byId('driver-status');
+      const circuit = byId('circuit-line');
+      const circuitLength = circuit.getTotalLength();
+      const mapDot = byId('map-dot');
+      const mapHalo = byId('map-dot-halo');
+      const motionPreference = window.matchMedia('(prefers-reduced-motion: reduce)');
+      const lapDistance = 3400 * 6.8;
+      let paused = motionPreference.matches;
+      let frame = 0;
+      let previousTime = 0;
+      let elapsed = 0;
+      let distance = 0;
+      let speed = 294;
+      let boostLeft = 0;
+      let displayTime = 0;
+
+      const move = (node, x) => node.setAttribute('transform', 'translate(' + x.toFixed(2) + ' 0)');
+
+      function updateControls() {
+        root.classList.toggle('is-paused', paused);
+        root.classList.toggle('motion-enabled', !paused);
+        root.classList.toggle('is-boosting', boostLeft > 0);
+        pauseLabel.textContent = paused ? '播放' : '暂停';
+        pauseButton.setAttribute('aria-label', paused ? '播放动画' : '暂停动画');
+        boostButton.disabled = paused;
+        driverStatus.textContent = paused ? '小憩一下，马上出发。' : boostLeft > 0 ? '小鱼在前方，全速追上！' : '今日目标：追上那条小鱼。';
+      }
+
+      function draw(delta) {
+        elapsed += delta;
+        if (boostLeft > 0) {
+          boostLeft = Math.max(0, boostLeft - delta);
+          if (boostLeft === 0) updateControls();
+        }
+        const targetSpeed = boostLeft > 0 ? 362 : 294 + Math.sin(elapsed * .7) * 6 + Math.sin(elapsed * 2.1) * 2;
+        speed += (targetSpeed - speed) * (1 - Math.exp(-delta * 3));
+        distance += speed / 3.6 * delta * 6.8;
+
+        move(clouds, -(distance * .023 % 1440));
+        move(hills, -(distance * .075 % 1440));
+        move(trackside, -(distance * .28 % 1440));
+        move(barriers, -(distance * .65 % 240));
+        move(roadMarks, -(distance % 360));
+        farCurb.setAttribute('stroke-dashoffset', (distance * .56 % 125).toFixed(1));
+        nearCurb.setAttribute('stroke-dashoffset', (distance * 1.3 % 196).toFixed(1));
+        rearWheel.setAttribute('transform', 'rotate(' + (distance / 59 * 180 / Math.PI % 360).toFixed(1) + ')');
+        frontWheel.setAttribute('transform', 'rotate(' + (distance / 53.7 * 180 / Math.PI % 360).toFixed(1) + ')');
+
+        const surge = (speed - 294) * .43;
+        const sway = Math.sin(elapsed * 1.8) * 3;
+        const bob = Math.sin(elapsed * 28) * 1.1 + Math.sin(elapsed * 13) * .65;
+        const tilt = -4 + Math.sin(elapsed * 15) * .17 - (speed - 294) * .006;
+        car.setAttribute('transform', 'translate(' + (337 + surge + sway).toFixed(2) + ' ' + (415 + bob).toFixed(2) + ') rotate(' + tilt.toFixed(2) + ' 350 220) scale(1.06)');
+        shadow.setAttribute('cx', (735 + surge + sway).toFixed(2));
+        shadow.setAttribute('ry', (24 - bob * .4).toFixed(2));
+
+        displayTime += delta;
+        if (displayTime >= .09) {
+          speedLabel.textContent = Math.round(speed);
+          gearLabel.textContent = speed > 324 ? '8' : '7';
+          lapLabel.textContent = String(Math.floor(distance / lapDistance) + 1).padStart(2, '0');
+          const point = circuit.getPointAtLength((distance % lapDistance) / lapDistance * circuitLength);
+          mapDot.setAttribute('cx', point.x);
+          mapDot.setAttribute('cy', point.y);
+          mapHalo.setAttribute('cx', point.x);
+          mapHalo.setAttribute('cy', point.y);
+          displayTime = 0;
+        }
+      }
+
+      function tick(now) {
+        const delta = previousTime ? Math.min((now - previousTime) / 1000, .05) : 0;
+        previousTime = now;
+        draw(delta);
+        frame = requestAnimationFrame(tick);
+      }
+
+      function syncPlayback() {
+        cancelAnimationFrame(frame);
+        previousTime = 0;
+        if (!paused && !document.hidden) frame = requestAnimationFrame(tick);
+      }
+
+      function togglePause() {
+        paused = !paused;
+        updateControls();
+        syncPlayback();
+      }
+
+      function boost() {
+        if (paused) return;
+        boostLeft = 3.4;
+        updateControls();
+      }
+
+      pauseButton.addEventListener('click', togglePause);
+      boostButton.addEventListener('click', boost);
+      document.addEventListener('keydown', (event) => {
+        if (event.code === 'Space' && event.target.tagName !== 'BUTTON') {
+          event.preventDefault();
+          if (!event.repeat) boost();
+        }
+      });
+      document.addEventListener('visibilitychange', syncPlayback);
+      motionPreference.addEventListener('change', (event) => {
+        if (event.matches) {
+          paused = true;
+          updateControls();
+          syncPlayback();
+        }
+      });
+      updateControls();
+      syncPlayback();
+    })();
+  </script>
+</body>
+</html>

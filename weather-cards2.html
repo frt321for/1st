@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>天气卡片 — Glassmorphism 大气动效</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@200;300;400;500;600;700&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --sun-color-1: #ff9a56;
+  --sun-color-2: #ff6b35;
+  --sun-glow: #ffb74d;
+  --wind-color-1: #4481eb;
+  --wind-color-2: #04befe;
+  --wind-glow: #82cfff;
+  --rain-color-1: #0f0c29;
+  --rain-color-2: #302b63;
+  --rain-glow: #5b86e5;
+  --snow-color-1: #a1c4fd;
+  --snow-color-2: #c2e9fb;
+  --snow-glow: #e8f4f8;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{
+  min-height:100vh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background: #0a0a0f;
+  font-family:'DM Sans',sans-serif;
+  overflow-x:hidden;
+  padding:20px;
+}
+body::before{
+  content:'';
+  position:fixed;
+  inset:0;
+  background:
+    radial-gradient(ellipse 80% 50% at 20% 40%, rgba(255,154,86,.12),transparent),
+    radial-gradient(ellipse 60% 50% at 80% 30%, rgba(68,129,235,.10),transparent),
+    radial-gradient(ellipse 70% 60% at 50% 80%, rgba(91,134,229,.08),transparent);
+  pointer-events:none;
+  z-index:0;
+}
+
+.hero-grid{
+  position:relative;
+  z-index:1;
+  display:grid;
+  grid-template-columns:repeat(4, minmax(0, 280px));
+  gap:24px;
+  width: fit-content;
+  max-width:100%;
+  padding:10px;
+}
+
+/* C A R D  —  G L A S S */
+.card{
+  position:relative;
+  border-radius: 28px;
+  padding: 28px 22px 24px;
+  cursor:pointer;
+  overflow:hidden;
+  isolation:isolate;
+  background: var(--glass-bg, rgba(255,255,255,.06));
+  backdrop-filter:blur(24px) saturate(160%);
+  -webkit-backdrop-filter:blur(24px) saturate(160%);
+  border:1px solid var(--glass-border, rgba(255,255,255,.10));
+  box-shadow:
+    0 4px 24px -4px rgba(0,0,0,.25),
+    inset 0 1px 0 rgba(255,255,255,.06);
+  transition:
+    transform .4s cubic-bezier(.25,1,.5,1),
+    box-shadow .4s cubic-bezier(.25,1,.5,1),
+    border-color .4s ease;
+  display:flex;
+  flex-direction:column;
+  gap:14px;
+  min-height: 440px;
+}
+.card:hover{
+  transform:translateY(-6px);
+  border-color: var(--card-glow, rgba(255,255,255,.25));
+  box-shadow:
+    0 12px 40px -8px rgba(0,0,0,.35),
+    0 0 0 1px var(--card-glow, rgba(255,255,255,.15)) inset,
+    0 0 60px -10px var(--card-glow, rgba(255,255,255,.08));
+}
+.card:active{ transform:scale(.97); transition-duration:.15s }
+
+/* Particle canvas layers */
+.card .particle-canvas{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  pointer-events:none;
+  z-index:0;
+  border-radius:28px;
+}
+.card .card-content{
+  position:relative;
+  z-index:1;
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
+
+/* Weather Icon */
+.weather-icon{
+  width:72px;
+  height:72px;
+  margin-bottom:4px;
+}
+.weather-icon svg{ width:100%; height:100% }
+
+/* Temperature */
+.temp{
+  font-family:'Outfit',sans-serif;
+  font-size:4rem;
+  font-weight: 200;
+  line-height: 1;
+  letter-spacing: -.03em;
+  color:#fff;
+  display:flex;
+  align-items:flex-start;
+}
+.temp sup{
+  font-size:1.4rem;
+  font-weight:300;
+  margin-top:4px;
+  opacity:.6;
+}
+
+/* Description */
+.desc{
+  font-family:'Outfit',sans-serif;
+  font-size:1.05rem;
+  font-weight:500;
+  color:rgba(255,255,255,.85);
+  letter-spacing:-.01em;
+}
+
+/* Detail row */
+.details{
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+  margin-top:auto;
+  padding-top:10px;
+  border-top:1px solid rgba(255,255,255,.08);
+}
+.detail-row{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+.detail-label{
+  font-size:.75rem;
+  color:rgba(255,255,255,.45);
+  letter-spacing:.04em;
+  text-transform:uppercase;
+}
+.detail-val{
+  font-family:'Outfit',sans-serif;
+  font-size:.85rem;
+  font-weight:500;
+  color:rgba(255,255,255,.80);
+}
+
+/* Card-specific theme colors via CSS vars */
+.card-sunny{
+  --glass-bg: rgba(255,154,86,.08);
+  --glass-border: rgba(255,154,86,.18);
+  --card-glow: rgba(255,154,86,.35);
+}
+.card-windy{
+  --glass-bg: rgba(68,129,235,.08);
+  --glass-border: rgba(68,129,235,.18);
+  --card-glow: rgba(68,129,235,.35);
+}
+.card-rain{
+  --glass-bg: rgba(91,134,229,.08);
+  --glass-border: rgba(91,134,229,.14);
+  --card-glow: rgba(91,134,229,.30);
+}
+.card-snow{
+  --glass-bg: rgba(194,233,251,.08);
+  --glass-border: rgba(194,233,251,.20);
+  --card-glow: rgba(194,233,251,.40);
+}
+
+/* Entrance animation — staggered */
+.card{
+  opacity:0;
+  transform:translateY(40px);
+}
+.card.entered{
+  animation: cardSlideIn .7s cubic-bezier(.22,1,.36,1) forwards;
+}
+@keyframes cardSlideIn{
+  to{opacity:1;transform:translateY(0)}
+}
+
+.card-sunny.entered{ animation-delay:0s }
+.card-windy.entered{ animation-delay:.12s }
+.card-rain.entered{ animation-delay:.24s }
+.card-snow.entered{ animation-delay:.36s }
+
+/* Scrollbar hiding */
+::-webkit-scrollbar{ width:0 }
+
+/* Responsive */
+@media(max-width:1240px){
+  .hero-grid{ grid-template-columns:repeat(2, minmax(0, 280px)) }
+  .card{ min-height:400px }
+}
+@media(max-width:620px){
+  .hero-grid{ grid-template-columns:1fr; max-width:360px }
+  .card{ min-height:auto }
+}
+
+@media(prefers-reduced-motion:reduce){
+  .card{ opacity:1; transform:none; animation:none !important; transition:none !important }
+  .card:hover{ transform:none }
+}
+</style>
+</head>
+<body>
+
+<div class="hero-grid">
+
+  <!-- 晴天 -->
+  <div class="card card-sunny">
+    <canvas class="particle-canvas" data-weather="sunny" aria-hidden="true"></canvas>
+    <div class="card-content">
+      <div class="weather-icon">
+        <svg viewBox="0 0 72 72" fill="none"><defs><radialGradient id="sg"><stop offset="0%" stop-color="#ffb74d"/><stop offset="100%" stop-color="#ff6b35"/></radialGradient></defs><circle cx="36" cy="36" r="14" fill="url(#sg)" opacity=".95"/><g stroke="#ffb74d" stroke-width="2.5" stroke-linecap="round" opacity=".9"><line x1="36" y1="6" x2="36" y2="16"/><line x1="36" y1="56" x2="36" y2="66"/><line x1="6" y1="36" x2="16" y2="36"/><line x1="56" y1="36" x2="66" y2="36"/><line x1="14.8" y1="14.8" x2="22" y2="22"/><line x1="50" y1="50" x2="57.2" y2="57.2"/><line x1="57.2" y1="14.8" x2="50" y2="22"/><line x1="22" y1="50" x2="14.8" y2="57.2"/></g></svg>
+      </div>
+      <div class="temp">32<sup>°C</sup></div>
+      <div class="desc">晴朗 · 万里无云</div>
+      <div class="details">
+        <div class="detail-row"><span class="detail-label">湿度</span><span class="detail-val">28%</span></div>
+        <div class="detail-row"><span class="detail-label">风速</span><span class="detail-val">2.1 km/h</span></div>
+        <div class="detail-row"><span class="detail-label">体感</span><span class="detail-val">34°C</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 大风 -->
+  <div class="card card-windy">
+    <canvas class="particle-canvas" data-weather="windy" aria-hidden="true"></canvas>
+    <div class="card-content">
+      <div class="weather-icon">
+        <svg viewBox="0 0 72 72" fill="none"><g stroke="#82cfff" stroke-width="2.8" stroke-linecap="round" opacity=".9"><path d="M20 38h28a8 8 0 0 0 0-16h-4"/><path d="M24 28h18a6 6 0 0 0 0-12h-3"/><path d="M18 48h24a5 5 0 0 0 0-10"/></g></svg>
+      </div>
+      <div class="temp">19<sup>°C</sup></div>
+      <div class="desc">大风 · 阵风8级</div>
+      <div class="details">
+        <div class="detail-row"><span class="detail-label">湿度</span><span class="detail-val">45%</span></div>
+        <div class="detail-row"><span class="detail-label">风速</span><span class="detail-val">62 km/h</span></div>
+        <div class="detail-row"><span class="detail-label">体感</span><span class="detail-val">15°C</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 暴雨 -->
+  <div class="card card-rain">
+    <canvas class="particle-canvas" data-weather="rain" aria-hidden="true"></canvas>
+    <div class="card-content">
+      <div class="weather-icon">
+        <svg viewBox="0 0 72 72" fill="none"><g><path d="M18 38a10 10 0 0 1 0-20h28a10 10 0 0 1 0 20H18z" fill="rgba(91,134,229,.35)"/><g stroke="#5b86e5" stroke-width="2.4" stroke-linecap="round" opacity=".95"><line x1="22" y1="46" x2="18" y2="56"/><line x1="32" y1="46" x2="28" y2="58"/><line x1="42" y1="46" x2="38" y2="56"/><line x1="50" y1="46" x2="48" y2="54"/></g></g></svg>
+      </div>
+      <div class="temp">24<sup>°C</sup></div>
+      <div class="desc">暴雨 · 橙色预警</div>
+      <div class="details">
+        <div class="detail-row"><span class="detail-label">湿度</span><span class="detail-val">94%</span></div>
+        <div class="detail-row"><span class="detail-label">降水量</span><span class="detail-val">68mm/h</span></div>
+        <div class="detail-row"><span class="detail-label">体感</span><span class="detail-val">22°C</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 暴雪 -->
+  <div class="card card-snow">
+    <canvas class="particle-canvas" data-weather="snow" aria-hidden="true"></canvas>
+    <div class="card-content">
+      <div class="weather-icon">
+        <svg viewBox="0 0 72 72" fill="none"><g fill="rgba(194,233,251,.60)"><ellipse cx="36" cy="28" rx="16" ry="10"/></g><g fill="rgba(194,233,251,.45)"><ellipse cx="30" cy="26" rx="8" ry="5"/><ellipse cx="44" cy="24" rx="9" ry="5.5"/><ellipse cx="38" cy="28" rx="7" ry="4"/></g><g transform="translate(20,42)"><circle cx="4" cy="7" r="2.5" fill="rgba(255,255,255,.7)"/><circle cx="12" cy="10" r="1.8" fill="rgba(255,255,255,.5)"/><circle cx="8" cy="15" r="2" fill="rgba(255,255,255,.6)"/></g><g transform="translate(42,38)"><circle cx="2" cy="6" r="2" fill="rgba(255,255,255,.65)"/><circle cx="10" cy="10" r="2.2" fill="rgba(255,255,255,.5)"/></g></svg>
+      </div>
+      <div class="temp">-12<sup>°C</sup></div>
+      <div class="desc">暴雪 · 红色预警</div>
+      <div class="details">
+        <div class="detail-row"><span class="detail-label">湿度</span><span class="detail-val">78%</span></div>
+        <div class="detail-row"><span class="detail-label">风速</span><span class="detail-val">35 km/h</span></div>
+        <div class="detail-row"><span class="detail-label">体感</span><span class="detail-val">-19°C</span></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ─────────────────────────────────────────────
+//  Weather Particle Engine  —  per-card canvas
+// ─────────────────────────────────────────────
+
+const WEATHER_CONFIGS = {
+  sunny: {
+    colors: ['#ffb74d', '#ff9a56', '#ffcc80', '#ffe0b2'],
+    count: 45,
+  },
+  windy: {
+    colors: ['rgba(130,207,255,0.6)', 'rgba(68,129,235,0.45)', 'rgba(183,224,255,0.5)'],
+    count: 30,
+  },
+  rain: {
+    colors: ['rgba(91,134,229,0.65)', 'rgba(91,134,229,0.40)', 'rgba(130,168,255,0.55)'],
+    count: 55,
+  },
+  snow: {
+    colors: ['rgba(255,255,255,0.7)', 'rgba(220,235,250,0.55)', 'rgba(255,255,255,0.4)'],
+    count: 40,
+  },
+};
+
+class Particle {
+  constructor(cfg, w, h, type) {
+    this.type = type;
+    this.reset(cfg, w, h);
+  }
+
+  reset(cfg, w, h) {
+    const t = this.type;
+    this.x = Math.random() * w;
+    this.y = Math.random() * h;
+    this.size = t === 'snow' ? 1.5 + Math.random() * 4 : 1 + Math.random() * 3;
+    this.opacity = 0.25 + Math.random() * 0.55;
+    this.color = cfg.colors[Math.floor(Math.random() * cfg.colors.length)];
+
+    switch (t) {
+      case 'sunny':
+        this.speedX = (Math.random() - 0.5) * 0.3;
+        this.speedY = -(0.25 + Math.random() * 0.8);
+        this.wobble = Math.random() * Math.PI * 2;
+        this.wobbleSpeed = 0.01 + Math.random() * 0.02;
+        break;
+      case 'windy':
+        this.speedX = 1.2 + Math.random() * 2.5;
+        this.speedY = (Math.random() - 0.5) * 0.6;
+        this.waveAmp = 8 + Math.random() * 18;
+        this.waveFreq = 0.03 + Math.random() * 0.05;
+        this.waveOffset = Math.random() * Math.PI * 2;
+        this.trail = [];
+        break;
+      case 'rain':
+        this.speedX = 0.5 + Math.random() * 1.0;
+        this.speedY = 6 + Math.random() * 10;
+        this.length = 8 + Math.random() * 14;
+        break;
+      case 'snow':
+        this.speedX = (Math.random() - 0.5) * 0.5;
+        this.speedY = 0.3 + Math.random() * 1.1;
+        this.drift = 0;
+        this.driftSpeed = 0.005 + Math.random() * 0.015;
+        this.driftAmp = 0.3 + Math.random() * 0.8;
+        this.swayOffset = Math.random() * Math.PI * 2;
+        break;
+    }
+  }
+
+  update(w, h, frame) {
+    switch (this.type) {
+      case 'sunny':
+        this.wobble += this.wobbleSpeed;
+        this.x += this.speedX + Math.sin(this.wobble) * 0.3;
+        this.y += this.speedY;
+        if (this.y < -10 || this.x < -10 || this.x > w + 10) this.reset(WCS[this.type], w, h);
+        break;
+      case 'windy': {
+        this.x += this.speedX;
+        const baseY = this.y + this.speedY;
+        this.y = baseY + Math.sin(frame * this.waveFreq + this.waveOffset) * this.waveAmp * 0.25;
+        this.trail.push({ x: this.x, y: this.y });
+        if (this.trail.length > 5) this.trail.shift();
+        if (this.x > w + 20) this.reset(WCS[this.type], w, h);
+        break;
+      }
+      case 'rain':
+        this.x += this.speedX;
+        this.y += this.speedY;
+        if (this.y > h + 20) this.reset(WCS[this.type], w, h);
+        break;
+      case 'snow':
+        this.drift += this.driftSpeed;
+        this.x += this.speedX + Math.sin(this.drift + this.swayOffset) * this.driftAmp;
+        this.y += this.speedY;
+        if (this.y > h + 10 || this.x < -10 || this.x > w + 10) this.reset(WCS[this.type], w, h);
+        break;
+    }
+    if (this.y < -20 && this.type !== 'snow') this.reset(WCS[this.type], w, h);
+  }
+
+  draw(ctx, frame) {
+    ctx.save();
+    ctx.globalAlpha = this.opacity;
+
+    switch (this.type) {
+      case 'sunny':
+        ctx.shadowColor = this.color;
+        ctx.shadowBlur = this.size * 4;
+        ctx.fillStyle = this.color;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+        ctx.fill();
+        break;
+      case 'windy': {
+        if (this.trail.length < 2) break;
+        ctx.strokeStyle = this.color;
+        ctx.lineWidth = this.size * 0.7;
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        for (let i = 0; i < this.trail.length - 1; i++) {
+          const t = this.trail[i], n = this.trail[i + 1];
+          ctx.moveTo(t.x, t.y);
+          ctx.lineTo(n.x, n.y);
+        }
+        ctx.stroke();
+        ctx.fillStyle = this.color;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.size * 0.8, 0, Math.PI * 2);
+        ctx.fill();
+        break;
+      }
+      case 'rain':
+        ctx.strokeStyle = this.color;
+        ctx.lineWidth = 1.2;
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        ctx.moveTo(this.x, this.y);
+        ctx.lineTo(this.x - this.speedX * 1.5, this.y - this.length);
+        ctx.stroke();
+        break;
+      case 'snow':
+        ctx.fillStyle = this.color;
+        ctx.shadowColor = 'rgba(255,255,255,0.3)';
+        ctx.shadowBlur = this.size * 2;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.shadowBlur = 0;
+        break;
+    }
+    ctx.restore();
+  }
+}
+
+const WCS = WEATHER_CONFIGS;
+
+class WeatherRenderer {
+  constructor(canvas, type) {
+    this.canvas = canvas;
+    this.type = type;
+    this.ctx = canvas.getContext('2d');
+    this.particles = [];
+    this.frame = 0;
+    this.running = false;
+    this.dpr = Math.min(window.devicePixelRatio || 1, 2);
+    this.resize();
+    this.initParticles();
+    this._onResize = () => this.resize();
+    window.addEventListener('resize', this._onResize);
+    this.start();
+  }
+
+  resize() {
+    const rect = this.canvas.parentElement.getBoundingClientRect();
+    this.w = rect.width;
+    this.h = rect.height;
+    this.canvas.width = this.w * this.dpr;
+    this.canvas.height = this.h * this.dpr;
+    this.canvas.style.width = this.w + 'px';
+    this.canvas.style.height = this.h + 'px';
+    this.ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
+  }
+
+  initParticles() {
+    const cfg = WCS[this.type];
+    this.particles = [];
+    for (let i = 0; i < cfg.count; i++) {
+      const p = new Particle(cfg, this.w, this.h, this.type);
+      p.y = Math.random() * this.h;
+      this.particles.push(p);
+    }
+    WCS[this.type]._particles = this.particles;
+  }
+
+  start() {
+    if (this.running) return;
+    this.running = true;
+    this._loop();
+  }
+
+  _loop() {
+    if (!this.running) return;
+    this.frame++;
+    this.ctx.clearRect(0, 0, this.w, this.h);
+
+    for (const p of this.particles) {
+      p.update(this.w, this.h, this.frame);
+      p.draw(this.ctx, this.frame);
+    }
+    this.raf = requestAnimationFrame(() => this._loop());
+  }
+
+  destroy() {
+    this.running = false;
+    cancelAnimationFrame(this.raf);
+    window.removeEventListener('resize', this._onResize);
+  }
+}
+
+// ─── Boot ────────────────────────────────────
+
+const renderers = [];
+
+function initAll() {
+  document.querySelectorAll('.particle-canvas').forEach(canvas => {
+    const type = canvas.dataset.weather;
+    if (type && WCS[type]) {
+      renderers.push(new WeatherRenderer(canvas, type));
+    }
+  });
+}
+
+// ─── Entrance Animation ──────────────────────
+
+function triggerEntrance(entries, observer) {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      entry.target.classList.add('entered');
+    }
+  });
+}
+
+function setupEntrance() {
+  const observer = new IntersectionObserver(triggerEntrance, { threshold: 0.2 });
+  document.querySelectorAll('.card').forEach(card => observer.observe(card));
+}
+
+// ─── Run ─────────────────────────────────────
+
+document.addEventListener('DOMContentLoaded', () => {
+  initAll();
+  setupEntrance();
+});
+
+// Cleanup on page unload
+window.addEventListener('beforeunload', () => {
+  renderers.forEach(r => r.destroy());
+});
+</script>
+
+</body>
+</html>

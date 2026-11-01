@@ -1,0 +1,1116 @@
+<!DOCTYPE html>
+<!--
+DIRECTION CONTRACT
+THESIS         把它做成一副被摆在桌上的实物棋具：榧木盘、那智黑石、蛤白石。
+               棋盘是唯一的视觉主角，界面其余部分退成一列安静的记录栏；
+               拒绝棋类小游戏惯用的高饱和渐变背景与霓虹描边棋子。
+OWN-WORLD      榧木蜜色三阶 + 焦褐格线 + 黑曜石与蛤壳双色棋子；
+               UI 侧只有石墨灰与一种琥珀强调色，用于「轮到你」与胜负这两处。
+STORY          落子 → 听见 AI 在想 → 看到它堵住了你的三 → 直到某一方连成五，
+               盘面点亮那条线。
+FIRST VIEWPORT 棋盘占据左侧主体并投下接触阴影；右列自上而下是对局态、控制、棋谱；
+               「悔棋」和难度切换在控制区一眼可见。
+SIGNATURE      落子的物理感：棋子自上方落下、触盘时轻微压扁再回弹，
+               同时它的投影由大变小收紧——这一下让棋子有了重量。
+-->
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>五子棋 · 人机对局</title>
+<style>
+/* ==========================================================================
+   五子棋 · 人机对局
+   ========================================================================== */
+
+:root{
+  --bg-0:#191a19;
+  --bg-1:#212220;
+  --bg-2:#2a2b28;
+  --bg-3:#353631;
+  --hair:rgba(235,232,224,.13);
+  --hair-2:rgba(235,232,224,.26);
+
+  --fg:#eceae3;
+  --fg-2:#b3b1a8;
+  --fg-3:#84837b;
+
+  /* 榧木 */
+  --wood-hi:#f0cf9a;
+  --wood:#dcb073;
+  --wood-lo:#c08f4f;
+  --wood-dk:#8d6231;
+  --line:rgba(66,42,16,.72);
+
+  --amber:#e8a33d;
+  --jade:#7fbf9a;
+
+  --r-sm:5px; --r-md:9px; --r-lg:15px;
+
+  --font:"PingFang SC","Hiragino Sans GB","Microsoft YaHei",
+         ui-sans-serif,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  --mono:ui-monospace,"SF Mono","Cascadia Mono",Consolas,monospace;
+  --ease:cubic-bezier(.22,.61,.36,1);
+}
+
+*,*::before,*::after{ box-sizing:border-box; }
+html,body{ margin:0; padding:0; overflow-x:clip; }
+html{ color-scheme:dark; }
+
+body{
+  min-height:100dvh;
+  font-family:var(--font);
+  font-size:16px;
+  line-height:1.6;
+  color:var(--fg);
+  background:
+    radial-gradient(110% 70% at 24% 0%, #2b2c28 0%, transparent 56%),
+    radial-gradient(90% 60% at 84% 100%, #232420 0%, transparent 58%),
+    var(--bg-0);
+  -webkit-font-smoothing:antialiased;
+}
+
+h1,h2,p,ol,ul,figure{ margin:0; padding:0; }
+ol,ul{ list-style:none; }
+
+:focus-visible{ outline:2px solid var(--amber); outline-offset:2px; border-radius:3px; }
+
+.u-mono{ font-family:var(--mono); font-variant-numeric:tabular-nums; }
+.u-sr{
+  position:absolute; width:1px; height:1px; padding:0; margin:-1px;
+  overflow:hidden; clip-path:inset(50%); white-space:nowrap; border:0;
+}
+
+/* ==========================================================================
+   骨架
+   ========================================================================== */
+.page{
+  min-height:100dvh;
+  display:grid;
+  grid-template-columns:minmax(0,1fr) minmax(288px,336px);
+  gap:clamp(1.25rem,3.4vw,3rem);
+  align-items:start;
+  justify-items:center;
+  padding:clamp(1rem,3vw,2.75rem);
+  max-width:1320px;
+  margin-inline:auto;
+}
+
+.boardwrap{
+  position:relative;
+  width:100%;
+  display:grid;
+  place-items:center;
+}
+.boardwrap::after{
+  content:"";
+  position:absolute;
+  left:50%; translate:-50% 0; bottom:-14px;
+  width:70%; height:26px;
+  border-radius:50%;
+  background:radial-gradient(closest-side, rgba(0,0,0,.6), transparent 74%);
+  filter:blur(10px);
+  pointer-events:none;
+}
+
+/* ==========================================================================
+   棋盘
+   ========================================================================== */
+.board{
+  --n:15;
+  --size:min(92vw, 60vh, 34rem);
+  --cell:calc(var(--size) / var(--n));
+  position:relative;
+  width:var(--size);
+  aspect-ratio:1;
+  border-radius:var(--r-sm);
+  /* 榧木：三组不同频率的直纹 + 暖色高光 + 边缘压深 */
+  background-color:var(--wood);
+  background-image:
+    radial-gradient(120% 90% at 32% 18%, rgba(255,244,220,.5), transparent 62%),
+    radial-gradient(100% 100% at 50% 50%, transparent 54%, rgba(94,60,22,.34) 100%),
+    repeating-linear-gradient(92deg,
+      rgba(140,94,42,.16) 0 1px, transparent 1px 7px),
+    repeating-linear-gradient(90.6deg,
+      rgba(140,94,42,.10) 0 2px, transparent 2px 17px),
+    repeating-linear-gradient(91.4deg,
+      rgba(255,238,206,.16) 0 1px, transparent 1px 29px),
+    linear-gradient(172deg, var(--wood-hi), var(--wood) 44%, var(--wood-lo));
+  box-shadow:
+    0 22px 44px -14px rgba(0,0,0,.7),
+    0 3px 0 0 var(--wood-dk),
+    0 6px 0 0 rgba(90,58,20,.75),
+    inset 0 0 0 1px rgba(255,240,214,.28);
+  touch-action:manipulation;
+}
+
+/* 格线 */
+.lines{
+  position:absolute;
+  left:calc(var(--cell) / 2);
+  top:calc(var(--cell) / 2);
+  width:calc(14 * var(--cell) + 1px);
+  height:calc(14 * var(--cell) + 1px);
+  background-image:
+    repeating-linear-gradient(to right,  var(--line) 0 1px, transparent 1px var(--cell)),
+    repeating-linear-gradient(to bottom, var(--line) 0 1px, transparent 1px var(--cell));
+  pointer-events:none;
+}
+/* 外框加粗 */
+.lines::after{
+  content:"";
+  position:absolute; inset:-1px;
+  border:2px solid var(--line);
+  border-radius:1px;
+}
+
+/* 星位 */
+.star{
+  position:absolute;
+  width:calc(var(--cell) * .21);
+  aspect-ratio:1;
+  border-radius:50%;
+  background:var(--line);
+  translate:-50% -50%;
+  pointer-events:none;
+}
+
+/* 交叉点按钮网格 */
+.grid{
+  position:absolute; inset:0;
+  display:grid;
+  grid-template-columns:repeat(15, minmax(0,1fr));
+  grid-template-rows:repeat(15, minmax(0,1fr));
+}
+.pt{
+  position:relative;
+  padding:0;
+  border:0;
+  background:transparent;
+  cursor:pointer;
+  border-radius:50%;
+  -webkit-tap-highlight-color:transparent;
+}
+.pt:disabled{ cursor:default; }
+.pt:focus-visible{ outline:2px solid #4a2c08; outline-offset:-3px; }
+
+/* 悬停落子预览 */
+.pt:not(:disabled):hover::after,
+.pt:not(:disabled):focus-visible::after{
+  content:"";
+  position:absolute;
+  left:50%; top:50%;
+  width:78%; aspect-ratio:1;
+  translate:-50% -50%;
+  border-radius:50%;
+  background:var(--preview,rgba(24,22,18,.3));
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.18);
+}
+.board[data-turn="ai"] .pt::after,
+.board[data-over="true"] .pt::after{ display:none; }
+
+/* ==========================================================================
+   棋子
+   ========================================================================== */
+.stone{
+  position:absolute;
+  left:50%; top:50%;
+  width:86%; aspect-ratio:1;
+  translate:-50% -50%;
+  border-radius:50%;
+  pointer-events:none;
+  z-index:2;
+}
+/* 那智黑：偏冷的高光点，边缘极暗 */
+.stone--b{
+  background:
+    radial-gradient(28% 24% at 33% 26%, rgba(255,255,255,.92), rgba(255,255,255,.06) 62%, transparent 72%),
+    radial-gradient(circle at 62% 74%, #3b3d42 0%, #1b1c20 44%, #08090b 100%);
+  box-shadow:0 2px 4px rgba(38,20,4,.6), inset 0 -1px 2px rgba(255,255,255,.08);
+}
+/* 蛤白：暖白 + 极细贝纹 */
+.stone--w{
+  background:
+    repeating-linear-gradient(84deg,
+      rgba(196,178,150,.24) 0 .5px, transparent .5px 3px),
+    radial-gradient(30% 26% at 32% 26%, #ffffff, rgba(255,255,255,.15) 60%, transparent 70%),
+    radial-gradient(circle at 60% 72%, #fbf6ec 0%, #e7ddca 52%, #c6b799 100%);
+  box-shadow:0 2px 4px rgba(38,20,4,.5), inset 0 -1px 2px rgba(120,96,60,.24);
+}
+
+/* 落子：从上方掉下，触盘压扁再回弹 */
+@keyframes drop{
+  0%   { transform:translateY(-260%) scale(.82); opacity:0; }
+  38%  { opacity:1; }
+  56%  { transform:translateY(0) scale(1.06,.9); }
+  70%  { transform:translateY(-26%) scale(.98,1.03); }
+  84%  { transform:translateY(0) scale(1.03,.98); }
+  93%  { transform:translateY(-7%) scale(1,1); }
+  100% { transform:translateY(0) scale(1); opacity:1; }
+}
+/* 影子跟着收紧 */
+@keyframes dropShadow{
+  0%   { opacity:0;   transform:translate(-50%,-50%) scale(1.9); filter:blur(7px); }
+  56%  { opacity:.55; transform:translate(-50%,-50%) scale(1);   filter:blur(2px); }
+  70%  { opacity:.32; transform:translate(-50%,-50%) scale(1.3); filter:blur(4px); }
+  100% { opacity:.45; transform:translate(-50%,-50%) scale(1.05);filter:blur(2.5px); }
+}
+.stone--drop{ animation:drop .46s cubic-bezier(.3,.7,.4,1) both; }
+.stone__shadow{
+  position:absolute;
+  left:50%; top:56%;
+  width:86%; aspect-ratio:1;
+  border-radius:50%;
+  background:rgba(50,28,6,.5);
+  z-index:1;
+  transform:translate(-50%,-50%);
+  animation:dropShadow .46s cubic-bezier(.3,.7,.4,1) both;
+}
+
+/* 最后一手标记 */
+.stone--last::after{
+  content:"";
+  position:absolute;
+  left:50%; top:50%;
+  width:26%; aspect-ratio:1;
+  translate:-50% -50%;
+  border-radius:50%;
+  background:var(--amber);
+  box-shadow:0 0 0 1.5px rgba(0,0,0,.35);
+}
+
+/* 胜利：连线 + 呼吸高亮（频率约 1.1Hz，低于闪烁阈值） */
+.stone--win{ animation:winPulse .9s ease-in-out infinite alternate; z-index:4; }
+@keyframes winPulse{
+  from{ box-shadow:0 2px 4px rgba(38,20,4,.6), 0 0 0 0 rgba(232,163,61,.9); }
+  to  { box-shadow:0 2px 4px rgba(38,20,4,.6), 0 0 0 7px rgba(232,163,61,0); }
+}
+.winline{
+  position:absolute;
+  height:5px;
+  border-radius:4px;
+  transform-origin:0 50%;
+  background:linear-gradient(90deg, rgba(232,163,61,0), var(--amber) 14%, #ffe1a8 50%, var(--amber) 86%, rgba(232,163,61,0));
+  z-index:3;
+  pointer-events:none;
+  animation:lineIn .5s var(--ease) both, lineGlow 1.1s ease-in-out infinite alternate .5s;
+}
+@keyframes lineIn{ from{ opacity:0; scale:0 1; } to{ opacity:1; scale:1 1; } }
+@keyframes lineGlow{ from{ filter:brightness(.85); } to{ filter:brightness(1.5) drop-shadow(0 0 8px rgba(232,163,61,.8)); } }
+
+/* 烟花粒子 */
+.spark{
+  position:absolute;
+  width:7px; height:7px;
+  border-radius:50%;
+  pointer-events:none;
+  z-index:5;
+  translate:-50% -50%;
+  animation:sparkFly var(--life,1100ms) cubic-bezier(.16,.7,.35,1) forwards;
+}
+@keyframes sparkFly{
+  0%  { opacity:1; transform:translate(0,0) scale(1); }
+  70% { opacity:1; }
+  100%{ opacity:0; transform:translate(var(--dx),var(--dy)) scale(.24); }
+}
+
+/* 坐标 */
+.coords{
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  font-family:var(--mono);
+  font-size:clamp(8px,calc(var(--cell) * .34),11px);
+  color:rgba(74,46,16,.62);
+}
+.coords span{ position:absolute; translate:-50% -50%; }
+
+/* ==========================================================================
+   右列
+   ========================================================================== */
+.panel{
+  width:100%;
+  display:flex;
+  flex-direction:column;
+  gap:.85rem;
+  min-width:0;
+}
+
+.head{
+  display:flex; align-items:baseline; justify-content:space-between; gap:1ch;
+  padding-bottom:.8rem;
+  border-bottom:1px solid var(--hair);
+}
+.head h1{ font-size:1.3rem; font-weight:640; letter-spacing:-.01em; }
+.head span{ font-size:.75rem; letter-spacing:.18em; text-transform:uppercase; color:var(--fg-3); }
+
+.card{
+  background:var(--bg-1);
+  border:1px solid var(--hair);
+  border-radius:var(--r-lg);
+  padding:1rem;
+}
+.card h2{
+  font-size:.6875rem; letter-spacing:.2em; text-transform:uppercase;
+  color:var(--fg-3); font-weight:600; margin-bottom:.7rem;
+}
+
+/* 对局态 */
+.turn{
+  display:flex; align-items:center; gap:.75rem;
+  min-height:52px;
+}
+.turn__chip{
+  width:30px; height:30px; flex:0 0 auto;
+  border-radius:50%;
+  box-shadow:0 1px 3px rgba(0,0,0,.5);
+}
+.turn__chip[data-side="b"]{ background:radial-gradient(circle at 34% 28%, #4a4d54, #0a0b0d 70%); }
+.turn__chip[data-side="w"]{ background:radial-gradient(circle at 34% 28%, #fff, #cbbc9d 72%); }
+.turn__txt{ font-size:1rem; font-weight:580; }
+.turn__txt b{ color:var(--amber); font-weight:660; }
+.turn__sub{ display:block; font-size:.75rem; color:var(--fg-3); font-weight:400; font-style:normal; }
+
+/* AI 思考中 */
+.thinking{
+  display:none;
+  align-items:center;
+  gap:.6rem;
+  margin-top:.7rem;
+  padding-top:.7rem;
+  border-top:1px solid var(--hair);
+  font-size:.8125rem;
+  color:var(--fg-2);
+}
+.thinking[data-on="true"]{ display:flex; }
+.thinking__dots{ display:inline-flex; gap:5px; }
+.thinking__dots i{
+  width:9px; height:9px; border-radius:50%;
+  background:radial-gradient(circle at 34% 28%, #fff, #c9ba9c 72%);
+  animation:think 1.05s ease-in-out infinite;
+}
+.thinking__dots i:nth-child(2){ animation-delay:.14s; }
+.thinking__dots i:nth-child(3){ animation-delay:.28s; }
+@keyframes think{
+  0%,100%{ transform:translateY(0) scale(.82); opacity:.42; }
+  40%    { transform:translateY(-6px) scale(1); opacity:1; }
+}
+
+/* 结果条 */
+.result{
+  display:none;
+  gap:.5rem;
+  align-items:center;
+  padding:.8rem .9rem;
+  border-radius:var(--r-md);
+  font-weight:600;
+  font-size:.9375rem;
+  border:1px solid transparent;
+}
+.result[data-on="true"]{ display:flex; }
+.result[data-kind="win"]{ background:rgba(127,191,154,.14); border-color:rgba(127,191,154,.42); color:#a9dcc0; }
+.result[data-kind="lose"]{ background:rgba(232,120,90,.13); border-color:rgba(232,120,90,.4); color:#f0a894; }
+.result[data-kind="draw"]{ background:var(--bg-2); border-color:var(--hair-2); color:var(--fg-2); }
+
+/* 按钮 */
+.btnrow{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.5rem; }
+.btn{
+  min-height:48px;
+  display:inline-flex; align-items:center; justify-content:center; gap:.55ch;
+  padding:0 .9rem;
+  border:1px solid var(--hair-2);
+  border-radius:var(--r-md);
+  background:var(--bg-2);
+  color:var(--fg);
+  font:inherit; font-size:.9375rem; font-weight:560;
+  cursor:pointer;
+  transition:background-color .16s var(--ease), border-color .16s var(--ease), translate .08s var(--ease);
+}
+.btn:hover{ background:var(--bg-3); }
+.btn:active{ translate:0 1px; }
+.btn--primary{ background:var(--amber); border-color:var(--amber); color:#2a1802; font-weight:660; }
+.btn--primary:hover{ background:#f5b452; border-color:#f5b452; }
+.btn--primary:focus-visible{ outline-color:var(--fg); }
+.btn[disabled], .btn[aria-disabled="true"]{ opacity:.42; cursor:not-allowed; pointer-events:none; }
+
+/* 难度 */
+.seg{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.4rem; }
+.seg button{
+  min-height:46px;
+  border:1px solid var(--hair-2);
+  border-radius:var(--r-md);
+  background:var(--bg-2);
+  color:var(--fg-2);
+  font:inherit; font-size:.875rem;
+  cursor:pointer;
+  transition:background-color .16s var(--ease), color .16s var(--ease);
+}
+.seg button:hover{ background:var(--bg-3); color:var(--fg); }
+.seg button[aria-pressed="true"]{ background:var(--fg); color:#1a1a18; border-color:var(--fg); font-weight:600; }
+
+/* 棋谱 */
+.moves{
+  max-height:12.5rem;
+  overflow-y:auto;
+  overscroll-behavior:contain;
+  border-top:1px solid var(--hair);
+}
+.moves li{
+  display:grid;
+  grid-template-columns:2.4rem 1.6rem minmax(0,1fr);
+  gap:.6rem;
+  align-items:center;
+  padding:.34rem 0;
+  border-bottom:1px solid var(--hair);
+  font-family:var(--mono);
+  font-variant-numeric:tabular-nums;
+  font-size:.8125rem;
+}
+.moves li em{ font-style:normal; color:var(--fg-3); }
+.moves__dot{
+  width:12px; height:12px; border-radius:50%;
+  box-shadow:0 1px 2px rgba(0,0,0,.5);
+}
+.moves__dot[data-side="b"]{ background:radial-gradient(circle at 34% 28%, #4a4d54, #0a0b0d 70%); }
+.moves__dot[data-side="w"]{ background:radial-gradient(circle at 34% 28%, #fff, #cbbc9d 72%); }
+.moves__empty{ padding:.55rem 0; font-family:var(--font); font-size:.8125rem; color:var(--fg-3); }
+
+.note{ font-size:.75rem; line-height:1.65; color:var(--fg-3); text-wrap:pretty; }
+
+/* ==========================================================================
+   降低动效
+   ========================================================================== */
+@media (prefers-reduced-motion:reduce){
+  .stone--drop{ animation:none; }
+  .stone__shadow{ animation:none; opacity:.45; filter:blur(2.5px); transform:translate(-50%,-50%) scale(1.05); }
+  /* 胜利改为静态高亮，不闪烁 */
+  .stone--win{ animation:none; box-shadow:0 2px 4px rgba(38,20,4,.6), 0 0 0 4px rgba(232,163,61,.85); }
+  .winline{ animation:none; }
+  .spark{ animation-duration:1ms; }
+  .thinking__dots i{ animation-duration:2.4s; }
+  .btn,.seg button{ transition-duration:.01ms; }
+}
+
+/* ==========================================================================
+   响应式
+   ========================================================================== */
+@media (max-width:1000px){
+  .page{ grid-template-columns:minmax(0,1fr); }
+  .board{ --size:min(92vw, 30rem); }
+  .panel{ max-width:34rem; }
+}
+@media (max-width:420px){
+  .board{ --size:94vw; }
+  .btnrow{ grid-template-columns:minmax(0,1fr); }
+  .coords{ display:none; }
+}
+</style>
+</head>
+<body>
+
+<div class="page">
+
+  <!-- ==================== 棋盘 ==================== -->
+  <div class="boardwrap">
+    <div class="board" id="board" data-turn="human" data-over="false"
+         role="grid" aria-label="15 路五子棋盘，你执黑先行">
+      <div class="lines" aria-hidden="true"></div>
+      <div class="coords" id="coords" aria-hidden="true"></div>
+      <div class="grid" id="grid"></div>
+    </div>
+  </div>
+
+  <!-- ==================== 面板 ==================== -->
+  <div class="panel">
+
+    <div class="head">
+      <h1>五子棋</h1>
+      <span>15 × 15</span>
+    </div>
+
+    <section class="card" aria-labelledby="t-state">
+      <h2 id="t-state">对局</h2>
+
+      <div class="turn">
+        <span class="turn__chip" id="turnChip" data-side="b" aria-hidden="true"></span>
+        <span class="turn__txt" id="turnTxt" role="status" aria-live="polite">
+          轮到<b>你</b>落子
+          <em class="turn__sub">你执黑，先行</em>
+        </span>
+      </div>
+
+      <div class="thinking" id="thinking" data-on="false" aria-hidden="true">
+        <span class="thinking__dots"><i></i><i></i><i></i></span>
+        <span>AI 正在推演…</span>
+      </div>
+
+      <div class="result" id="result" data-on="false" data-kind="draw" role="status" aria-live="assertive"></div>
+    </section>
+
+    <section class="card" aria-labelledby="t-ctl">
+      <h2 id="t-ctl">控制</h2>
+      <div class="btnrow">
+        <button class="btn" id="btnUndo" type="button" aria-disabled="true">悔棋</button>
+        <button class="btn btn--primary" id="btnNew" type="button">重开一局</button>
+      </div>
+
+      <h2 style="margin-top:1rem">难度</h2>
+      <div class="seg" id="levelSeg" role="group" aria-label="选择难度">
+        <button type="button" data-lv="1" aria-pressed="false">普通</button>
+        <button type="button" data-lv="2" aria-pressed="true">高手</button>
+      </div>
+
+      <p class="note" style="margin-top:.8rem">
+        「高手」会在落子前多推演一层：先看自己这手能不能成杀，再看它是否把机会送给你。
+      </p>
+    </section>
+
+    <section class="card" aria-labelledby="t-moves">
+      <h2 id="t-moves">棋谱</h2>
+      <ol class="moves" id="moveList" aria-label="落子记录">
+        <li class="moves__empty">尚未落子。点棋盘任意交叉点开局。</li>
+      </ol>
+    </section>
+
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ======================================================================
+     常量
+     ====================================================================== */
+  var N = 15;
+  var EMPTY = 0, HUMAN = 1, AI = 2;         // 人执黑先行
+  var DIRS = [[1,0],[0,1],[1,1],[1,-1]];
+  var COL = 'ABCDEFGHJKLMNO';               // 沿用棋类惯例，跳过 I
+
+  var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+  function $(id){ return document.getElementById(id); }
+  function inb(x,y){ return x>=0 && x<N && y>=0 && y<N; }
+
+  /* ======================================================================
+     状态
+     ====================================================================== */
+  var board, history, turn, over, level = 2, thinkTimer = null, busy = false;
+
+  function reset(){
+    board = [];
+    for (var i=0;i<N;i++){ board.push(new Array(N).fill(EMPTY)); }
+    history = [];
+    turn = HUMAN;
+    over = false;
+    busy = false;
+    if (thinkTimer) { clearTimeout(thinkTimer); thinkTimer = null; }
+  }
+
+  /* ======================================================================
+     棋形分析
+     以落子点为中心取 9 格窗口，滑动所有含中心的 5 连窗口计分；
+     另外单独识别活四 / 冲四 / 活三，供硬性规则使用。
+     ====================================================================== */
+  var WIN_SCORE = 10000000;
+
+  function lineString(bd, x, y, dx, dy, p){
+    // 'M' 我方 / 'O' 对方或界外 / '.' 空。中心固定为 'M'
+    var s = '';
+    for (var k=-4;k<=4;k++){
+      if (k === 0) { s += 'M'; continue; }
+      var nx = x + dx*k, ny = y + dy*k;
+      if (!inb(nx,ny)) { s += 'O'; continue; }
+      var v = bd[ny][nx];
+      s += (v === EMPTY) ? '.' : (v === p ? 'M' : 'O');
+    }
+    return s;
+  }
+
+  var OPEN3 = ['..MMM.', '.MMM..', '.M.MM.', '.MM.M.'];
+
+  function analyze(bd, x, y, p){
+    var score = 0, fours = 0, openThrees = 0, win = false;
+
+    for (var d=0; d<4; d++){
+      var s = lineString(bd, x, y, DIRS[d][0], DIRS[d][1], p);
+
+      // 滑动 5 窗（起点 0..4 都覆盖中心 index 4）
+      var bestInDir = 0, fourInDir = 0;
+      for (var st=0; st<=4; st++){
+        var w = s.slice(st, st+5);
+        if (w.indexOf('O') !== -1) continue;
+        var c = 0;
+        for (var i=0;i<5;i++){ if (w[i] === 'M') c++; }
+        if (c === 5) win = true;
+        if (c === 4) fourInDir++;
+        bestInDir += [0,1,12,120,1200,0][c];
+      }
+      score += bestInDir;
+      if (fourInDir > 0) fours += fourInDir;
+
+      // 活三：形状必须覆盖中心
+      for (var q=0;q<OPEN3.length;q++){
+        var pat = OPEN3[q], from = 0, at;
+        while ((at = s.indexOf(pat, from)) !== -1){
+          if (at <= 4 && at + pat.length > 4) { openThrees++; break; }
+          from = at + 1;
+        }
+      }
+    }
+
+    if (win) score = WIN_SCORE;
+    else if (fours >= 2) score += 60000;     // 双四 / 活四
+    else if (fours === 1) score += 8000;     // 冲四
+    if (openThrees >= 2) score += 20000;     // 双活三
+    else if (openThrees === 1) score += 3000;
+
+    return { score:score, fours:fours, openThrees:openThrees, win:win };
+  }
+
+  /* 候选点：已有棋子周围 2 格内 */
+  function candidates(bd){
+    var seen = {}, out = [], any = false;
+    for (var y=0;y<N;y++){
+      for (var x=0;x<N;x++){
+        if (bd[y][x] === EMPTY) continue;
+        any = true;
+        for (var dy=-2;dy<=2;dy++){
+          for (var dx=-2;dx<=2;dx++){
+            var nx = x+dx, ny = y+dy;
+            if (!inb(nx,ny) || bd[ny][nx] !== EMPTY) continue;
+            var key = ny*N+nx;
+            if (seen[key]) continue;
+            seen[key] = 1;
+            out.push({x:nx, y:ny});
+          }
+        }
+      }
+    }
+    if (!any) out.push({x:7, y:7});
+    return out;
+  }
+
+  /* ======================================================================
+     AI 决策
+     ====================================================================== */
+  function chooseMove(bd){
+    var cand = candidates(bd);
+    var i, c, a, h;
+
+    // 1) 自己能成五 → 立刻赢
+    for (i=0;i<cand.length;i++){
+      c = cand[i];
+      if (analyze(bd, c.x, c.y, AI).win) return c;
+    }
+    // 2) 对方能成五 → 必挡
+    for (i=0;i<cand.length;i++){
+      c = cand[i];
+      if (analyze(bd, c.x, c.y, HUMAN).win) return c;
+    }
+
+    // 3) 打分并排序（进攻分 + 防守分）
+    var scored = [];
+    for (i=0;i<cand.length;i++){
+      c = cand[i];
+      a = analyze(bd, c.x, c.y, AI);
+      h = analyze(bd, c.x, c.y, HUMAN);
+      scored.push({
+        x:c.x, y:c.y,
+        a:a, h:h,
+        v: a.score * 1.0 + h.score * 0.92
+      });
+    }
+    scored.sort(function(p,q){ return q.v - p.v; });
+
+    // 4) 自己能做出活四 / 双四 → 直接下（对方挡不住）
+    for (i=0;i<scored.length;i++){
+      if (scored[i].a.fours >= 2) return scored[i];
+    }
+    // 5) 对方能做出活四 / 双四 / 双活三 → 必须先破
+    for (i=0;i<scored.length;i++){
+      if (scored[i].h.fours >= 2 || scored[i].h.openThrees >= 2) return scored[i];
+    }
+    // 6) 自己有冲四 → 先手冲
+    for (i=0;i<scored.length;i++){
+      if (scored[i].a.fours >= 1) return scored[i];
+    }
+    // 7) 对方有冲四 → 挡
+    for (i=0;i<scored.length;i++){
+      if (scored[i].h.fours >= 1) return scored[i];
+    }
+
+    if (level === 1) return scored[0];
+
+    // 8) 高手：对前 8 手做一层对手最优应手的评估
+    var top = scored.slice(0, 8);
+    var best = null, bestV = -Infinity;
+    for (i=0;i<top.length;i++){
+      var m = top[i];
+      bd[m.y][m.x] = AI;
+
+      var reply = 0;
+      var rc = candidates(bd);
+      for (var j=0;j<rc.length;j++){
+        var r = rc[j];
+        var ra = analyze(bd, r.x, r.y, HUMAN);
+        var rd = analyze(bd, r.x, r.y, AI);
+        var rv = ra.score + rd.score * 0.85;
+        if (rv > reply) reply = rv;
+      }
+
+      bd[m.y][m.x] = EMPTY;
+
+      var v = m.a.score * 1.15 + m.h.score * 0.8 - reply * 0.95;
+      if (v > bestV){ bestV = v; best = m; }
+    }
+    return best || scored[0];
+  }
+
+  /* ======================================================================
+     胜负判定
+     ====================================================================== */
+  function winningLine(bd, x, y, p){
+    for (var d=0; d<4; d++){
+      var dx = DIRS[d][0], dy = DIRS[d][1];
+      var cells = [{x:x,y:y}];
+      var k, nx, ny;
+      for (k=1;k<5;k++){
+        nx = x+dx*k; ny = y+dy*k;
+        if (!inb(nx,ny) || bd[ny][nx] !== p) break;
+        cells.push({x:nx,y:ny});
+      }
+      for (k=1;k<5;k++){
+        nx = x-dx*k; ny = y-dy*k;
+        if (!inb(nx,ny) || bd[ny][nx] !== p) break;
+        cells.unshift({x:nx,y:ny});
+      }
+      if (cells.length >= 5) return cells.slice(0,5);
+    }
+    return null;
+  }
+
+  /* ======================================================================
+     渲染
+     ====================================================================== */
+  var gridEl = $('grid'), boardEl = $('board');
+  var cellBtns = [];
+
+  (function buildGrid(){
+    for (var y=0;y<N;y++){
+      for (var x=0;x<N;x++){
+        var b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'pt';
+        b.dataset.x = x; b.dataset.y = y;
+        b.setAttribute('role','gridcell');
+        b.setAttribute('aria-label', COL[x] + (N - y) + ' 空');
+        b.tabIndex = (x===7 && y===7) ? 0 : -1;
+        gridEl.appendChild(b);
+        cellBtns.push(b);
+      }
+    }
+    // 星位
+    [[3,3],[11,3],[3,11],[11,11],[7,7]].forEach(function(s){
+      var d = document.createElement('span');
+      d.className = 'star';
+      d.style.left = 'calc((' + s[0] + ' + .5) * var(--cell))';
+      d.style.top  = 'calc((' + s[1] + ' + .5) * var(--cell))';
+      boardEl.insertBefore(d, gridEl);
+    });
+    // 坐标
+    var co = $('coords');
+    for (var i=0;i<N;i++){
+      var cx = document.createElement('span');
+      cx.textContent = COL[i];
+      cx.style.left = 'calc((' + i + ' + .5) * var(--cell))';
+      cx.style.top = 'calc(var(--cell) * .22)';
+      co.appendChild(cx);
+      var cy = document.createElement('span');
+      cy.textContent = String(N - i);
+      cy.style.top = 'calc((' + i + ' + .5) * var(--cell))';
+      cy.style.left = 'calc(var(--cell) * .24)';
+      co.appendChild(cy);
+    }
+  })();
+
+  function btnAt(x,y){ return cellBtns[y*N + x]; }
+
+  function paintStone(x, y, p, animate){
+    var b = btnAt(x,y);
+    b.textContent = '';
+    if (animate && !reduceMotion.matches){
+      var sh = document.createElement('span');
+      sh.className = 'stone__shadow';
+      b.appendChild(sh);
+    }
+    var s = document.createElement('span');
+    s.className = 'stone ' + (p === HUMAN ? 'stone--b' : 'stone--w') + (animate ? ' stone--drop' : '');
+    b.appendChild(s);
+    b.disabled = true;
+    b.setAttribute('aria-label', COL[x] + (N - y) + (p === HUMAN ? ' 黑' : ' 白'));
+  }
+
+  function clearLastMarks(){
+    for (var i=0;i<cellBtns.length;i++){
+      var st = cellBtns[i].querySelector('.stone');
+      if (st) st.classList.remove('stone--last');
+    }
+  }
+
+  function markLast(){
+    clearLastMarks();
+    if (!history.length) return;
+    var m = history[history.length-1];
+    var st = btnAt(m.x, m.y).querySelector('.stone');
+    if (st) st.classList.add('stone--last');
+  }
+
+  function renderMoves(){
+    var ol = $('moveList');
+    ol.textContent = '';
+    if (!history.length){
+      var li = document.createElement('li');
+      li.className = 'moves__empty';
+      li.textContent = '尚未落子。点棋盘任意交叉点开局。';
+      ol.appendChild(li);
+      return;
+    }
+    for (var i=history.length-1;i>=0;i--){
+      var m = history[i];
+      var row = document.createElement('li');
+      var no = document.createElement('em'); no.textContent = (i+1) + '.';
+      var dot = document.createElement('span');
+      dot.className = 'moves__dot';
+      dot.dataset.side = (m.p === HUMAN ? 'b' : 'w');
+      var pos = document.createElement('span');
+      pos.textContent = COL[m.x] + (N - m.y) + '　' + (m.p === HUMAN ? '你' : 'AI');
+      row.appendChild(no); row.appendChild(dot); row.appendChild(pos);
+      ol.appendChild(row);
+    }
+  }
+
+  function syncUI(){
+    boardEl.dataset.turn = (turn === HUMAN ? 'human' : 'ai');
+    boardEl.dataset.over = String(over);
+    boardEl.style.setProperty('--preview',
+      turn === HUMAN ? 'rgba(20,20,22,.34)' : 'transparent');
+
+    $('turnChip').dataset.side = (turn === HUMAN ? 'b' : 'w');
+    $('turnTxt').innerHTML = over
+      ? '本局结束<em class="turn__sub">按「重开一局」再来</em>'
+      : (turn === HUMAN
+          ? '轮到<b>你</b>落子<em class="turn__sub">你执黑，先行</em>'
+          : '轮到 <b>AI</b> 落子<em class="turn__sub">白方</em>');
+
+    $('btnUndo').setAttribute('aria-disabled', String(busy || history.length < 1));
+    renderMoves();
+  }
+
+  function showResult(kind, text){
+    var r = $('result');
+    r.dataset.on = 'true';
+    r.dataset.kind = kind;
+    r.textContent = text;
+  }
+
+  /* ---- 胜利特效 ---- */
+  function celebrate(cells){
+    var cell = boardEl.clientWidth / N;
+    var a = cells[0], b = cells[cells.length-1];
+    var x1 = (a.x + .5) * cell, y1 = (a.y + .5) * cell;
+    var x2 = (b.x + .5) * cell, y2 = (b.y + .5) * cell;
+    var len = Math.hypot(x2-x1, y2-y1);
+    var ang = Math.atan2(y2-y1, x2-x1) * 180 / Math.PI;
+
+    var line = document.createElement('div');
+    line.className = 'winline';
+    line.style.left = x1 + 'px';
+    line.style.top = (y1 - 2.5) + 'px';
+    line.style.width = len + 'px';
+    line.style.transform = 'rotate(' + ang + 'deg)';
+    boardEl.appendChild(line);
+
+    cells.forEach(function(c){
+      var st = btnAt(c.x, c.y).querySelector('.stone');
+      if (st) st.classList.add('stone--win');
+    });
+
+    if (reduceMotion.matches) return;
+
+    var origins = [
+      {x:x1, y:y1}, {x:(x1+x2)/2, y:(y1+y2)/2}, {x:x2, y:y2}
+    ];
+    var palette = ['#ffd98a','#e8a33d','#fff3d6','#ff9f4a','#ffe9b8'];
+
+    origins.forEach(function(o, oi){
+      setTimeout(function(){
+        for (var i=0;i<34;i++){
+          var p = document.createElement('span');
+          p.className = 'spark';
+          var ang2 = Math.random() * Math.PI * 2;
+          var dist = 46 + Math.random() * 110;
+          p.style.left = o.x + 'px';
+          p.style.top = o.y + 'px';
+          p.style.background = palette[(Math.random()*palette.length)|0];
+          p.style.setProperty('--dx', (Math.cos(ang2)*dist).toFixed(1) + 'px');
+          p.style.setProperty('--dy', (Math.sin(ang2)*dist + 34).toFixed(1) + 'px');
+          p.style.setProperty('--life', (820 + Math.random()*620).toFixed(0) + 'ms');
+          var sz = (4 + Math.random()*6).toFixed(1);
+          p.style.width = sz + 'px'; p.style.height = sz + 'px';
+          boardEl.appendChild(p);
+          (function(node){
+            node.addEventListener('animationend', function(){ node.remove(); });
+          })(p);
+        }
+      }, oi * 130);
+    });
+  }
+
+  function clearEffects(){
+    Array.prototype.forEach.call(boardEl.querySelectorAll('.winline,.spark'), function(n){ n.remove(); });
+  }
+
+  /* ======================================================================
+     落子流程
+     ====================================================================== */
+  function place(x, y, p, animate){
+    board[y][x] = p;
+    history.push({x:x, y:y, p:p});
+    paintStone(x, y, p, animate);
+    markLast();
+
+    var line = winningLine(board, x, y, p);
+    if (line){
+      over = true; busy = false;
+      setThinking(false);
+      syncUI();
+      celebrate(line);
+      showResult(p === HUMAN ? 'win' : 'lose',
+        p === HUMAN ? '你赢了。五子连珠 ' + line.map(function(c){return COL[c.x]+(N-c.y);}).join(' ')
+                    : 'AI 赢了。五子连珠 ' + line.map(function(c){return COL[c.x]+(N-c.y);}).join(' '));
+      return true;
+    }
+    if (history.length === N*N){
+      over = true; busy = false;
+      setThinking(false);
+      syncUI();
+      showResult('draw', '和局。棋盘已满。');
+      return true;
+    }
+    return false;
+  }
+
+  function setThinking(on){
+    var t = $('thinking');
+    t.dataset.on = String(on);
+    t.setAttribute('aria-hidden', String(!on));
+  }
+
+  function aiTurn(){
+    busy = true;
+    turn = AI;
+    syncUI();
+    setThinking(true);
+
+    // 计算很快，但加载态至少显示 420ms，避免闪烁
+    var t0 = performance.now();
+    var move = chooseMove(board);
+    var spent = performance.now() - t0;
+    var wait = Math.max(0, 420 - spent);
+
+    thinkTimer = setTimeout(function(){
+      thinkTimer = null;
+      setThinking(false);
+      var ended = place(move.x, move.y, AI, true);
+      busy = false;
+      if (!ended){ turn = HUMAN; syncUI(); }
+    }, wait);
+  }
+
+  gridEl.addEventListener('click', function(e){
+    var b = e.target.closest('.pt');
+    if (!b || over || busy || turn !== HUMAN) return;
+    var x = +b.dataset.x, y = +b.dataset.y;
+    if (board[y][x] !== EMPTY) return;
+    var ended = place(x, y, HUMAN, true);
+    if (!ended) aiTurn();
+  });
+
+  /* 键盘：方向键移动焦点，Enter / 空格落子（roving tabindex） */
+  gridEl.addEventListener('keydown', function(e){
+    var b = e.target.closest('.pt');
+    if (!b) return;
+    var x = +b.dataset.x, y = +b.dataset.y, nx = x, ny = y;
+    switch (e.key){
+      case 'ArrowLeft':  nx = Math.max(0, x-1); break;
+      case 'ArrowRight': nx = Math.min(N-1, x+1); break;
+      case 'ArrowUp':    ny = Math.max(0, y-1); break;
+      case 'ArrowDown':  ny = Math.min(N-1, y+1); break;
+      case 'Home':       nx = 0; break;
+      case 'End':        nx = N-1; break;
+      default: return;
+    }
+    e.preventDefault();
+    var next = btnAt(nx, ny);
+    cellBtns.forEach(function(n){ n.tabIndex = -1; });
+    next.tabIndex = 0;
+    next.focus();
+  });
+
+  /* ---- 悔棋：退回到「轮到你」为止 ---- */
+  $('btnUndo').addEventListener('click', function(){
+    if (busy || !history.length) return;
+    if (thinkTimer){ clearTimeout(thinkTimer); thinkTimer = null; setThinking(false); }
+
+    clearEffects();
+    $('result').dataset.on = 'false';
+    over = false;
+
+    var steps = 0;
+    while (history.length && steps < 2){
+      var m = history.pop();
+      board[m.y][m.x] = EMPTY;
+      var b = btnAt(m.x, m.y);
+      b.textContent = '';
+      b.disabled = false;
+      b.setAttribute('aria-label', COL[m.x] + (N - m.y) + ' 空');
+      steps++;
+      if (m.p === HUMAN) break;         // 退到自己这一手为止
+    }
+    turn = HUMAN;
+    markLast();
+    syncUI();
+  });
+
+  $('btnNew').addEventListener('click', function(){
+    clearEffects();
+    $('result').dataset.on = 'false';
+    cellBtns.forEach(function(b){
+      b.textContent = '';
+      b.disabled = false;
+      b.tabIndex = -1;
+      b.setAttribute('aria-label', COL[+b.dataset.x] + (N - +b.dataset.y) + ' 空');
+    });
+    btnAt(7,7).tabIndex = 0;
+    reset();
+    syncUI();
+  });
+
+  $('levelSeg').addEventListener('click', function(e){
+    var b = e.target.closest('button');
+    if (!b) return;
+    level = +b.dataset.lv;
+    Array.prototype.forEach.call(this.children, function(el){
+      el.setAttribute('aria-pressed', String(+el.dataset.lv === level));
+    });
+  });
+
+  /* 启动 */
+  reset();
+  syncUI();
+})();
+</script>
+
+</body>
+</html>

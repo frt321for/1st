@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lumina 流明 · 会散了，纪要已经写好了</title>
+<style>
+:root{
+  --bg:#0c0f1c;--bg2:#11152a;--card:rgba(255,255,255,.045);--line:rgba(255,255,255,.09);
+  --ink:#e9ecf5;--dim:#9aa3bf;--faint:#6a7394;
+  --light:#f2e8d5;          /* 流光暖白 */
+  --cyan:#7fd8e8;           /* 流光青 */
+  --amber:#e8c877;
+  --grad:linear-gradient(100deg,#f2e8d5 0%,#7fd8e8 55%,#e8c877 100%);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  background:
+    radial-gradient(1000px 560px at 78% -8%, rgba(127,216,232,.10), transparent 60%),
+    radial-gradient(900px 520px at 8% 12%, rgba(232,200,119,.07), transparent 55%),
+    var(--bg);
+  color:var(--ink);font-family:"PingFang SC","Microsoft YaHei","Helvetica Neue",sans-serif;
+  line-height:1.7;overflow-x:hidden;
+}
+::selection{background:rgba(127,216,232,.3)}
+.serif{font-family:Georgia,"Songti SC","STSong","SimSun",serif}
+.mono{font-family:"SF Mono",Consolas,monospace}
+a{color:inherit;text-decoration:none}
+button{font:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.wrap{width:min(1180px,92vw);margin:0 auto}
+.reveal{opacity:0;transform:translateY(26px);transition:opacity .8s ease,transform .8s cubic-bezier(.2,.7,.3,1)}
+.reveal.in{opacity:1;transform:none}
+
+/* ---------- 导航 ---------- */
+nav{
+  position:fixed;top:0;left:0;right:0;z-index:50;
+  transition:background .3s,border-color .3s,backdrop-filter .3s;
+  border-bottom:1px solid transparent;
+}
+nav.scrolled{background:rgba(12,15,28,.78);backdrop-filter:blur(14px);border-color:var(--line)}
+.navin{width:min(1180px,92vw);margin:0 auto;display:flex;align-items:center;gap:34px;height:66px}
+.logo{display:flex;align-items:center;gap:10px;font-weight:700;letter-spacing:.06em;font-size:17px}
+.logo .orb{
+  width:22px;height:22px;border-radius:50%;position:relative;
+  background:radial-gradient(circle at 34% 30%, #fff, var(--cyan) 40%, #2b6f8a 90%);
+  box-shadow:0 0 14px rgba(127,216,232,.7);
+}
+.logo .orb::after{content:"";position:absolute;inset:-5px;border-radius:50%;border:1px solid rgba(127,216,232,.4);animation:pulse 2.6s ease-in-out infinite}
+@keyframes pulse{0%{transform:scale(.8);opacity:.9}100%{transform:scale(1.5);opacity:0}}
+.logo i{font-style:normal;color:var(--dim);font-weight:400;font-size:.8em;margin-left:2px}
+.navlinks{display:flex;gap:28px;font-size:13.5px;color:var(--dim);margin-left:12px}
+.navlinks a{transition:color .2s;letter-spacing:.06em}
+.navlinks a:hover{color:var(--ink)}
+.navcta{margin-left:auto;display:flex;gap:10px;align-items:center}
+.btn{
+  display:inline-flex;align-items:center;gap:8px;border-radius:999px;font-size:14px;letter-spacing:.04em;
+  padding:11px 22px;transition:.2s;border:1px solid transparent;
+}
+.btn.primary{background:var(--grad);color:#101422;font-weight:600}
+.btn.primary:hover{filter:brightness(1.1);box-shadow:0 6px 26px rgba(127,216,232,.3)}
+.btn.ghost{border-color:var(--line);color:var(--ink)}
+.btn.ghost:hover{border-color:var(--cyan);color:#fff}
+@media (max-width:760px){.navlinks{display:none}}
+
+/* ---------- Hero ---------- */
+.hero{padding:150px 0 40px;position:relative;text-align:center}
+.hero .beam{
+  position:absolute;left:50%;top:-140px;width:1300px;height:420px;transform:translateX(-50%);
+  background:conic-gradient(from 180deg at 50% 0%, transparent 42%, rgba(242,232,213,.10) 48%, rgba(127,216,232,.14) 50%, rgba(242,232,213,.10) 52%, transparent 58%);
+  filter:blur(6px);pointer-events:none;animation:beam 9s ease-in-out infinite alternate;
+}
+@keyframes beam{from{transform:translateX(-56%) rotate(-2deg)}to{transform:translateX(-44%) rotate(2deg)}}
+.eyebrow{
+  display:inline-flex;align-items:center;gap:10px;font-size:11px;letter-spacing:.4em;color:var(--cyan);
+  border:1px solid rgba(127,216,232,.3);border-radius:999px;padding:7px 18px;margin-bottom:30px;
+  background:rgba(127,216,232,.06);
+}
+.hero h1{
+  font-size:clamp(34px,6.2vw,72px);line-height:1.18;font-weight:600;letter-spacing:.02em;
+  max-width:900px;margin:0 auto;
+}
+.hero h1 .glow{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+.hero .sub{margin:26px auto 0;max-width:620px;color:var(--dim);font-size:clamp(15px,1.8vw,18px)}
+.hero .ctas{margin-top:38px;display:flex;gap:14px;justify-content:center;flex-wrap:wrap}
+.hero .trust{margin-top:46px;font-size:11px;letter-spacing:.3em;color:var(--faint)}
+.hero .trust b{color:var(--dim);font-weight:500;letter-spacing:.18em;margin:0 12px}
+
+/* ---------- 显影卡 ---------- */
+.develop{position:relative;margin:60px auto 0;width:min(920px,94vw)}
+.develop::before{
+  content:"";position:absolute;inset:-1px;border-radius:20px;z-index:-1;
+  background:linear-gradient(130deg,rgba(242,232,213,.4),rgba(127,216,232,.25) 40%,transparent 70%);
+  filter:blur(1px);
+}
+.devcard{
+  display:grid;grid-template-columns:1.25fr .9fr;border-radius:20px;overflow:hidden;text-align:left;
+  background:linear-gradient(160deg,#151a30,#0e1122 60%);border:1px solid var(--line);
+  box-shadow:0 40px 90px rgba(0,0,0,.5);
+}
+.devcard .left{padding:26px 28px;border-right:1px solid var(--line)}
+.devhead{display:flex;align-items:center;gap:10px;font-size:12px;color:var(--dim);letter-spacing:.1em}
+.devhead .rec{width:8px;height:8px;border-radius:50%;background:#e8654a;box-shadow:0 0 10px rgba(232,101,74,.8);animation:blink 1.6s infinite}
+@keyframes blink{50%{opacity:.3}}
+.devhead .t{color:var(--ink);font-weight:600;font-size:14px;letter-spacing:.04em}
+.transcript{margin-top:18px;display:flex;flex-direction:column;gap:12px}
+.tr-line{display:flex;gap:12px;opacity:0;animation:trin .7s forwards;font-size:13.5px}
+.tr-line:nth-child(1){animation-delay:.4s}.tr-line:nth-child(2){animation-delay:1.3s}
+.tr-line:nth-child(3){animation-delay:2.2s}.tr-line:nth-child(4){animation-delay:3.1s}
+.tr-line:nth-child(5){animation-delay:4s}
+@keyframes trin{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.tr-line .who{flex:0 0 auto;font-size:11px;letter-spacing:.1em;padding:2px 8px;border-radius:6px;height:fit-content;margin-top:2px}
+.who.a{background:rgba(127,216,232,.15);color:var(--cyan)}
+.who.b{background:rgba(232,200,119,.15);color:var(--amber)}
+.who.c{background:rgba(233,236,245,.1);color:var(--dim)}
+.tr-line p{color:#c4cade}
+.devcard .right{padding:26px 24px;background:rgba(127,216,232,.035)}
+.devcard .right h4{font-size:12px;letter-spacing:.3em;color:var(--cyan);display:flex;align-items:center;gap:8px}
+.devcard .right h4::after{content:"";flex:1;height:1px;background:linear-gradient(90deg,rgba(127,216,232,.4),transparent)}
+.ai-item{margin-top:14px;opacity:0;transform:translateX(14px);animation:aiin .6s forwards}
+.ai-item:nth-child(2){animation-delay:.9s}.ai-item:nth-child(3){animation-delay:1.6s}
+.ai-item:nth-child(4){animation-delay:2.3s}.ai-item:nth-child(5){animation-delay:3s}
+@keyframes aiin{to{opacity:1;transform:none}}
+.ai-item .q{font-size:13.5px;color:var(--ink)}
+.ai-item .a{font-size:12px;color:var(--dim);margin-top:2px}
+.todo{display:flex;gap:9px;align-items:center;margin-top:10px;font-size:13px;color:#c4cade}
+.todo .box{width:16px;height:16px;border-radius:5px;border:1.5px solid rgba(127,216,232,.5);position:relative;flex:0 0 auto}
+.todo .box::after{content:"";position:absolute;inset:2px;border-radius:2px;background:var(--cyan);transform:scale(0);animation:check .3s forwards}
+.todo.t1 .box::after{animation-delay:3.6s}
+.todo.t2 .box::after{animation-delay:4.1s}
+@keyframes check{to{transform:scale(1)}}
+.devsig{margin-top:20px;font-size:11px;color:var(--faint);letter-spacing:.16em;display:flex;align-items:center;gap:8px}
+.devsig .orb{width:12px;height:12px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff,var(--cyan) 45%,#2b6f8a)}
+@media (max-width:760px){.devcard{grid-template-columns:1fr}.devcard .left{border-right:none;border-bottom:1px solid var(--line)}}
+
+/* ---------- 数据带 ---------- */
+.stats{margin:90px 0 0;display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--line);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.stats .s{background:transparent;padding:34px 20px;text-align:center}
+.stats .n{font-size:clamp(30px,4.4vw,46px);font-weight:600;letter-spacing:.02em}
+.stats .n span{font-size:.5em;color:var(--cyan)}
+.stats .l{margin-top:6px;font-size:12px;letter-spacing:.26em;color:var(--faint)}
+@media (max-width:700px){.stats{grid-template-columns:1fr}}
+
+/* ---------- 通用 section 头 ---------- */
+section{padding:110px 0 0}
+.shead{max-width:640px;margin-bottom:54px}
+.shead .k{font-size:11px;letter-spacing:.44em;color:var(--cyan);margin-bottom:14px;display:flex;align-items:center;gap:12px}
+.shead .k::before{content:"";width:26px;height:1px;background:var(--cyan)}
+.shead h2{font-size:clamp(26px,3.8vw,40px);line-height:1.3;font-weight:600}
+.shead p{margin-top:14px;color:var(--dim)}
+
+/* ---------- 功能：非对称网格 ---------- */
+.fgrid{display:grid;grid-template-columns:repeat(4,1fr);grid-auto-rows:210px;gap:14px}
+.feat{
+  border:1px solid var(--line);border-radius:18px;padding:24px;background:var(--card);
+  position:relative;overflow:hidden;transition:.25s;
+}
+.feat:hover{transform:translateY(-4px);border-color:rgba(127,216,232,.45);box-shadow:0 18px 44px rgba(0,0,0,.4), 0 0 30px rgba(127,216,232,.08)}
+.feat .ic{
+  width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;
+  background:rgba(127,216,232,.1);border:1px solid rgba(127,216,232,.25);margin-bottom:14px;
+}
+.feat .ic svg{width:20px;height:20px;stroke:var(--cyan);fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.feat h3{font-size:16.5px;font-weight:600;letter-spacing:.03em}
+.feat p{font-size:13px;color:var(--dim);margin-top:6px;line-height:1.75}
+.feat.big{grid-column:span 2;grid-row:span 2}
+.feat.big.right{grid-column:3/5}
+.feat.big .demo{margin-top:22px;border:1px solid var(--line);border-radius:14px;padding:18px;background:rgba(0,0,0,.25)}
+.wavebars{display:flex;align-items:flex-end;gap:3px;height:34px}
+.wavebars i{width:4px;border-radius:2px;background:linear-gradient(180deg,var(--cyan),rgba(127,216,232,.25));animation:wv 1s ease-in-out infinite}
+.wavebars i:nth-child(odd){animation-delay:.15s}.wavebars i:nth-child(3n){animation-delay:.3s}
+.wavebars i:nth-child(4n){animation-delay:.45s}.wavebars i:nth-child(5n){animation-delay:.55s}
+@keyframes wv{0%,100%{height:22%}50%{height:100%}}
+.langs{margin-top:14px;font-size:12px;color:var(--faint);letter-spacing:.08em;line-height:2}
+.langs b{color:var(--ink);font-weight:500}
+@media (max-width:900px){.fgrid{grid-template-columns:repeat(2,1fr)}.feat.big{grid-column:span 2}}
+@media (max-width:560px){.fgrid{grid-template-columns:1fr;grid-auto-rows:auto}.feat.big{grid-column:span 1;grid-row:span 1}.feat{padding:20px}}
+
+/* ---------- 工作流 ---------- */
+.flow{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;counter-reset:step}
+.step{
+  border:1px solid var(--line);border-radius:18px;padding:28px 26px;background:var(--card);position:relative;
+}
+.step .no{font-size:12px;color:var(--cyan);letter-spacing:.3em}
+.step .no::before{counter-increment:step;content:"0" counter(step)}
+.step h3{margin-top:12px;font-size:19px;font-weight:600}
+.step p{margin-top:8px;font-size:13.5px;color:var(--dim)}
+.step .chips{margin-top:16px;display:flex;gap:8px;flex-wrap:wrap}
+.step .chips i{font-style:normal;font-size:11px;color:var(--dim);border:1px solid var(--line);padding:4px 10px;border-radius:999px}
+.step::after{
+  content:"→";position:absolute;right:-13px;top:50%;transform:translateY(-50%);
+  color:var(--cyan);font-size:16px;opacity:.7;z-index:2;
+}
+.step:last-child::after{display:none}
+@media (max-width:820px){.flow{grid-template-columns:1fr}.step::after{display:none}}
+
+/* ---------- 定价 ---------- */
+.billtoggle{display:inline-flex;align-items:center;gap:12px;margin-bottom:34px;font-size:13px;color:var(--dim)}
+.billtoggle .sw{width:46px;height:25px;border-radius:999px;background:rgba(255,255,255,.1);border:1px solid var(--line);position:relative;transition:.25s}
+.billtoggle .sw::after{content:"";position:absolute;top:2.5px;left:3px;width:17px;height:17px;border-radius:50%;background:var(--cyan);transition:.25s cubic-bezier(.3,1.4,.5,1)}
+.billtoggle.on .sw::after{left:24px;background:var(--amber)}
+.billtoggle b{color:var(--ink)}
+.billtoggle .save{font-size:10px;letter-spacing:.2em;color:#8fe3b0;border:1px solid rgba(143,227,176,.35);padding:3px 9px;border-radius:999px}
+.prices{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;align-items:stretch}
+.plan{border:1px solid var(--line);border-radius:20px;padding:30px 28px;background:var(--card);display:flex;flex-direction:column;position:relative}
+.plan.hot{border-color:rgba(127,216,232,.5);background:linear-gradient(170deg,rgba(127,216,232,.07),rgba(232,200,119,.04)),var(--card);box-shadow:0 24px 60px rgba(0,0,0,.45)}
+.plan .tag{position:absolute;top:-11px;left:28px;font-size:10px;letter-spacing:.3em;color:#0f1424;background:var(--grad);padding:4px 12px;border-radius:999px;font-weight:700}
+.plan h3{font-size:15px;letter-spacing:.2em;color:var(--dim)}
+.plan .price{margin-top:14px;font-size:42px;font-weight:600;letter-spacing:.01em}
+.plan .price span{font-size:14px;color:var(--faint);font-weight:400;margin-left:6px}
+.plan .price .pval{font-size:inherit;color:inherit;font-weight:inherit;margin-left:0}
+.plan .desc{font-size:12.5px;color:var(--dim);margin-top:6px}
+.plan ul{margin:22px 0 26px;list-style:none;display:flex;flex-direction:column;gap:11px;font-size:13.5px;color:#c4cade}
+.plan li{display:flex;gap:10px;align-items:baseline}
+.plan li::before{content:"✓";color:var(--cyan);font-size:12px}
+.plan .btn{margin-top:auto;justify-content:center}
+@media (max-width:900px){.prices{grid-template-columns:1fr}}
+
+/* ---------- 评价 ---------- */
+.quotes{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+.quote{border:1px solid var(--line);border-radius:18px;padding:28px;background:var(--card);position:relative}
+.quote::before{content:"“";position:absolute;top:6px;left:20px;font-size:64px;color:rgba(127,216,232,.18);font-family:Georgia,serif;line-height:1}
+.quote p{font-size:14.5px;color:#d5daea;position:relative}
+.quote .who{margin-top:18px;display:flex;align-items:center;gap:12px}
+.quote .av{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;color:#101422;background:var(--grad)}
+.quote .nm b{display:block;font-size:13px}
+.quote .nm span{font-size:11px;color:var(--faint);letter-spacing:.06em}
+.quote .stars{margin-left:auto;color:var(--amber);font-size:12px;letter-spacing:2px}
+@media (max-width:800px){.quotes{grid-template-columns:1fr}}
+
+/* ---------- CTA 大带 ---------- */
+.ctaband{margin:120px 0 0;border-radius:26px;position:relative;overflow:hidden;text-align:center;padding:90px 30px;
+  background:
+    radial-gradient(700px 320px at 50% -60%, rgba(127,216,232,.25), transparent 70%),
+    radial-gradient(500px 260px at 20% 120%, rgba(232,200,119,.16), transparent 70%),
+    linear-gradient(160deg,#161b34,#0e1122);
+  border:1px solid rgba(127,216,232,.28);
+}
+.ctaband h2{font-size:clamp(28px,4.6vw,50px);font-weight:600;line-height:1.25}
+.ctaband h2 .glow{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+.ctaband p{margin:16px auto 34px;color:var(--dim);max-width:520px}
+.ctaband .micro{margin-top:22px;font-size:11px;letter-spacing:.24em;color:var(--faint)}
+
+/* ---------- 页脚 ---------- */
+footer{margin-top:110px;border-top:1px solid var(--line);padding:60px 0 40px;font-size:13px}
+.fgrid4{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:30px}
+.fgrid4 .about p{color:var(--faint);font-size:12.5px;margin-top:14px;max-width:300px}
+.fcol b{display:block;font-size:11px;letter-spacing:.3em;color:var(--dim);margin-bottom:16px;font-weight:500}
+.fcol a{display:block;color:var(--faint);margin-bottom:11px;transition:color .2s}
+.fcol a:hover{color:var(--ink)}
+.baseline{margin-top:50px;display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;color:var(--faint);font-size:11px;letter-spacing:.14em}
+@media (max-width:760px){.fgrid4{grid-template-columns:1fr 1fr}}
+
+@media (prefers-reduced-motion:reduce){
+  .reveal{opacity:1;transform:none;transition:none}
+  .tr-line,.ai-item{animation-duration:.01s;animation-delay:0s}
+  .todo .box::after{animation:none;transform:scale(1)}
+  .hero .beam,.logo .orb::after,.devhead .rec,.wavebars i{animation:none}
+}
+</style>
+</head>
+<body>
+
+<nav id="nav">
+  <div class="navin">
+    <a class="logo" href="#top"><span class="orb"></span>Lumina<i>流明</i></a>
+    <div class="navlinks">
+      <a href="#features">功能</a><a href="#workflow">工作流</a><a href="#pricing">价格</a><a href="#voices">用户说</a>
+    </div>
+    <div class="navcta">
+      <a class="btn ghost" href="#pricing">登录</a>
+      <a class="btn primary" href="#pricing">免费开始</a>
+    </div>
+  </div>
+</nav>
+
+<header class="hero" id="top">
+  <div class="beam" aria-hidden="true"></div>
+  <div class="wrap">
+    <span class="eyebrow">LUMINA · 流明 · AI 会议纪要</span>
+    <h1 class="serif">会散了，<span class="glow">纪要已经写好了。</span></h1>
+    <p class="sub">Lumina 流明旁听你的每一场会议：实时转写、提炼决议、生成行动项并自动派发。你只管开会，剩下的交给光。</p>
+    <div class="ctas">
+      <a class="btn primary" href="#pricing">免费开始 — 无需信用卡</a>
+      <a class="btn ghost" href="#features">看看它怎么工作 ↓</a>
+    </div>
+    <div class="trust">已接入<b>腾讯会议</b><b>Zoom</b><b>飞书</b><b>Teams</b><b>钉钉</b></div>
+  </div>
+
+  <!-- 显影卡 -->
+  <div class="develop reveal" aria-label="会议纪要实时生成演示">
+    <div class="devcard">
+      <div class="left">
+        <div class="devhead"><span class="rec"></span><span class="t">Q4 增长复盘会</span><span>42:17</span><span style="margin-left:auto">转写中</span></div>
+        <div class="transcript">
+          <div class="tr-line"><span class="who a">林一舟</span><p>十月投放 ROI 回落到 1.4，主要拖累是素材衰减太快。</p></div>
+          <div class="tr-line"><span class="who b">苏芮</span><p>那就把十一月预算的 30% 挪去测新素材，两周内见分晓。</p></div>
+          <div class="tr-line"><span class="who c">周衍</span><p>我这边需要一版新的落地页，配合素材一起 A/B。</p></div>
+          <div class="tr-line"><span class="who a">林一舟</span><p>行，那 Thanksgiving 前后我们再拉一次对齐会。</p></div>
+          <div class="tr-line"><span class="who b">苏芮</span><p>好，结论就按这个执行。</p></div>
+        </div>
+      </div>
+      <div class="right">
+        <h4>LUMINA 摘要</h4>
+        <div class="ai-item"><div class="q">投放预算调整</div><div class="a">十一月预算 30% 转投新素材测试，周期两周（负责人：苏芮）</div></div>
+        <div class="ai-item"><div class="q">落地页改版</div><div class="a">新落地页配合素材同步 A/B（负责人：周衍）</div></div>
+        <div class="ai-item"><div class="q">复盘节奏</div><div class="a">感恩节前组织对齐会，检视 ROI 回升情况</div></div>
+        <div class="todo t1"><span class="box"></span>建飞书任务：素材测试排期</div>
+        <div class="todo t2"><span class="box"></span>日历邀请：对齐会（11/24）</div>
+        <div class="devsig"><span class="orb"></span>由 Lumina 流明实时生成 · 已同步 3 位参会人</div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- 数据带 -->
+<div class="stats reveal">
+  <div class="s"><div class="n mono">4.5<span> 小时/周</span></div><div class="l">平均为每人省下的会议时间</div></div>
+  <div class="s"><div class="n mono">98.2<span> %</span></div><div class="l">纪要关键信息准确率</div></div>
+  <div class="s"><div class="n mono">32<span> 种</span></div><div class="l">实时转写与同传语言</div></div>
+</div>
+
+<!-- 功能 -->
+<section id="features">
+  <div class="wrap">
+    <div class="shead reveal">
+      <div class="k">FEATURES</div>
+      <h2 class="serif">不止记录，<br>它听得懂会议。</h2>
+      <p>从声音到决议，Lumina 把一场 60 分钟的会压缩成 60 秒就能读完的答案。</p>
+    </div>
+    <div class="fgrid">
+      <div class="feat big reveal">
+        <div class="ic"><svg viewBox="0 0 24 24"><path d="M12 3a3 3 0 0 1 3 3v6a3 3 0 0 1-6 0V6a3 3 0 0 1 3-3z"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></div>
+        <h3>实时转写 · 声纹分人</h3>
+        <p>毫秒级上屏，自动区分说话人，专有名词、行话、中英混杂都能听懂。会议中可回看任意 30 秒。</p>
+        <div class="demo">
+          <div class="wavebars" aria-hidden="true"><i style="height:40%"></i><i style="height:70%"></i><i style="height:52%"></i><i style="height:88%"></i><i style="height:60%"></i><i style="height:34%"></i><i style="height:76%"></i><i style="height:48%"></i><i style="height:66%"></i><i style="height:30%"></i><i style="height:58%"></i><i style="height:82%"></i><i style="height:44%"></i><i style="height:68%"></i><i style="height:36%"></i><i style="height:74%"></i></div>
+          <div class="langs">普通话 · 粤语 · 英语 · 日语 · <b>中英混说无缝识别</b> · 行业词库可自定义</div>
+        </div>
+      </div>
+      <div class="feat reveal">
+        <div class="ic"><svg viewBox="0 0 24 24"><path d="M4 5h16M4 10h16M4 15h10M4 20h7"/><path d="M14.5 18l2.2 2.2L21 15.5"/></svg></div>
+        <h3>智能摘要</h3>
+        <p>背景、分歧、结论、遗留问题，四个维度自动成稿，支持套用你的团队模板。</p>
+      </div>
+      <div class="feat reveal">
+        <div class="ic"><svg viewBox="0 0 24 24"><path d="M9 12l2 2 4-5"/><circle cx="12" cy="12" r="9"/></svg></div>
+        <h3>行动项派发</h3>
+        <p>谁、在几号前、做什么——自动识别并同步到飞书、Jira、Notion。</p>
+      </div>
+      <div class="feat reveal">
+        <div class="ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg></div>
+        <h3>声纹识别</h3>
+        <p>第一次会议就记住每个人的声音，下次开场自动署名。</p>
+      </div>
+      <div class="feat reveal">
+        <div class="ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3.5 3 14 0 18M12 3c-3 3.5-3 14 0 18"/></svg></div>
+        <h3>多语言同传</h3>
+        <p>32 种语言实时字幕与同声翻译，跨国团队终于不用“再说一遍”。</p>
+      </div>
+      <div class="feat big right reveal">
+        <div class="ic"><svg viewBox="0 0 24 24"><path d="M12 3l8 4v5c0 5-3.5 8-8 9-4.5-1-8-4-8-9V7z"/><path d="M9 12l2 2 4-4"/></svg></div>
+        <h3>安全合规</h3>
+        <p>端到端加密、数据驻留可选、不留音频默认开启，SOC 2 与等保合规。</p>
+        <div class="demo">
+          <div class="langs">传输 <b>AES-256</b> · 存储 <b>加密静态</b> · <b>SOC 2 Type II</b> · <b>等保三级</b> · 审计日志可导出</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 工作流 -->
+<section id="workflow">
+  <div class="wrap">
+    <div class="shead reveal">
+      <div class="k">WORKFLOW</div>
+      <h2 class="serif">三步，然后忘掉纪要这件事。</h2>
+    </div>
+    <div class="flow">
+      <div class="step reveal">
+        <div class="no mono">STEP </div>
+        <h3>接入会议</h3>
+        <p>日历授权后自动入会，或把流明助手拉进任意会议链接。</p>
+        <div class="chips"><i>腾讯会议</i><i>Zoom</i><i>飞书</i><i>线下录音</i></div>
+      </div>
+      <div class="step reveal">
+        <div class="no mono">STEP </div>
+        <h3>实时生成</h3>
+        <p>转写、摘要、行动项三线并行，会开完 10 秒内全量就绪。</p>
+        <div class="chips"><i>逐条摘要</i><i>待办识别</i><i>决策标记</i></div>
+      </div>
+      <div class="step reveal">
+        <div class="no mono">STEP </div>
+        <h3>自动分发</h3>
+        <p>纪要按参会人偏好投递，行动项直接落进各自的待办列表。</p>
+        <div class="chips"><i>邮件</i><i>IM 群</i><i>任务系统</i></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 定价 -->
+<section id="pricing">
+  <div class="wrap">
+    <div class="shead reveal">
+      <div class="k">PRICING</div>
+      <h2 class="serif">为光付费，按需点亮。</h2>
+      <p>随时升级降级，未使用的额度自动结转。</p>
+    </div>
+    <div class="billtoggle reveal" id="billToggle" role="switch" aria-checked="false" tabindex="0" aria-label="切换年付（省 20%）">
+      <span>月付</span><span class="sw"></span><span>年付</span><span class="save">省 20%</span>
+    </div>
+    <div class="prices">
+      <div class="plan reveal">
+        <h3>微光</h3>
+        <div class="price">¥0<span>/ 月</span></div>
+        <div class="desc">个人体验，每月 5 场会议。</div>
+        <ul>
+          <li>实时转写 + 24h 回放</li>
+          <li>标准摘要模板</li>
+          <li>行动项手动同步</li>
+          <li>单语言转写</li>
+        </ul>
+        <a class="btn ghost" href="#top">免费开始</a>
+      </div>
+      <div class="plan hot reveal">
+        <span class="tag">最受欢迎</span>
+        <h3>流明</h3>
+        <div class="price"><span class="pval" data-m="69" data-y="55">¥69</span><span>/ 人 / 月</span></div>
+        <div class="desc">小团队主力档，无限会议。</div>
+        <ul>
+          <li>无限会议与转写时长</li>
+          <li>32 种语言同传</li>
+          <li>行动项自动派发到 IM / Jira</li>
+          <li>团队知识库与检索</li>
+          <li>自定义摘要模板</li>
+        </ul>
+        <a class="btn primary" href="#top">开通流明档</a>
+      </div>
+      <div class="plan reveal">
+        <h3>灯塔</h3>
+        <div class="price">定制<span></span></div>
+        <div class="desc">50 人以上组织，私有部署。</div>
+        <ul>
+          <li>私有化 / 专属云部署</li>
+          <li>数据驻留与审计日志</li>
+          <li>SSO、细粒度权限</li>
+          <li>专属客户成功经理</li>
+        </ul>
+        <a class="btn ghost" href="#top">联系销售</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 评价 -->
+<section id="voices">
+  <div class="wrap">
+    <div class="shead reveal">
+      <div class="k">VOICES</div>
+      <h2 class="serif">他们把会议交给了光。</h2>
+    </div>
+    <div class="quotes">
+      <div class="quote reveal">
+        <p>以前每周花在写纪要上的三小时现在归零，而且流明写的比我写的更敢写——它连"谁没给出结论"都记下来。</p>
+        <div class="who"><span class="av">陈</span><span class="nm"><b>陈叙</b><span>星野科技 · 产品 VP</span></span><span class="stars">★★★★★</span></div>
+      </div>
+      <div class="quote reveal">
+        <p>跨国评审会再也不用等人翻译。中英日三语实时字幕，会后各国同事拿到的都是母语纪要。</p>
+        <div class="who"><span class="av">Mi</span><span class="nm"><b>Mika Sato</b><span>Kanade Design · 项目总监</span></span><span class="stars">★★★★★</span></div>
+      </div>
+      <div class="quote reveal">
+        <p>行动项自动落 Jira 这件事，让"会上说得好好的"变成了"系统里真有单"。执行率肉眼可见地涨了。</p>
+        <div class="who"><span class="av">赵</span><span class="nm"><b>赵沉舟</b><span>白帆出海 · 工程经理</span></span><span class="stars">★★★★★</span></div>
+      </div>
+      <div class="quote reveal">
+        <p>作为常年采访的人，我把它当录音笔+速记用。导出的逐字稿连语气词都标注了，省了我一整个晚上的整理时间。</p>
+        <div class="who"><span class="av">何</span><span class="nm"><b>何晚</b><span>独立播客《慢就是快》主理人</span></span><span class="stars">★★★★☆</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section style="padding-top:0">
+  <div class="wrap">
+    <div class="ctaband reveal">
+      <h2 class="serif">让每一场会议，<span class="glow">都有回响。</span></h2>
+      <p>两分钟接入你的第一场会议，体验纪要在散会前就写好的感觉。</p>
+      <a class="btn primary" href="#top">免费开始 — 无需信用卡</a>
+      <div class="micro">无需信用卡 · 会议数据默认不留存 · 随时导出迁移</div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div class="fgrid4">
+      <div class="about">
+        <a class="logo" href="#top"><span class="orb"></span>Lumina<i>流明</i></a>
+        <p>Lumina 流明，AI 会议笔记工具。我们相信：会议的价值在结论，而结论值得被准确、轻盈地留下来。</p>
+      </div>
+      <div class="fcol"><b>产品</b><a href="#features">功能</a><a href="#workflow">工作流</a><a href="#pricing">价格</a><a href="#top">更新日志</a></div>
+      <div class="fcol"><b>资源</b><a href="#top">帮助中心</a><a href="#top">API 文档</a><a href="#top">安全白皮书</a><a href="#top">状态页</a></div>
+      <div class="fcol"><b>公司</b><a href="#top">关于我们</a><a href="#top">加入我们</a><a href="#top">媒体报道</a><a href="#top">联系销售</a></div>
+    </div>
+    <div class="baseline">
+      <span>© 2026 LUMINA LAB · 流明星移科技有限公司</span>
+      <span>京 ICP 备 2026xxxxxx 号 · 服务协议 · 隐私政策</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+"use strict";
+/* 导航滚动态 */
+const nav=document.getElementById('nav');
+addEventListener('scroll',()=>nav.classList.toggle('scrolled',scrollY>10),{passive:true});
+/* 渐入 */
+const RM=matchMedia('(prefers-reduced-motion: reduce)').matches;
+if(RM){document.querySelectorAll('.reveal').forEach(el=>el.classList.add('in'))}
+else{
+  const io=new IntersectionObserver(es=>es.forEach(e=>{
+    if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target)}
+  }),{threshold:.14});
+  document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
+}
+/* 月付/年付 */
+const bt=document.getElementById('billToggle');
+let yearly=false;
+function flip(){
+  yearly=!yearly;
+  bt.classList.toggle('on',yearly);
+  bt.setAttribute('aria-checked',String(yearly));
+  document.querySelectorAll('.pval').forEach(el=>{
+    el.textContent='¥'+(yearly?el.dataset.y:el.dataset.m);
+  });
+}
+bt.addEventListener('click',flip);
+bt.addEventListener('keydown',e=>{if(e.key===' '||e.key==='Enter'){e.preventDefault();flip()}});
+</script>
+</body>
+</html>

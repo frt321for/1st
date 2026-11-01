@@ -1,0 +1,1444 @@
+<!DOCTYPE html>
+<!--
+DIRECTION CONTRACT
+THESIS         把三步表单当成一张正在被逐格填满的登机牌，而不是一个套着进度条的卡片流程。
+               左侧的凭证从空白横线开始，用户每填一项它就实化一格；
+               拒绝 SaaS 向导默认的「居中卡片 + 三个圆点 + 灰底」。
+OWN-WORLD      冷灰票券纸（带蓝向色偏，不是米白）+ 藏青作结构色 + 朱红只用于品牌切边与必填标记；
+               所有数字（航班号、时刻、证件号）走等宽表格数字。
+STORY          先选航班，再填人，最后核对签字；每一步左侧凭证都更完整一点，
+               提交后它被撕下齿孔，变成可用的登机牌。
+FIRST VIEWPORT 顶部是航段横幅，左列是那张凭证，右列是当前步骤的表单；
+               「下一步」始终固定在表单末尾同一位置。
+SIGNATURE      左侧凭证：字段随输入实时落位，齿孔线贯穿始终，
+               成功时沿齿孔裂开并盖上核验章。
+-->
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>机票预订 · 云程航空</title>
+<style>
+/* ==========================================================================
+   云程航空 · 三步机票预订
+   ========================================================================== */
+
+:root{
+  --paper:#f1f3f6;
+  --paper-2:#ffffff;
+  --paper-3:#e6eaef;
+  --ink:#16232e;
+  --ink-2:#4d5f6e;
+  --ink-3:#7c8b98;
+
+  --navy:#1b3a5c;
+  --navy-2:#26507c;
+  --navy-ink:#0f2438;
+
+  --vermilion:#b23423;
+  --vermilion-lt:#c8402f;
+
+  --ok:#1d6b4f;
+  --ok-bg:#e6f3ec;
+  --err:#a82f20;
+  --err-bg:#fbecea;
+
+  --hair:#d3dae2;
+  --hair-2:#bcc7d2;
+
+  --r-sm:4px; --r-md:8px; --r-lg:14px;
+
+  --font:"PingFang SC","Hiragino Sans GB","Microsoft YaHei",
+         ui-sans-serif,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  --mono:ui-monospace,"SF Mono","Cascadia Mono",Consolas,monospace;
+  --ease:cubic-bezier(.22,.61,.36,1);
+}
+
+*,*::before,*::after{ box-sizing:border-box; }
+html,body{ margin:0; padding:0; overflow-x:clip; }
+html{ color-scheme:light; }
+
+body{
+  min-height:100dvh;
+  background:var(--paper);
+  color:var(--ink);
+  font-family:var(--font);
+  font-size:16px;
+  line-height:1.6;
+  -webkit-font-smoothing:antialiased;
+}
+
+h1,h2,h3,p,fieldset,legend,ol,ul,dl,dd,dt{ margin:0; padding:0; }
+fieldset{ border:0; min-width:0; }
+ol,ul{ list-style:none; }
+
+:focus-visible{ outline:2px solid var(--navy); outline-offset:2px; border-radius:3px; }
+
+.u-mono{ font-family:var(--mono); font-variant-numeric:tabular-nums; }
+.u-sr{
+  position:absolute; width:1px; height:1px; padding:0; margin:-1px;
+  overflow:hidden; clip-path:inset(50%); white-space:nowrap; border:0;
+}
+
+/* ==========================================================================
+   顶部航段横幅
+   ========================================================================== */
+.topbar{
+  background:var(--navy);
+  color:#fff;
+  border-bottom:3px solid var(--vermilion-lt);
+}
+.topbar__in{
+  max-width:1220px;
+  margin-inline:auto;
+  padding:.9rem clamp(1rem,3vw,2rem);
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:1.5rem;
+  flex-wrap:wrap;
+}
+.logo{
+  display:inline-flex; align-items:baseline; gap:.7ch;
+  font-weight:660; font-size:1.0625rem; letter-spacing:-.01em;
+}
+.logo span{
+  font-weight:400; font-size:.75rem; letter-spacing:.18em;
+  color:rgba(255,255,255,.7); text-transform:uppercase;
+}
+.route{
+  display:flex; align-items:center; gap:.9rem;
+  font-family:var(--mono); font-variant-numeric:tabular-nums;
+}
+.route b{ font-size:1.25rem; font-weight:600; letter-spacing:.04em; }
+.route i{
+  font-style:normal;
+  width:44px; height:1px;
+  background:rgba(255,255,255,.55);
+  position:relative;
+}
+.route i::after{
+  content:"";
+  position:absolute; right:-1px; top:50%; translate:0 -50%;
+  border-left:7px solid rgba(255,255,255,.85);
+  border-top:4px solid transparent;
+  border-bottom:4px solid transparent;
+}
+.route small{ font-size:.75rem; color:rgba(255,255,255,.66); letter-spacing:.06em; }
+
+/* ==========================================================================
+   骨架
+   ========================================================================== */
+.wrap{
+  max-width:1220px;
+  margin-inline:auto;
+  padding:clamp(1.25rem,3vw,2.5rem) clamp(1rem,3vw,2rem) 4rem;
+  display:grid;
+  grid-template-columns:minmax(300px,352px) minmax(0,1fr);
+  gap:clamp(1.25rem,3vw,2.5rem);
+  align-items:start;
+}
+
+/* ==========================================================================
+   左：凭证 / 登机牌
+   ========================================================================== */
+.pass{
+  position:sticky;
+  top:1.25rem;
+  background:var(--paper-2);
+  border-radius:var(--r-lg);
+  box-shadow:0 1px 0 var(--hair), 0 14px 30px -18px rgba(22,35,46,.5);
+  overflow:hidden;
+}
+.pass__head{
+  background:var(--navy);
+  color:#fff;
+  padding:.85rem 1.1rem;
+  display:flex; align-items:baseline; justify-content:space-between; gap:1ch;
+}
+.pass__head b{ font-size:.9375rem; font-weight:620; letter-spacing:.02em; }
+.pass__head span{
+  font-family:var(--mono); font-size:.6875rem;
+  letter-spacing:.16em; color:rgba(255,255,255,.72);
+}
+.pass__body{ padding:1.1rem; }
+
+.pf{ display:grid; gap:.85rem; }
+.pf__row{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.85rem; }
+.pf__cell dt{
+  font-size:.6875rem; letter-spacing:.14em; text-transform:uppercase;
+  color:var(--ink-3); margin-bottom:.22rem;
+}
+.pf__cell dd{
+  font-size:1rem; font-weight:600;
+  font-family:var(--mono); font-variant-numeric:tabular-nums;
+  color:var(--ink);
+  min-height:1.5rem;
+  border-bottom:1px solid var(--hair);
+  padding-bottom:.2rem;
+  transition:color .2s var(--ease), border-color .2s var(--ease);
+  overflow-wrap:anywhere;
+}
+.pf__cell dd[data-empty="true"]{
+  color:var(--ink-3);
+  font-weight:400;
+  border-bottom-style:dashed;
+}
+.pf__cell dd.is-fresh{ animation:landIn .34s var(--ease) both; }
+@keyframes landIn{
+  from{ opacity:0; transform:translateY(4px); }
+  to  { opacity:1; transform:none; }
+}
+.pf__cell--wide{ grid-column:1 / -1; }
+
+/* 齿孔 */
+.perf{
+  position:relative;
+  height:22px;
+  margin:1.1rem -1.1rem;
+  border-top:2px dashed var(--hair-2);
+}
+.perf::before,.perf::after{
+  content:"";
+  position:absolute; top:-13px;
+  width:22px; height:22px;
+  border-radius:50%;
+  background:var(--paper);
+  box-shadow:inset 0 0 0 1px var(--hair);
+}
+.perf::before{ left:-11px; }
+.perf::after{ right:-11px; }
+
+.pass__stub{ padding:0 1.1rem 1.2rem; }
+.stub-grid{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:.75rem;
+}
+.stub-grid dt{
+  font-size:.625rem; letter-spacing:.12em; text-transform:uppercase; color:var(--ink-3);
+}
+.stub-grid dd{
+  font-family:var(--mono); font-size:.9375rem; font-weight:600;
+  font-variant-numeric:tabular-nums;
+}
+.pass__note{
+  margin-top:1rem;
+  font-size:.75rem;
+  color:var(--ink-3);
+  line-height:1.6;
+  border-top:1px solid var(--hair);
+  padding-top:.7rem;
+}
+
+/* 成功：沿齿孔裂开 + 盖章 */
+.pass[data-done="true"] .pass__body{ animation:tearUp .6s var(--ease) both; }
+.pass[data-done="true"] .pass__stub{ animation:tearDown .6s var(--ease) both .06s; }
+@keyframes tearUp  { 0%{transform:none;} 45%{transform:translateY(-7px) rotate(-.5deg);} 100%{transform:none;} }
+@keyframes tearDown{ 0%{transform:none;} 45%{transform:translateY(7px) rotate(.5deg);}  100%{transform:none;} }
+
+.stamp{
+  position:absolute;
+  right:14px; top:96px;
+  padding:.34rem .7rem;
+  border:2px solid var(--vermilion-lt);
+  color:var(--vermilion-lt);
+  border-radius:var(--r-sm);
+  font-size:.8125rem;
+  font-weight:700;
+  letter-spacing:.22em;
+  rotate:-11deg;
+  opacity:0;
+  pointer-events:none;
+}
+.pass[data-done="true"] .stamp{ animation:stampIn .42s cubic-bezier(.2,1.5,.4,1) .34s both; }
+@keyframes stampIn{
+  from{ opacity:0; scale:1.7; }
+  to  { opacity:.92; scale:1; }
+}
+
+/* ==========================================================================
+   右：步骤条 + 表单
+   ========================================================================== */
+.flow{ min-width:0; }
+
+.steps{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:.5rem;
+  margin-bottom:1.5rem;
+}
+.step{
+  position:relative;
+  text-align:left;
+  padding:.7rem .85rem .75rem;
+  background:var(--paper-2);
+  border:1px solid var(--hair);
+  border-radius:var(--r-md);
+  font:inherit;
+  color:var(--ink-3);
+  cursor:default;
+  border-top:3px solid var(--hair-2);
+  transition:border-color .2s var(--ease), color .2s var(--ease), background-color .2s var(--ease);
+}
+.step[data-clickable="true"]{ cursor:pointer; }
+.step[data-clickable="true"]:hover{ background:var(--paper-3); }
+.step__n{
+  display:inline-flex; align-items:center; justify-content:center;
+  width:22px; height:22px;
+  border-radius:50%;
+  border:1.5px solid currentColor;
+  font-size:.75rem; font-weight:700;
+  font-family:var(--mono);
+  margin-bottom:.3rem;
+}
+.step__t{ display:block; font-size:.9375rem; font-weight:580; color:var(--ink-2); }
+.step[aria-current="step"]{
+  border-top-color:var(--vermilion-lt);
+  color:var(--navy);
+  background:var(--paper-2);
+}
+.step[aria-current="step"] .step__t{ color:var(--ink); font-weight:640; }
+.step[data-done="true"]{ border-top-color:var(--ok); color:var(--ok); }
+.step[data-done="true"] .step__n{
+  border-color:var(--ok); background:var(--ok); color:#fff;
+  font-size:0;
+}
+.step[data-done="true"] .step__n::after{
+  content:""; width:6px; height:10px;
+  border:solid #fff; border-width:0 2px 2px 0;
+  rotate:45deg; translate:0 -1px;
+}
+
+.panel{
+  background:var(--paper-2);
+  border:1px solid var(--hair);
+  border-radius:var(--r-lg);
+  padding:clamp(1.1rem,3vw,1.85rem);
+}
+.panel h2{
+  font-size:1.25rem; font-weight:640; letter-spacing:-.015em;
+  margin-bottom:.3rem;
+}
+.panel__lede{
+  font-size:.9375rem; color:var(--ink-2); margin-bottom:1.4rem;
+  text-wrap:pretty;
+}
+
+.pane[hidden]{ display:none; }
+
+/* ---- 字段 ---- */
+.grid2{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:1rem 1.1rem; }
+.field{ display:flex; flex-direction:column; gap:.35rem; min-width:0; }
+.field--wide{ grid-column:1 / -1; }
+
+.field label{
+  font-size:.875rem; font-weight:560; color:var(--ink);
+}
+.field label .req{ color:var(--vermilion); margin-left:.25ch; }
+.field .hint{ font-size:.75rem; color:var(--ink-3); }
+
+.control{
+  min-height:48px;
+  width:100%;
+  padding:.6rem .8rem;
+  border:1px solid var(--hair-2);
+  border-radius:var(--r-md);
+  background:var(--paper-2);
+  color:var(--ink);
+  font:inherit;
+  font-size:1rem;
+  transition:border-color .16s var(--ease), box-shadow .16s var(--ease), background-color .16s var(--ease);
+}
+.control:hover{ border-color:var(--ink-3); }
+.control:focus{ outline:none; border-color:var(--navy); box-shadow:0 0 0 3px rgba(27,58,92,.16); }
+.control:focus-visible{ outline:2px solid var(--navy); outline-offset:1px; }
+.control:disabled{ background:var(--paper-3); color:var(--ink-3); cursor:not-allowed; }
+.control[aria-invalid="true"]{ border-color:var(--err); background:var(--err-bg); }
+.control[data-valid="true"]{ border-color:var(--ok); }
+
+select.control{ appearance:none; padding-right:2.2rem;
+  background-image:linear-gradient(45deg,transparent 50%,var(--ink-2) 50%),
+                   linear-gradient(135deg,var(--ink-2) 50%,transparent 50%);
+  background-position:calc(100% - 18px) 21px, calc(100% - 12px) 21px;
+  background-size:6px 6px, 6px 6px;
+  background-repeat:no-repeat;
+}
+
+.msg{
+  font-size:.8125rem;
+  min-height:1.25rem;
+  display:flex; align-items:flex-start; gap:.4ch;
+  color:var(--err);
+}
+.msg[data-tone="ok"]{ color:var(--ok); }
+.msg:empty{ min-height:0; }
+.msg::before{
+  content:"";
+  flex:0 0 auto;
+  width:14px; height:14px; margin-top:3px;
+  border-radius:50%;
+  border:1.5px solid currentColor;
+  position:relative;
+}
+.msg:empty::before{ display:none; }
+.msg[data-tone="ok"]::before{ background:currentColor; border-color:currentColor; }
+
+/* ---- 航班选项 ---- */
+.flights{ display:grid; gap:.65rem; }
+.flight{
+  position:relative;
+  display:grid;
+  grid-template-columns:auto minmax(0,1fr) auto;
+  gap:1rem;
+  align-items:center;
+  padding:.9rem 1rem;
+  border:1px solid var(--hair-2);
+  border-radius:var(--r-md);
+  cursor:pointer;
+  transition:border-color .16s var(--ease), background-color .16s var(--ease);
+}
+.flight:hover{ background:var(--paper-3); }
+.flight input{ position:absolute; opacity:0; pointer-events:none; }
+.flight__mark{
+  width:20px; height:20px; flex:0 0 auto;
+  border:1.5px solid var(--hair-2);
+  border-radius:50%;
+  position:relative;
+}
+.flight:has(input:checked){ border-color:var(--navy); background:#f5f8fc; box-shadow:inset 0 0 0 1px var(--navy); }
+.flight:has(input:checked) .flight__mark{ border-color:var(--navy); }
+.flight:has(input:checked) .flight__mark::after{
+  content:""; position:absolute; inset:4px; border-radius:50%; background:var(--navy);
+}
+.flight:has(input:focus-visible){ outline:2px solid var(--navy); outline-offset:2px; }
+.flight__main{ min-width:0; }
+.flight__time{
+  display:flex; align-items:baseline; gap:.6rem;
+  font-family:var(--mono); font-variant-numeric:tabular-nums;
+  font-size:1.125rem; font-weight:640;
+}
+.flight__time em{
+  font-style:normal; font-size:.75rem; font-weight:400; color:var(--ink-3);
+  letter-spacing:.04em;
+}
+.flight__meta{ font-size:.8125rem; color:var(--ink-2); margin-top:.15rem; }
+.flight__price{
+  font-family:var(--mono); font-variant-numeric:tabular-nums;
+  font-size:1.125rem; font-weight:660; color:var(--navy); white-space:nowrap;
+}
+.flight__price small{ font-size:.6875rem; font-weight:400; color:var(--ink-3); display:block; text-align:right; }
+
+/* ---- 座位偏好 ---- */
+.seats{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:.5rem; }
+.seat{
+  position:relative;
+  min-height:52px;
+  display:flex; align-items:center; justify-content:center;
+  border:1px solid var(--hair-2);
+  border-radius:var(--r-md);
+  cursor:pointer;
+  font-size:.9375rem;
+  transition:border-color .16s var(--ease), background-color .16s var(--ease);
+}
+.seat input{ position:absolute; opacity:0; pointer-events:none; }
+.seat:hover{ background:var(--paper-3); }
+.seat:has(input:checked){ border-color:var(--navy); background:#f5f8fc; box-shadow:inset 0 0 0 1px var(--navy); font-weight:600; }
+.seat:has(input:focus-visible){ outline:2px solid var(--navy); outline-offset:2px; }
+
+/* ---- 确认摘要 ---- */
+.review{ border:1px solid var(--hair); border-radius:var(--r-md); overflow:hidden; }
+.review dl{ display:grid; }
+.review .r{
+  display:grid;
+  grid-template-columns:minmax(0,9em) minmax(0,1fr);
+  gap:1rem;
+  padding:.7rem 1rem;
+  border-bottom:1px solid var(--hair);
+}
+.review .r:last-child{ border-bottom:0; }
+.review dt{ font-size:.8125rem; color:var(--ink-3); }
+.review dd{ font-size:.9375rem; font-family:var(--mono); font-variant-numeric:tabular-nums; overflow-wrap:anywhere; }
+.review .r--total{ background:var(--paper-3); }
+.review .r--total dd{ font-size:1.125rem; font-weight:680; color:var(--navy); }
+
+.agree{
+  display:flex; gap:.7rem; align-items:flex-start;
+  margin-top:1.2rem;
+  padding:.85rem 1rem;
+  border:1px solid var(--hair-2);
+  border-radius:var(--r-md);
+  cursor:pointer;
+  font-size:.875rem;
+  line-height:1.55;
+}
+.agree input{ width:20px; height:20px; margin-top:2px; flex:0 0 auto; accent-color:var(--navy); }
+.agree[data-invalid="true"]{ border-color:var(--err); background:var(--err-bg); }
+
+/* ---- 导航 ---- */
+.nav{
+  display:flex; gap:.7rem; align-items:center; flex-wrap:wrap;
+  margin-top:1.6rem;
+  padding-top:1.3rem;
+  border-top:1px solid var(--hair);
+}
+.nav__spacer{ flex:1 1 auto; }
+.btn{
+  position:relative;
+  min-height:50px;
+  display:inline-flex; align-items:center; justify-content:center; gap:.6ch;
+  padding:0 1.5rem;
+  border:1px solid var(--hair-2);
+  border-radius:var(--r-md);
+  background:var(--paper-2);
+  color:var(--ink);
+  font:inherit; font-size:1rem; font-weight:560;
+  cursor:pointer;
+  transition:background-color .16s var(--ease), border-color .16s var(--ease), translate .08s var(--ease);
+}
+.btn:hover{ background:var(--paper-3); }
+.btn:active{ translate:0 1px; }
+.btn--primary{
+  background:var(--navy); border-color:var(--navy); color:#fff; font-weight:620;
+  padding-inline:1.9rem;
+}
+.btn--primary:hover{ background:var(--navy-2); border-color:var(--navy-2); }
+.btn--primary:focus-visible{ outline-color:var(--navy-ink); outline-offset:3px; }
+.btn[disabled],.btn[aria-disabled="true"]{ opacity:.45; cursor:not-allowed; pointer-events:none; }
+.btn[data-state="loading"]{ color:transparent; pointer-events:none; }
+.btn[data-state="loading"]::after{
+  content:"";
+  position:absolute; inset:0; margin:auto;
+  width:1.1em; height:1.1em;
+  border-radius:50%;
+  border:2px solid rgba(255,255,255,.42);
+  border-top-color:#fff;
+  animation:spin .68s linear infinite;
+}
+@keyframes spin{ to{ rotate:360deg; } }
+
+/* 表单级错误汇总 */
+.summary{
+  display:none;
+  margin-bottom:1.2rem;
+  padding:.85rem 1rem;
+  border:1px solid var(--err);
+  background:var(--err-bg);
+  border-radius:var(--r-md);
+  color:var(--err);
+  font-size:.875rem;
+}
+.summary[data-on="true"]{ display:block; }
+.summary b{ display:block; margin-bottom:.3rem; font-size:.9375rem; }
+.summary a{ color:inherit; }
+
+/* ==========================================================================
+   成功态
+   ========================================================================== */
+.done{ text-align:center; padding:1.2rem 0 .4rem; }
+.tick{
+  width:76px; height:76px;
+  margin:0 auto 1.2rem;
+  border-radius:50%;
+  background:var(--ok-bg);
+  border:2px solid var(--ok);
+  display:grid; place-items:center;
+  animation:tickPop .46s cubic-bezier(.2,1.35,.42,1) both;
+}
+@keyframes tickPop{ from{ opacity:0; scale:.72; } to{ opacity:1; scale:1; } }
+.tick i{
+  display:block;
+  width:26px; height:14px;
+  border:solid var(--ok);
+  border-width:0 0 3px 3px;
+  rotate:-45deg;
+  translate:0 -3px;
+  transform-origin:center;
+  animation:tickDraw .34s var(--ease) .3s both;
+}
+@keyframes tickDraw{
+  from{ clip-path:inset(0 100% 0 0); }
+  to  { clip-path:inset(0 0 0 0); }
+}
+.done h2{ margin-bottom:.4rem; }
+.done p{ color:var(--ink-2); font-size:.9375rem; max-width:44ch; margin-inline:auto; text-wrap:pretty; }
+.done__code{
+  display:inline-block;
+  margin:1.1rem 0 1.3rem;
+  padding:.55rem 1.1rem;
+  background:var(--paper-3);
+  border:1px dashed var(--hair-2);
+  border-radius:var(--r-md);
+  font-family:var(--mono);
+  font-size:1.25rem;
+  font-weight:680;
+  letter-spacing:.18em;
+}
+
+.demo-note{
+  margin-top:.9rem;
+  font-size:.75rem;
+  color:var(--ink-3);
+  line-height:1.6;
+}
+
+/* ==========================================================================
+   降低动效
+   ========================================================================== */
+@media (prefers-reduced-motion:reduce){
+  .pf__cell dd.is-fresh,
+  .pass[data-done="true"] .pass__body,
+  .pass[data-done="true"] .pass__stub{ animation:none; }
+  .pass[data-done="true"] .stamp{ animation:none; opacity:.92; }
+  .tick{ animation:none; }
+  .tick i{ animation:none; }
+  .btn[data-state="loading"]::after{ animation-duration:2.4s; }
+  .btn,.control,.step,.flight,.seat{ transition-duration:.01ms; }
+}
+
+/* ==========================================================================
+   响应式
+   ========================================================================== */
+@media (max-width:960px){
+  .wrap{ grid-template-columns:minmax(0,1fr); }
+  .pass{ position:static; order:2; }
+  .flow{ order:1; }
+}
+@media (max-width:560px){
+  .grid2{ grid-template-columns:minmax(0,1fr); }
+  .steps{ grid-template-columns:minmax(0,1fr); gap:.4rem; }
+  .step{ display:flex; align-items:center; gap:.7rem; padding:.6rem .8rem; }
+  .step__n{ margin-bottom:0; }
+  .flight{ grid-template-columns:auto minmax(0,1fr); }
+  .flight__price{ grid-column:2; text-align:left; }
+  .flight__price small{ text-align:left; }
+  .seats{ grid-template-columns:minmax(0,1fr); }
+  .nav .btn{ flex:1 1 100%; }
+  .nav__spacer{ display:none; }
+}
+</style>
+</head>
+<body>
+
+<!-- ==================== 顶栏 ==================== -->
+<header class="topbar">
+  <div class="topbar__in">
+    <span class="logo">云程航空 <span>Yuncheng Air</span></span>
+    <div class="route" aria-live="polite">
+      <b id="rFrom">PEK</b>
+      <i aria-hidden="true"></i>
+      <b id="rTo">CAN</b>
+      <small id="rDate">出发日期待选</small>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <!-- ==================== 左：凭证 ==================== -->
+  <aside class="pass" id="pass" data-done="false" aria-labelledby="passTitle">
+    <div class="pass__head">
+      <b id="passTitle">登机凭证</b>
+      <span id="passState">填写中</span>
+    </div>
+
+    <div class="pass__body">
+      <div class="stamp" aria-hidden="true">已出票</div>
+
+      <dl class="pf">
+        <div class="pf__row">
+          <div class="pf__cell"><dt>出发</dt><dd id="pFrom" data-empty="false">PEK 北京</dd></div>
+          <div class="pf__cell"><dt>到达</dt><dd id="pTo" data-empty="false">CAN 广州</dd></div>
+        </div>
+        <div class="pf__row">
+          <div class="pf__cell"><dt>日期</dt><dd id="pDate" data-empty="true">— — —</dd></div>
+          <div class="pf__cell"><dt>航班</dt><dd id="pFlight" data-empty="true">— — —</dd></div>
+        </div>
+        <div class="pf__row">
+          <div class="pf__cell"><dt>起飞</dt><dd id="pDep" data-empty="true">--:--</dd></div>
+          <div class="pf__cell"><dt>落地</dt><dd id="pArr" data-empty="true">--:--</dd></div>
+        </div>
+        <div class="pf__row">
+          <div class="pf__cell pf__cell--wide"><dt>乘机人</dt><dd id="pName" data-empty="true">— — —</dd></div>
+        </div>
+        <div class="pf__row">
+          <div class="pf__cell pf__cell--wide"><dt>证件号码</dt><dd id="pId" data-empty="true">— — —</dd></div>
+        </div>
+      </dl>
+    </div>
+
+    <div class="perf" aria-hidden="true"></div>
+
+    <div class="pass__stub">
+      <dl class="stub-grid">
+        <div><dt>座位偏好</dt><dd id="pSeat">—</dd></div>
+        <div><dt>票价</dt><dd id="pPrice">—</dd></div>
+        <div><dt>订单号</dt><dd id="pPnr">—</dd></div>
+      </dl>
+      <p class="pass__note">
+        航班时刻、机型与票价为演示数据，不代表真实运营信息。
+        证件与手机号仅在浏览器本地校验，不会发送到任何服务器。
+      </p>
+    </div>
+  </aside>
+
+  <!-- ==================== 右：流程 ==================== -->
+  <main class="flow">
+
+    <nav class="steps" id="steps" aria-label="预订步骤">
+      <button class="step" type="button" data-step="1" aria-current="step">
+        <span class="step__n">1</span><span class="step__t">选择航班</span>
+      </button>
+      <button class="step" type="button" data-step="2">
+        <span class="step__n">2</span><span class="step__t">乘机人信息</span>
+      </button>
+      <button class="step" type="button" data-step="3">
+        <span class="step__n">3</span><span class="step__t">确认与出票</span>
+      </button>
+    </nav>
+
+    <form class="panel" id="form" novalidate>
+
+      <div class="summary" id="errSummary" tabindex="-1" role="alert" data-on="false"></div>
+
+      <!-- ---------- 步骤 1 ---------- -->
+      <section class="pane" id="pane1" aria-labelledby="h1">
+        <h2 id="h1">选择航班</h2>
+        <p class="panel__lede">先定航段和日期，再从当日班次里挑一班。</p>
+
+        <div class="grid2">
+          <div class="field">
+            <label for="from">出发城市<span class="req" aria-hidden="true">*</span></label>
+            <select class="control" id="from" name="from" required></select>
+            <p class="msg" id="from-msg" aria-live="polite"></p>
+          </div>
+
+          <div class="field">
+            <label for="to">到达城市<span class="req" aria-hidden="true">*</span></label>
+            <select class="control" id="to" name="to" required></select>
+            <p class="msg" id="to-msg" aria-live="polite"></p>
+          </div>
+
+          <div class="field field--wide">
+            <label for="date">出发日期<span class="req" aria-hidden="true">*</span></label>
+            <input class="control" id="date" name="date" type="date" required
+                   aria-describedby="date-msg date-hint">
+            <span class="hint" id="date-hint">可选范围为今天起 180 天内。</span>
+            <p class="msg" id="date-msg" aria-live="polite"></p>
+          </div>
+        </div>
+
+        <fieldset style="margin-top:1.4rem">
+          <legend class="u-sr">当日航班</legend>
+          <p style="font-size:.875rem;font-weight:560;margin-bottom:.6rem">
+            当日班次<span class="req" aria-hidden="true">*</span>
+          </p>
+          <div class="flights" id="flights" role="radiogroup" aria-labelledby="h1"></div>
+          <p class="msg" id="flight-msg" aria-live="polite"></p>
+        </fieldset>
+      </section>
+
+      <!-- ---------- 步骤 2 ---------- -->
+      <section class="pane" id="pane2" aria-labelledby="h2t" hidden>
+        <h2 id="h2t">乘机人信息</h2>
+        <p class="panel__lede">姓名须与所用证件完全一致，否则无法通过安检核验。</p>
+
+        <div class="grid2">
+          <div class="field field--wide">
+            <label for="name">乘机人姓名<span class="req" aria-hidden="true">*</span></label>
+            <input class="control" id="name" name="name" type="text" required
+                   autocomplete="name" aria-describedby="name-msg name-hint">
+            <span class="hint" id="name-hint">中文填全名；英文姓名请按证件顺序填写。</span>
+            <p class="msg" id="name-msg" aria-live="polite"></p>
+          </div>
+
+          <div class="field">
+            <label for="idtype">证件类型<span class="req" aria-hidden="true">*</span></label>
+            <select class="control" id="idtype" name="idtype" required>
+              <option value="id">居民身份证</option>
+              <option value="passport">护照</option>
+            </select>
+            <p class="msg" id="idtype-msg" aria-live="polite"></p>
+          </div>
+
+          <div class="field">
+            <label for="idno">证件号码<span class="req" aria-hidden="true">*</span></label>
+            <input class="control" id="idno" name="idno" type="text" required
+                   inputmode="text" autocomplete="off" spellcheck="false"
+                   aria-describedby="idno-msg idno-hint">
+            <span class="hint" id="idno-hint">18 位身份证，含校验位。</span>
+            <p class="msg" id="idno-msg" aria-live="polite"></p>
+          </div>
+
+          <div class="field">
+            <label for="phone">手机号<span class="req" aria-hidden="true">*</span></label>
+            <input class="control" id="phone" name="phone" type="tel" required
+                   inputmode="numeric" autocomplete="tel" maxlength="13"
+                   aria-describedby="phone-msg phone-hint">
+            <span class="hint" id="phone-hint">用于接收值机与变更通知。</span>
+            <p class="msg" id="phone-msg" aria-live="polite"></p>
+          </div>
+
+          <div class="field">
+            <label for="email">邮箱<span class="hint" style="font-weight:400"> （选填）</span></label>
+            <input class="control" id="email" name="email" type="email"
+                   autocomplete="email" aria-describedby="email-msg">
+            <p class="msg" id="email-msg" aria-live="polite"></p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ---------- 步骤 3 ---------- -->
+      <section class="pane" id="pane3" aria-labelledby="h3t" hidden>
+        <h2 id="h3t">确认与出票</h2>
+        <p class="panel__lede">核对下面的信息，确认无误后提交。提交后姓名与证件号不可自助修改。</p>
+
+        <div class="review">
+          <dl>
+            <div class="r"><dt>航段</dt><dd id="vRoute">—</dd></div>
+            <div class="r"><dt>日期</dt><dd id="vDate">—</dd></div>
+            <div class="r"><dt>航班</dt><dd id="vFlight">—</dd></div>
+            <div class="r"><dt>乘机人</dt><dd id="vName">—</dd></div>
+            <div class="r"><dt>证件</dt><dd id="vId">—</dd></div>
+            <div class="r"><dt>手机号</dt><dd id="vPhone">—</dd></div>
+            <div class="r r--total"><dt>应付票价</dt><dd id="vTotal">—</dd></div>
+          </dl>
+        </div>
+
+        <fieldset style="margin-top:1.3rem">
+          <legend style="font-size:.875rem;font-weight:560;margin-bottom:.6rem">座位偏好</legend>
+          <div class="seats">
+            <label class="seat"><input type="radio" name="seat" value="靠窗" checked>靠窗</label>
+            <label class="seat"><input type="radio" name="seat" value="过道">过道</label>
+            <label class="seat"><input type="radio" name="seat" value="不限">不限</label>
+          </div>
+        </fieldset>
+
+        <label class="agree" id="agreeBox">
+          <input type="checkbox" id="agree" aria-describedby="agree-msg">
+          <span>我确认姓名与证件号码同证件一致，并已阅读运输条件与退改签规则。</span>
+        </label>
+        <p class="msg" id="agree-msg" aria-live="polite"></p>
+      </section>
+
+      <!-- ---------- 成功态 ---------- -->
+      <section class="pane done" id="pane4" aria-labelledby="h4t" hidden>
+        <div class="tick" aria-hidden="true"><i></i></div>
+        <h2 id="h4t">出票成功</h2>
+        <p>行程单已按你填写的方式发出。凭订单号与证件即可在值机柜台或自助机换取登机牌。</p>
+        <div class="done__code" id="doneCode">—</div>
+        <div>
+          <button class="btn" type="button" id="btnRestart">再订一程</button>
+        </div>
+        <p class="demo-note">这是演示流程，未产生任何真实订单或扣款。</p>
+      </section>
+
+      <!-- ---------- 导航 ---------- -->
+      <div class="nav" id="nav">
+        <button class="btn" type="button" id="btnBack" aria-disabled="true">上一步</button>
+        <span class="nav__spacer"></span>
+        <button class="btn btn--primary" type="button" id="btnNext" data-state="idle">下一步</button>
+      </div>
+
+    </form>
+  </main>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  function $(id){ return document.getElementById(id); }
+
+  /* ======================================================================
+     数据（演示用）
+     ====================================================================== */
+  var CITIES = [
+    { code:'PEK', name:'北京 首都' },
+    { code:'SHA', name:'上海 虹桥' },
+    { code:'CAN', name:'广州 白云' },
+    { code:'SZX', name:'深圳 宝安' },
+    { code:'TFU', name:'成都 天府' },
+    { code:'XIY', name:'西安 咸阳' }
+  ];
+
+  /* 依据航段与日期生成稳定的班次列表（同样输入 → 同样结果） */
+  function hashStr(s){
+    var h = 2166136261;
+    for (var i=0;i<s.length;i++){ h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); }
+    return (h >>> 0);
+  }
+  function buildFlights(from, to, date){
+    if (!from || !to || !date || from === to) return [];
+    var seed = hashStr(from + to + date);
+    var models = ['A320neo','B737-800','A321neo','B787-9'];
+    var deps = [7*60+20, 10*60+5, 13*60+40, 17*60+15, 20*60+50];
+    var out = [];
+    for (var i=0;i<deps.length;i++){
+      var r = (seed >> (i*3)) & 0xff;
+      var dur = 130 + (r % 65);                       // 分钟
+      var dep = deps[i] + (r % 7);
+      var arr = dep + dur;
+      out.push({
+        no: 'YC' + (1200 + ((seed + i*97) % 700)),
+        dep: dep, arr: arr, dur: dur,
+        model: models[(r >> 2) % models.length],
+        price: 620 + ((seed >> (i*2)) % 18) * 55,
+        cross: arr >= 24*60
+      });
+    }
+    return out;
+  }
+  function hhmm(min){
+    var m = ((min % 1440) + 1440) % 1440;
+    return String(Math.floor(m/60)).padStart(2,'0') + ':' + String(m%60).padStart(2,'0');
+  }
+
+  /* ======================================================================
+     校验器
+     ====================================================================== */
+  var ID_WEIGHT = [7,9,10,5,8,4,2,1,6,3,7,9,10,5,8,4,2];
+  var ID_CHECK  = ['1','0','X','9','8','7','6','5','4','3','2'];
+  var PROVINCE = {
+    11:1,12:1,13:1,14:1,15:1,21:1,22:1,23:1,31:1,32:1,33:1,34:1,35:1,36:1,37:1,
+    41:1,42:1,43:1,44:1,45:1,46:1,50:1,51:1,52:1,53:1,54:1,
+    61:1,62:1,63:1,64:1,65:1,71:1,81:1,82:1
+  };
+
+  function validateIdCard(raw){
+    var v = String(raw || '').trim().toUpperCase().replace(/\s/g,'');
+    if (!v) return '请填写证件号码。';
+    if (v.length !== 18) return '身份证号应为 18 位，当前 ' + v.length + ' 位。';
+    if (!/^\d{17}[\dX]$/.test(v)) return '前 17 位须为数字，末位为数字或字母 X。';
+
+    if (!PROVINCE[parseInt(v.slice(0,2),10)]) return '前两位不是有效的省级行政区代码。';
+
+    var y = +v.slice(6,10), m = +v.slice(10,12), d = +v.slice(12,14);
+    var now = new Date();
+    if (y < 1900 || y > now.getFullYear()) return '出生年份不合理。';
+    if (m < 1 || m > 12) return '出生月份不合理。';
+    var dim = new Date(y, m, 0).getDate();
+    if (d < 1 || d > dim) return '出生日期不存在（' + y + ' 年 ' + m + ' 月只有 ' + dim + ' 天）。';
+    var birth = new Date(y, m-1, d);
+    if (birth > now) return '出生日期晚于今天。';
+
+    var sum = 0;
+    for (var i=0;i<17;i++) sum += (+v[i]) * ID_WEIGHT[i];
+    if (ID_CHECK[sum % 11] !== v[17]) {
+      return '校验位不正确，末位应为 ' + ID_CHECK[sum % 11] + '。';
+    }
+    return '';
+  }
+
+  function validatePassport(raw){
+    var v = String(raw || '').trim().toUpperCase().replace(/\s/g,'');
+    if (!v) return '请填写证件号码。';
+    if (!/^[A-Z0-9]{6,12}$/.test(v)) return '护照号应为 6 至 12 位字母或数字。';
+    return '';
+  }
+
+  function validatePhone(raw){
+    var v = String(raw || '').replace(/[\s-]/g,'');
+    if (!v) return '请填写手机号。';
+    if (!/^\d+$/.test(v)) return '手机号只能包含数字。';
+    if (v.length !== 11) return '手机号应为 11 位，当前 ' + v.length + ' 位。';
+    if (!/^1[3-9]/.test(v)) return '号段不正确，内地手机号以 1 开头且第二位为 3 至 9。';
+    return '';
+  }
+
+  function validateName(raw){
+    var v = String(raw || '').trim();
+    if (!v) return '请填写乘机人姓名。';
+    if (/^[一-龥·]+$/.test(v)) {
+      if (v.length < 2) return '中文姓名至少 2 个字。';
+      if (v.length > 15) return '中文姓名过长。';
+      return '';
+    }
+    if (/^[A-Za-z][A-Za-z\s/]*[A-Za-z]$/.test(v)) {
+      if (v.replace(/[^A-Za-z]/g,'').length < 2) return '英文姓名过短。';
+      return '';
+    }
+    return '姓名只能是中文，或字母与空格组成的英文拼写。';
+  }
+
+  function validateEmail(raw){
+    var v = String(raw || '').trim();
+    if (!v) return '';                                   // 选填
+    if (!/^[^\s@]+@[^\s@]+\.[A-Za-z]{2,}$/.test(v)) return '邮箱格式不正确。';
+    return '';
+  }
+
+  function todayStr(){
+    var d = new Date();
+    return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+  }
+  function validateDate(raw){
+    if (!raw) return '请选择出发日期。';
+    var t = todayStr();
+    if (raw < t) return '出发日期不能早于今天。';
+    var max = new Date(); max.setDate(max.getDate() + 180);
+    var maxStr = max.getFullYear() + '-' + String(max.getMonth()+1).padStart(2,'0') + '-' + String(max.getDate()).padStart(2,'0');
+    if (raw > maxStr) return '暂只开放今天起 180 天内的航班。';
+    return '';
+  }
+
+  /* ======================================================================
+     状态
+     ====================================================================== */
+  var state = {
+    step: 1,
+    maxReached: 1,
+    flight: null,
+    touched: {},
+    submitting: false,
+    finished: false
+  };
+
+  var FIELDS = {
+    1: ['from','to','date','flight'],
+    2: ['name','idtype','idno','phone','email'],
+    3: ['agree']
+  };
+
+  /* ======================================================================
+     初始化控件
+     ====================================================================== */
+  (function initCities(){
+    var f = $('from'), t = $('to');
+    CITIES.forEach(function(c){
+      var o1 = document.createElement('option');
+      o1.value = c.code; o1.textContent = c.code + '　' + c.name;
+      f.appendChild(o1);
+      var o2 = o1.cloneNode(true);
+      t.appendChild(o2);
+    });
+    f.value = 'PEK';
+    t.value = 'CAN';
+    var d = $('date');
+    d.min = todayStr();
+    var max = new Date(); max.setDate(max.getDate() + 180);
+    d.max = max.getFullYear() + '-' + String(max.getMonth()+1).padStart(2,'0') + '-' + String(max.getDate()).padStart(2,'0');
+  })();
+
+  /* ======================================================================
+     校验分发
+     ====================================================================== */
+  function errorOf(field){
+    switch (field){
+      case 'from':
+        if (!$('from').value) return '请选择出发城市。';
+        if ($('from').value === $('to').value) return '出发与到达城市不能相同。';
+        return '';
+      case 'to':
+        if (!$('to').value) return '请选择到达城市。';
+        if ($('from').value === $('to').value) return '出发与到达城市不能相同。';
+        return '';
+      case 'date':   return validateDate($('date').value);
+      case 'flight': return state.flight ? '' : '请选择一个班次。';
+      case 'name':   return validateName($('name').value);
+      case 'idtype': return $('idtype').value ? '' : '请选择证件类型。';
+      case 'idno':
+        return $('idtype').value === 'passport'
+          ? validatePassport($('idno').value)
+          : validateIdCard($('idno').value);
+      case 'phone':  return validatePhone($('phone').value);
+      case 'email':  return validateEmail($('email').value);
+      case 'agree':  return $('agree').checked ? '' : '需要勾选确认后才能出票。';
+      default: return '';
+    }
+  }
+
+  var OK_TEXT = {
+    idno: '证件号码校验通过。',
+    phone: '手机号格式正确。',
+    name: '姓名格式正确。',
+    email: '邮箱格式正确。'
+  };
+
+  function paintField(field){
+    var msg = $(field + '-msg');
+    var ctl = $(field);
+    var err = errorOf(field);
+    var touched = !!state.touched[field];
+
+    if (field === 'flight'){
+      if (msg) { msg.textContent = touched ? err : ''; msg.dataset.tone = 'err'; }
+      return !err;
+    }
+    if (field === 'agree'){
+      if (msg) { msg.textContent = touched ? err : ''; msg.dataset.tone = 'err'; }
+      $('agreeBox').dataset.invalid = String(touched && !!err);
+      $('agree').setAttribute('aria-invalid', String(touched && !!err));
+      return !err;
+    }
+
+    if (!ctl) return !err;
+
+    if (!touched){
+      msg.textContent = '';
+      ctl.removeAttribute('aria-invalid');
+      ctl.removeAttribute('data-valid');
+      return !err;
+    }
+
+    if (err){
+      msg.textContent = err;
+      msg.dataset.tone = 'err';
+      ctl.setAttribute('aria-invalid','true');
+      ctl.removeAttribute('data-valid');
+    } else {
+      var hasValue = String(ctl.value || '').trim() !== '';
+      if (hasValue && OK_TEXT[field]){
+        msg.textContent = OK_TEXT[field];
+        msg.dataset.tone = 'ok';
+      } else {
+        msg.textContent = '';
+      }
+      ctl.setAttribute('aria-invalid','false');
+      if (hasValue) ctl.setAttribute('data-valid','true');
+    }
+    return !err;
+  }
+
+  function paintStep(step){
+    var ok = true;
+    FIELDS[step].forEach(function(f){ if (!paintField(f)) ok = false; });
+    return ok;
+  }
+
+  function stepValid(step){
+    return FIELDS[step].every(function(f){ return !errorOf(f); });
+  }
+
+  /* ======================================================================
+     凭证同步
+     ====================================================================== */
+  function setPass(id, value, empty){
+    var el = $(id);
+    var next = empty ? value : value;
+    if (el.textContent === next && el.dataset.empty === String(!!empty)) return;
+    el.textContent = next;
+    el.dataset.empty = String(!!empty);
+    if (!empty){
+      el.classList.remove('is-fresh');
+      void el.offsetWidth;
+      el.classList.add('is-fresh');
+    }
+  }
+
+  function cityLabel(code){
+    var c = CITIES.filter(function(x){ return x.code === code; })[0];
+    return c ? (c.code + ' ' + c.name.split(' ')[0]) : '—';
+  }
+
+  function syncPass(){
+    var from = $('from').value, to = $('to').value, date = $('date').value;
+
+    $('rFrom').textContent = from || '---';
+    $('rTo').textContent = to || '---';
+    $('rDate').textContent = date ? date.replace(/-/g,'.') : '出发日期待选';
+
+    setPass('pFrom', from ? cityLabel(from) : '— — —', !from);
+    setPass('pTo',   to ? cityLabel(to) : '— — —', !to);
+    setPass('pDate', date ? date.replace(/-/g,'.') : '— — —', !date);
+
+    var f = state.flight;
+    setPass('pFlight', f ? f.no : '— — —', !f);
+    setPass('pDep', f ? hhmm(f.dep) : '--:--', !f);
+    setPass('pArr', f ? hhmm(f.arr) + (f.cross ? '+1' : '') : '--:--', !f);
+
+    var nm = $('name').value.trim();
+    setPass('pName', nm || '— — —', !nm);
+
+    var idv = $('idno').value.trim().toUpperCase();
+    var idOk = !errorOf('idno') && idv;
+    setPass('pId', idOk ? maskId(idv) : (idv ? idv : '— — —'), !idv);
+
+    var seat = document.querySelector('input[name="seat"]:checked');
+    $('pSeat').textContent = state.step >= 3 && seat ? seat.value : '—';
+    $('pPrice').textContent = f ? ('¥' + f.price) : '—';
+  }
+
+  function maskId(v){
+    if (v.length !== 18) return v;
+    return v.slice(0,6) + '********' + v.slice(14);
+  }
+
+  /* ======================================================================
+     航班列表
+     ====================================================================== */
+  function renderFlights(){
+    var host = $('flights');
+    var from = $('from').value, to = $('to').value, date = $('date').value;
+    var list = buildFlights(from, to, date);
+
+    host.textContent = '';
+    state.flight = null;
+
+    if (!list.length){
+      var p = document.createElement('p');
+      p.style.cssText = 'font-size:.875rem;color:#7c8b98;padding:.9rem 0';
+      p.textContent = (from === to)
+        ? '出发与到达城市相同，请先改一个。'
+        : '选好城市与日期后，这里会列出当日班次。';
+      host.appendChild(p);
+      syncPass();
+      return;
+    }
+
+    list.forEach(function(f, i){
+      var label = document.createElement('label');
+      label.className = 'flight';
+
+      var input = document.createElement('input');
+      input.type = 'radio'; input.name = 'flight'; input.value = f.no;
+
+      var mark = document.createElement('span');
+      mark.className = 'flight__mark';
+
+      var main = document.createElement('span');
+      main.className = 'flight__main';
+
+      var time = document.createElement('span');
+      time.className = 'flight__time';
+      time.innerHTML = '<span>' + hhmm(f.dep) + '</span>' +
+                       '<em>→</em><span>' + hhmm(f.arr) +
+                       (f.cross ? '<em>+1</em>' : '') + '</span>';
+
+      var meta = document.createElement('span');
+      meta.className = 'flight__meta';
+      meta.textContent = f.no + ' · ' + f.model + ' · 飞行 ' +
+                         Math.floor(f.dur/60) + ' 小时 ' + (f.dur%60) + ' 分';
+
+      main.appendChild(time); main.appendChild(meta);
+
+      var price = document.createElement('span');
+      price.className = 'flight__price';
+      price.innerHTML = '¥' + f.price + '<small>经济舱 含税</small>';
+
+      label.appendChild(input);
+      label.appendChild(mark);
+      label.appendChild(main);
+      label.appendChild(price);
+
+      input.addEventListener('change', function(){
+        state.flight = f;
+        state.touched.flight = true;
+        paintField('flight');
+        syncPass();
+        refreshNav();
+      });
+
+      host.appendChild(label);
+      if (i === 0) { /* 不预选，逼用户明确选择 */ }
+    });
+
+    paintField('flight');
+    syncPass();
+  }
+
+  /* ======================================================================
+     步骤切换
+     ====================================================================== */
+  function showStep(n){
+    state.step = n;
+    for (var i=1;i<=4;i++){
+      var pane = $('pane' + i);
+      if (pane) pane.hidden = (i !== n);
+    }
+    $('nav').hidden = (n === 4);
+
+    Array.prototype.forEach.call($('steps').children, function(btn){
+      var s = +btn.dataset.step;
+      var done = state.finished ? true : (s < n);
+      btn.setAttribute('aria-current', s === n && !state.finished ? 'step' : 'false');
+      btn.dataset.done = String(done);
+      var clickable = !state.finished && s < n;
+      btn.dataset.clickable = String(clickable);
+      btn.setAttribute('aria-disabled', String(!clickable && s !== n));
+    });
+
+    $('passState').textContent = state.finished ? '已出票' : (n === 3 ? '待确认' : '填写中');
+
+    if (n === 3) fillReview();
+    refreshNav();
+    syncPass();
+  }
+
+  function refreshNav(){
+    $('btnBack').setAttribute('aria-disabled', String(state.step === 1 || state.submitting));
+    var next = $('btnNext');
+    next.textContent = (state.step === 3) ? '确认出票' : '下一步';
+    next.setAttribute('aria-disabled', String(state.submitting));
+  }
+
+  function fillReview(){
+    var f = state.flight;
+    $('vRoute').textContent = cityLabel($('from').value) + ' → ' + cityLabel($('to').value);
+    $('vDate').textContent = $('date').value.replace(/-/g,'.');
+    $('vFlight').textContent = f ? (f.no + '　' + hhmm(f.dep) + '–' + hhmm(f.arr) + (f.cross?'+1':'') + '　' + f.model) : '—';
+    $('vName').textContent = $('name').value.trim();
+    $('vId').textContent = ($('idtype').value === 'passport' ? '护照 ' : '身份证 ') +
+                           maskId($('idno').value.trim().toUpperCase());
+    $('vPhone').textContent = $('phone').value.replace(/(\d{3})(\d{4})(\d{4})/, '$1 $2 $3');
+    $('vTotal').textContent = f ? ('¥' + f.price + '.00') : '—';
+  }
+
+  function showErrSummary(step){
+    var box = $('errSummary');
+    var bad = FIELDS[step].filter(function(f){ return errorOf(f); });
+    if (!bad.length){ box.dataset.on = 'false'; box.textContent = ''; return null; }
+
+    box.textContent = '';
+    var b = document.createElement('b');
+    b.textContent = '还有 ' + bad.length + ' 处需要修正：';
+    box.appendChild(b);
+    var ul = document.createElement('ul');
+    bad.forEach(function(f){
+      var li = document.createElement('li');
+      li.textContent = '· ' + errorOf(f);
+      ul.appendChild(li);
+    });
+    box.appendChild(ul);
+    box.dataset.on = 'true';
+    return bad[0];
+  }
+
+  /* ======================================================================
+     事件
+     ====================================================================== */
+  ['from','to','date','name','idtype','idno','phone','email'].forEach(function(f){
+    var el = $(f);
+    el.addEventListener('blur', function(){
+      state.touched[f] = true;
+      paintField(f);
+      if (f === 'from' || f === 'to') { paintField('from'); paintField('to'); }
+      syncPass();
+    });
+    el.addEventListener('input', function(){
+      if (state.touched[f]) paintField(f);        // 已碰过才实时报错，避免边打边红
+      if (f === 'from' || f === 'to' || f === 'date') renderFlights();
+      syncPass();
+      refreshNav();
+    });
+    el.addEventListener('change', function(){
+      if (f === 'from' || f === 'to' || f === 'date'){
+        state.touched[f] = true;
+        paintField('from'); paintField('to'); paintField('date');
+        renderFlights();
+      }
+      if (f === 'idtype'){
+        $('idno-hint').textContent = el.value === 'passport'
+          ? '护照号 6 至 12 位字母或数字。'
+          : '18 位身份证，含校验位。';
+        if (state.touched.idno) paintField('idno');
+      }
+      syncPass();
+    });
+  });
+
+  $('agree').addEventListener('change', function(){
+    state.touched.agree = true;
+    paintField('agree');
+  });
+
+  document.querySelectorAll('input[name="seat"]').forEach(function(r){
+    r.addEventListener('change', syncPass);
+  });
+
+  $('btnBack').addEventListener('click', function(){
+    if (state.step > 1) showStep(state.step - 1);
+  });
+
+  $('steps').addEventListener('click', function(e){
+    var b = e.target.closest('.step');
+    if (!b || b.dataset.clickable !== 'true') return;
+    showStep(+b.dataset.step);
+  });
+
+  $('btnNext').addEventListener('click', function(){
+    if (state.submitting) return;
+    var step = state.step;
+
+    FIELDS[step].forEach(function(f){ state.touched[f] = true; });
+    paintStep(step);
+
+    if (!stepValid(step)){
+      var first = showErrSummary(step);
+      var target = $(first) || $('errSummary');
+      $('errSummary').focus();
+      if (target && target.focus && first !== 'flight'){
+        setTimeout(function(){ target.focus(); }, 0);
+      }
+      return;
+    }
+
+    $('errSummary').dataset.on = 'false';
+    $('errSummary').textContent = '';
+
+    if (step < 3){
+      state.maxReached = Math.max(state.maxReached, step + 1);
+      showStep(step + 1);
+      window.scrollTo({ top:0, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+      return;
+    }
+
+    /* 出票 */
+    state.submitting = true;
+    this.dataset.state = 'loading';
+    this.setAttribute('aria-busy','true');
+    refreshNav();
+
+    setTimeout(function(){
+      var btn = $('btnNext');
+      btn.dataset.state = 'idle';
+      btn.setAttribute('aria-busy','false');
+      state.submitting = false;
+      state.finished = true;
+
+      var pnr = makePnr();
+      $('doneCode').textContent = pnr;
+      $('pPnr').textContent = pnr;
+      $('pass').dataset.done = 'true';
+
+      showStep(4);
+      $('pane4').querySelector('h2').setAttribute('tabindex','-1');
+      $('pane4').querySelector('h2').focus();
+    }, 1200);
+  });
+
+  function makePnr(){
+    var abc = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    var s = '';
+    for (var i=0;i<6;i++) s += abc[(Math.random()*abc.length)|0];
+    return s;
+  }
+
+  $('btnRestart').addEventListener('click', function(){
+    $('form').reset();
+    state.touched = {};
+    state.flight = null;
+    state.finished = false;
+    state.maxReached = 1;
+    $('pass').dataset.done = 'false';
+    $('pPnr').textContent = '—';
+    $('from').value = 'PEK'; $('to').value = 'CAN';
+    ['from','to','date','name','idtype','idno','phone','email'].forEach(function(f){
+      var c = $(f);
+      c.removeAttribute('aria-invalid');
+      c.removeAttribute('data-valid');
+      var m = $(f + '-msg'); if (m) m.textContent = '';
+    });
+    renderFlights();
+    showStep(1);
+    window.scrollTo({ top:0, behavior:'auto' });
+  });
+
+  /* 启动 */
+  renderFlights();
+  showStep(1);
+})();
+</script>
+
+</body>
+</html>

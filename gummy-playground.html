@@ -1,0 +1,1265 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f0f3f8">
+  <title>软糖俱乐部 · Gummy Club</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --paper: #f0f3f8;
+      --ink: #43364f;
+      --muted: #8a8294;
+      --grape: #71518f;
+      font-family: "Segoe UI", "Microsoft YaHei", "PingFang SC", sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      height: 100svh;
+      min-height: 540px;
+      display: grid;
+      grid-template-rows: auto minmax(280px, 1fr) auto;
+      overflow-x: hidden;
+      color: var(--ink);
+      background: var(--paper);
+    }
+    button { font: inherit; -webkit-tap-highlight-color: transparent; }
+    button:focus-visible { outline: 3px solid #a985d0; outline-offset: 5px; }
+    .masthead {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+      padding: 26px clamp(22px, 4vw, 64px) 10px;
+      user-select: none;
+    }
+    .brand { display: flex; align-items: center; gap: 13px; }
+    .brand-mark { width: 39px; height: 43px; overflow: visible; }
+    h1 { margin: 0; font-size: 20px; font-weight: 650; letter-spacing: 2px; }
+    .brand small {
+      display: block;
+      margin-top: 5px;
+      color: #9a88ad;
+      font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 3.2px;
+    }
+    .gesture-note { display: flex; align-items: center; gap: 9px; color: var(--muted); font-size: 12px; letter-spacing: 1px; }
+    .gesture-note svg { width: 19px; height: 19px; }
+    .playground { position: relative; min-height: 0; isolation: isolate; }
+    #scene { display: block; width: 100%; height: 100%; touch-action: none; -webkit-user-select: none; user-select: none; }
+    #scene.is-grabbing { cursor: grabbing !important; }
+    .flavor-label {
+      position: absolute;
+      z-index: 3;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      padding: 8px 13px;
+      border: 1px solid #ffffffbd;
+      border-radius: 20px;
+      background: #ffffffd9;
+      box-shadow: 0 4px 20px #5945710b;
+      color: #66576f;
+      font-size: 11px;
+      letter-spacing: .6px;
+      white-space: nowrap;
+      pointer-events: none;
+      transform: translate(-50%, -100%);
+      backdrop-filter: blur(10px);
+    }
+    .flavor-label::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--flavor); }
+    [hidden] { display: none !important; }
+    .candy-key {
+      position: absolute;
+      z-index: 2;
+      padding: 0;
+      border: 0;
+      border-radius: 45%;
+      background: transparent;
+      color: transparent;
+      pointer-events: none;
+      transform: translate(-50%, -50%);
+    }
+    .candy-key:focus-visible { outline: 2px dashed #9173b6; outline-offset: 5px; }
+    .controls { position: relative; z-index: 4; padding: 6px 20px 28px; text-align: center; }
+    .hint { margin: 0 0 19px; color: var(--muted); font-size: 12px; letter-spacing: 1.1px; line-height: 1.8; }
+    .button-row { display: flex; align-items: center; justify-content: center; gap: 12px; }
+    .mode-switch { display: flex; gap: 2px; padding: 4px; border-radius: 26px; background: #e7e0eea8; }
+    .mode-button { height: 36px; padding: 0 15px; border: 0; border-radius: 22px; color: #8a7998; background: transparent; font-size: 12px; cursor: pointer; }
+    .mode-button[aria-pressed="true"] { color: #65467d; background: #fff; box-shadow: 0 2px 7px #5945710d; }
+    .grip-dot { position: absolute; z-index: 3; width: 19px; height: 19px; border: 1.5px solid #ffffffef; border-radius: 50%; box-shadow: 0 0 0 1px #76518324; background: #ffffff16; transform: translate(-50%, -50%); pointer-events: none; }
+    .action {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 9px;
+      height: 46px;
+      padding: 0 23px;
+      border: 1px solid transparent;
+      border-radius: 24px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 1px;
+      transition: transform 180ms ease, background 180ms ease, box-shadow 180ms ease;
+    }
+    .action svg { width: 18px; height: 18px; flex-shrink: 0; }
+    .action:hover { transform: translateY(-2px); }
+    .action:active { transform: translateY(1px) scale(.96); }
+    .jump-all { color: #fff; background: var(--grape); box-shadow: 0 5px 12px #71518f1a, inset 0 1px 0 #ffffff21; }
+    .jump-all:hover { background: #63447f; box-shadow: 0 7px 17px #71518f28; }
+    .reset { color: #786985; border-color: #d9d1e144; background: #ffffffbc; }
+    .reset:hover { background: #fff; }
+    .unavailable { position: absolute; inset: 0; display: grid; place-content: center; padding: 30px; text-align: center; color: var(--muted); font-size: 14px; line-height: 1.9; }
+    noscript { position: absolute; inset: 40% 20px auto; text-align: center; color: var(--muted); }
+    @media (max-width: 600px) {
+      .masthead { padding: 21px 23px 7px; }
+      .brand { gap: 10px; }
+      .brand-mark { width: 31px; height: 36px; }
+      h1 { font-size: 17px; letter-spacing: 1.5px; }
+      .brand small { font-size: 8px; letter-spacing: 2.7px; }
+      .gesture-note { font-size: 10px; letter-spacing: .4px; gap: 5px; }
+      .gesture-note svg { width: 16px; height: 16px; }
+      .controls { padding: 5px 16px max(23px, env(safe-area-inset-bottom)); }
+      .hint { margin-bottom: 14px; font-size: 11px; letter-spacing: .5px; }
+      .action { height: 44px; padding: 0 21px; }
+      .button-row { gap: 8px; }
+      .mode-button { padding: 0 12px; }
+      .reset { width: 44px; padding: 0; }
+      .reset span { display: none; }
+    }
+    @media (prefers-reduced-motion: reduce) { .action { transition: none; } }
+  </style>
+</head>
+<body>
+  <header class="masthead">
+    <div class="brand">
+      <svg class="brand-mark" viewBox="0 0 42 46" aria-hidden="true">
+        <defs>
+          <linearGradient id="mark-glaze" x1="0" y1="0" x2="1" y2="1">
+            <stop stop-color="#dab7f0"/><stop offset=".55" stop-color="#ab7cca"/><stop offset="1" stop-color="#8656a9"/>
+          </linearGradient>
+        </defs>
+        <path d="M9 15C2 12 5 3 11 4c4 0 6 3 6 5h8c1-4 4-6 7-5 7 1 7 10 2 12 3 4 2 9-1 12 5 5 4 13-2 13-4 1-6-2-7-5h-6c-1 4-4 6-8 5-6-2-5-10-1-13-4-4-4-9 0-13Z" fill="url(#mark-glaze)"/>
+        <path d="M11 8c-3 0-4 3-3 5M12 20c-2 3-2 5-1 7" fill="none" stroke="#fff" stroke-opacity=".64" stroke-width="2.5" stroke-linecap="round"/>
+        <ellipse cx="21" cy="26" rx="7" ry="8" fill="#edcfff" opacity=".15"/>
+      </svg>
+      <div><h1>软糖俱乐部</h1><small>GUMMY CLUB</small></div>
+    </div>
+    <div class="gesture-note">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m8 13-1-2a1.5 1.5 0 0 0-2.5 1.6l3 5.1A5 5 0 0 0 12 20h2a5 5 0 0 0 5-5v-3a1.5 1.5 0 0 0-3 0v-1a1.5 1.5 0 0 0-3 0V5a1.5 1.5 0 0 0-3 0v8"/><path d="M5 3 3 2M5 6H2M15 3l2-1"/></svg>
+      随手捏捏
+    </div>
+  </header>
+
+  <main class="playground" aria-label="软糖桌面">
+    <canvas id="scene" aria-label="八颗立体软糖。拖动任意部位揉捏拉伸，双指挤压和扭转，切换翻转或按住鼠标右键自由旋转，点击蹦跳。"></canvas>
+    <div id="flavor" class="flavor-label" hidden></div>
+    <div id="unavailable" class="unavailable" hidden>这盘软糖需要支持 WebGL 2 的浏览器。<br>请启用浏览器的图形加速后重新打开。</div>
+    <noscript>启用 JavaScript，就可以和软糖一起蹦跳。</noscript>
+  </main>
+
+  <footer class="controls">
+    <p class="hint" id="hint">抓住任意部位揉捏 · 右键拖动翻转 · 点击蹦跳</p>
+    <div class="button-row">
+      <div class="mode-switch" role="group" aria-label="拖动方式">
+        <button class="mode-button" data-mode="knead" aria-pressed="true" type="button">揉捏</button>
+        <button class="mode-button" data-mode="rotate" aria-pressed="false" type="button">翻转</button>
+      </div>
+      <button class="action jump-all" id="jump-all" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 13c-1.5-4 1-8 5-8s6.5 4 5 8c-1 2-3 3-5 3s-4-1-5-3Z"/><path d="M9 9h.01M15 9h.01M10 12q2 2 4 0M5 18l-1 1M19 18l1 1M9 20h6M3 10H2M22 10h-1"/></svg>
+        一起蹦
+      </button>
+      <button class="action reset" id="reset" type="button" aria-label="重新摆好">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 10a8 8 0 1 1 1 7M4 5v5h5"/></svg>
+        <span>重新摆好</span>
+      </button>
+    </div>
+  </footer>
+
+  <script>
+  (() => {
+    'use strict';
+
+    const canvas = document.querySelector('#scene');
+    const stage = document.querySelector('.playground');
+    const label = document.querySelector('#flavor');
+    const hint = document.querySelector('#hint');
+    const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
+    const gl = canvas.getContext('webgl2', { alpha: false, antialias: true, powerPreference: 'high-performance' });
+    if (!gl) {
+      document.querySelector('#unavailable').hidden = false;
+      document.querySelectorAll('.action, .mode-button').forEach(button => button.disabled = true);
+      return;
+    }
+
+    const S = .64;
+    const C = Math.sqrt(1 - S * S);
+    const TAU = Math.PI * 2;
+    const VIEW = [0, -S, C];
+    const RAY = [0, S, -C];
+    const GRIP_COUNT = 4;
+    const FLOW_STEPS = 5;
+    const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
+    const tint = hex => [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16) / 255);
+    const add = (a, b) => [a[0] + b[0], a[1] + b[1], a[2] + b[2]];
+    const sub = (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
+    const scale = (a, k) => [a[0] * k, a[1] * k, a[2] * k];
+    const dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+    const cross = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+    const length3 = a => Math.hypot(...a);
+    function limited(a, maximum) { const length = length3(a); return length > maximum ? scale(a, maximum / length) : a; }
+    function multiplyQuaternion(a, b) {
+      return [
+        a[3] * b[0] + a[0] * b[3] + a[1] * b[2] - a[2] * b[1],
+        a[3] * b[1] - a[0] * b[2] + a[1] * b[3] + a[2] * b[0],
+        a[3] * b[2] + a[0] * b[1] - a[1] * b[0] + a[2] * b[3],
+        a[3] * b[3] - a[0] * b[0] - a[1] * b[1] - a[2] * b[2]
+      ];
+    }
+    function axisQuaternion(axis, angle) { const s = Math.sin(angle / 2); return [...scale(axis, s), Math.cos(angle / 2)]; }
+    function rotationMatrix(q) {
+      const [x, y, z, w] = q;
+      return [
+        1 - 2 * (y * y + z * z), 2 * (x * y + z * w), 2 * (x * z - y * w),
+        2 * (x * y - z * w), 1 - 2 * (x * x + z * z), 2 * (y * z + x * w),
+        2 * (x * z + y * w), 2 * (y * z - x * w), 1 - 2 * (x * x + y * y)
+      ];
+    }
+    function transpose(m) { return [m[0], m[3], m[6], m[1], m[4], m[7], m[2], m[5], m[8]]; }
+    function transform(m, p) { return [m[0] * p[0] + m[3] * p[1] + m[6] * p[2], m[1] * p[0] + m[4] * p[1] + m[7] * p[2], m[2] * p[0] + m[5] * p[1] + m[8] * p[2]]; }
+    function rotate(item, axis, angle) {
+      const q = multiplyQuaternion(axisQuaternion(axis, angle), item.orientation);
+      const norm = Math.hypot(...q);
+      item.orientation = q.map(value => value / norm);
+      item.matrix = rotationMatrix(item.orientation);
+      item.inverse = transpose(item.matrix);
+    }
+
+    const bearParts = [
+      [0, -.17, 0, .46, .59, .29, 0], [0, .56, .025, .44, .40, .30, .13],
+      [.34, .88, .02, .215, .215, .225, .065], [-.34, .88, .02, .215, .215, .225, .065],
+      [.46, .01, -.01, .245, .32, .235, .08], [-.46, .01, -.01, .245, .32, .235, .08],
+      [.275, -.68, -.005, .275, .265, .285, .07], [-.275, -.68, -.005, .275, .265, .285, .07],
+      [0, -.13, .255, .295, .385, .085, .04], [0, .46, .302, .18, .13, .088, .03],
+      [.165, .64, .292, .048, .053, .045, .012], [-.165, .64, .292, .048, .053, .045, .012]
+    ];
+    const flowerParts = [[0, 0, 0, .49, .49, .295, 0]];
+    for (let i = 0; i < 6; i++) flowerParts.push([Math.cos(i * TAU / 6) * .49, Math.sin(i * TAU / 6) * .49, -.015, .325, .325, .25, .12]);
+    flowerParts.push([0, 0, .275, .20, .20, .05, .025]);
+    function lobesSource(parts) {
+      return parts.map((part, i) => {
+        const position = part.slice(0, 3).map(n => n.toFixed(5)).join(',');
+        const radius = part.slice(3, 6).map(n => n.toFixed(5)).join(',');
+        const expression = `ellipsoid(p - vec3(${position}), vec3(${radius}))`;
+        return i === 0 ? `float d = ${expression};` : `d = softUnion(d, ${expression}, ${part[6].toFixed(5)});`;
+      }).join('\n');
+    }
+
+    const vertexSource = `#version 300 es
+      precision highp float;
+      layout(location = 0) in vec2 aPosition;
+      uniform vec2 uCenter;
+      uniform vec2 uExtent;
+      uniform vec2 uBounds;
+      out vec2 vPoint;
+      void main() {
+        vPoint = aPosition * uBounds;
+        gl_Position = vec4(uCenter + aPosition * uExtent, 0.0, 1.0);
+      }
+    `;
+
+    const floorSource = `
+      uniform vec2 uPlate;
+      float hash21(vec2 p) {
+        p = fract(p * vec2(123.34, 456.21));
+        p += dot(p, p + 45.32);
+        return fract(p.x * p.y);
+      }
+      vec3 floorColor(vec2 p) {
+        float daylight = exp(-dot(p - vec2(-3.0, 4.0), p - vec2(-3.0, 4.0)) * 0.009);
+        vec3 table = vec3(0.933, 0.942, 0.961) + daylight * 0.016;
+        vec2 shifted = (p - vec2(0.06, -0.10)) / uPlate;
+        float shadowE = length(shifted);
+        float plateShadow = exp(-pow((shadowE - 1.015) * 19.0, 2.0));
+        plateShadow *= smoothstep(0.98, 1.025, shadowE) * 0.10;
+        table -= vec3(0.57, 0.52, 0.68) * plateShadow;
+        float e = length(p / uPlate);
+        vec3 ceramic = vec3(0.985, 0.988, 0.995);
+        ceramic -= 0.025 * smoothstep(0.70, 0.945, e);
+        ceramic += 0.037 * exp(-pow((e - 0.956) * 53.0, 2.0));
+        ceramic -= 0.010 * exp(-pow((e - 0.892) * 49.0, 2.0));
+        ceramic += 0.005 * dot(p / (length(p) + 0.1), normalize(vec2(-0.6, 0.8)));
+        vec3 result = mix(table, ceramic, 1.0 - smoothstep(0.997, 1.003, e));
+        return result + (hash21(p * 1100.0) - 0.5) * 0.0017;
+      }
+    `;
+
+    const shapeSource = `
+      uniform int uShape;
+      float softUnion(float a, float b, float k) {
+        float h = clamp(0.5 + 0.5 * (b - a) / k, 0.0, 1.0);
+        return mix(b, a, h) - k * h * (1.0 - h);
+      }
+      float ellipsoid(vec3 p, vec3 r) {
+        float k0 = length(p / r);
+        if (k0 < 0.00001) return -min(r.x, min(r.y, r.z));
+        float k1 = length(p / (r * r));
+        return k0 * (k0 - 1.0) / max(k1, 0.00001);
+      }
+      float heart2(vec2 p) {
+        p.x = abs(p.x);
+        if (p.x + p.y > 1.0) return length(p - vec2(0.25, 0.75)) - 0.35355339;
+        vec2 a = p - vec2(0.0, 1.0);
+        vec2 b = p - 0.5 * max(p.x + p.y, 0.0);
+        return sqrt(min(dot(a, a), dot(b, b))) * sign(p.x - p.y);
+      }
+      float model(vec3 p) {
+        if (uShape == 0) {
+          ${lobesSource(bearParts)}
+          return d;
+        }
+        if (uShape == 1) {
+          vec2 q = vec2(length(p.xy) - 0.585, p.z * 1.12);
+          return (length(q) - 0.255) / 1.12;
+        }
+        if (uShape == 2) {
+          float d = heart2(vec2(p.x / 1.28, p.y / 1.28 + 0.55)) * 1.28;
+          vec2 q = vec2(d + 0.16, abs(p.z) - 0.15);
+          return min(max(q.x, q.y), 0.0) + length(max(q, 0.0)) - 0.16;
+        }
+        if (uShape == 3) {
+          ${lobesSource(flowerParts)}
+          return d;
+        }
+        vec3 q = abs(p) - vec3(0.47, 0.49, 0.105);
+        return length(max(q, 0.0)) + min(max(q.x, max(q.y, q.z)), 0.0) - 0.235;
+      }
+    `;
+
+    const deformationSource = `
+      uniform float uSize;
+      uniform float uSquish;
+      uniform vec2 uLean;
+      uniform mat3 uInverseRotation;
+      uniform vec4 uGrabAnchor[${GRIP_COUNT}];
+      uniform vec3 uGrabOffset[${GRIP_COUNT}];
+      vec4 restPoint(vec3 p) {
+        p.xy -= p.z * uLean;
+        p /= vec3(1.0 + uSquish * 0.45, 1.0 + uSquish * 0.35, 1.0 - uSquish);
+        p = uInverseRotation * p / uSize;
+        float stretch = 1.0;
+        for (int g = ${GRIP_COUNT - 1}; g >= 0; g--) {
+          vec3 delta = uGrabOffset[g];
+          float magnitude = length(delta);
+          if (magnitude < 0.0001) continue;
+          float radius2 = uGrabAnchor[g].w * uGrabAnchor[g].w;
+          for (int j = 0; j < ${FLOW_STEPS}; j++) {
+            float t = 1.0 - float(j) / ${FLOW_STEPS.toFixed(1)};
+            vec3 relative = p - uGrabAnchor[g].xyz - delta * t;
+            float weight = exp(-dot(relative, relative) / radius2);
+            stretch *= 1.0 + 2.0 * magnitude * length(relative) * weight / (${FLOW_STEPS.toFixed(1)} * radius2);
+            p -= delta * weight / ${FLOW_STEPS.toFixed(1)};
+          }
+        }
+        return vec4(p, stretch);
+      }
+      vec3 localPoint(vec3 p) { return restPoint(p).xyz; }
+      float sceneDistance(vec3 p) {
+        vec4 rest = restPoint(p);
+        float smallest = min(1.0 - uSquish, 1.0 + uSquish * 0.45);
+        return model(rest.xyz) * uSize * smallest * 0.74 / (rest.w * (1.0 + length(uLean) * 0.5));
+      }
+    `;
+
+    const backgroundSource = `#version 300 es
+      precision highp float;
+      in vec2 vPoint;
+      out vec4 fragColor;
+      ${floorSource}
+      void main() { fragColor = vec4(floorColor(vec2(vPoint.x, vPoint.y / ${C.toFixed(8)})), 1.0); }
+    `;
+
+    const shadowSource = `#version 300 es
+      precision highp float;
+      in vec2 vPoint;
+      out vec4 fragColor;
+      uniform float uHeight;
+      uniform vec3 uTint;
+      uniform vec3 uShadowPlanes[12];
+      uniform vec4 uHoleMatrix;
+      uniform vec2 uHoleCenter;
+      uniform float uHoleStrength;
+      void main() {
+        float height = uHeight;
+        vec2 p = vec2(vPoint.x, vPoint.y / ${C.toFixed(8)});
+        float d = -100.0;
+        for (int i = 0; i < 12; i++) d = max(d, dot(p, uShadowPlanes[i].xy) - uShadowPlanes[i].z);
+        float softness = 0.075 + height * 0.16;
+        float body = 1.0 - smoothstep(-softness, softness * 2.0, d);
+        float contact = (1.0 - smoothstep(-0.02, 0.065, d)) * exp(-height * 7.0);
+        float halo = exp(-pow((d - 0.025) / (0.11 + height * 0.08), 2.0));
+        float alpha = body * 0.145 * exp(-height * 0.55) + contact * 0.055;
+        alpha += halo * 0.037 * exp(-height * 1.4);
+        vec2 hp = p - uHoleCenter;
+        vec2 holeUV = vec2(dot(uHoleMatrix.xy, hp), dot(uHoleMatrix.zw, hp));
+        float hole = 1.0 - smoothstep(0.55, 1.2 + height * 0.5, length(holeUV));
+        alpha *= 1.0 - hole * uHoleStrength * 0.88 * exp(-height * 0.8);
+        vec3 color = mix(vec3(0.35, 0.31, 0.42), uTint, 0.36 + halo * 0.3);
+        fragColor = vec4(color, alpha);
+      }
+    `;
+
+    const candySource = `#version 300 es
+      precision highp float;
+      in vec2 vPoint;
+      out vec4 fragColor;
+      uniform vec3 uTint;
+      uniform vec3 uWorld;
+      uniform float uRadius;
+      uniform vec4 uBubbles[8];
+      ${floorSource}
+      ${shapeSource}
+      ${deformationSource}
+      vec3 normalAt(vec3 p) {
+        const vec2 e = vec2(1.0, -1.0) * 0.0015;
+        return normalize(
+          e.xyy * sceneDistance(p + e.xyy) +
+          e.yyx * sceneDistance(p + e.yyx) +
+          e.yxy * sceneDistance(p + e.yxy) +
+          e.xxx * sceneDistance(p + e.xxx)
+        );
+      }
+      float softbox(vec3 ray, vec3 direction, vec2 extent) {
+        vec3 right = normalize(cross(vec3(0.0, 0.0, 1.0), direction));
+        vec3 up = cross(direction, right);
+        float facing = dot(ray, direction);
+        vec2 uv = vec2(dot(ray, right), dot(ray, up)) / max(facing, 0.001);
+        float box = (1.0 - smoothstep(extent.x, extent.x + 0.055, abs(uv.x)));
+        box *= 1.0 - smoothstep(extent.y, extent.y + 0.075, abs(uv.y));
+        return box * smoothstep(0.0, 0.05, facing);
+      }
+      void main() {
+        vec3 rd = vec3(0.0, ${S.toFixed(8)}, -${C.toFixed(8)});
+        vec3 ro = vec3(vPoint.x, vPoint.y * ${C.toFixed(8)}, vPoint.y * ${S.toFixed(8)}) - rd * 8.0;
+        float b = dot(ro, rd);
+        float sphere = b * b - dot(ro, ro) + uRadius * uRadius;
+        if (sphere < 0.0) discard;
+        float root = sqrt(sphere);
+        float travel = -b - root;
+        float limit = -b + root;
+        bool hit = false;
+        vec3 p = ro;
+        for (int i = 0; i < 108; i++) {
+          p = ro + rd * travel;
+          float d = sceneDistance(p);
+          if (d < 0.0014) { hit = true; break; }
+          travel += max(d, 0.001);
+          if (travel > limit) break;
+        }
+        if (!hit) discard;
+
+        vec3 n = normalAt(p);
+        vec3 lp = localPoint(p);
+        vec3 micro = sin(lp.yzx * 157.0 + sin(lp.zxy * 93.0));
+        n = normalize(n + micro * 0.0045);
+        vec3 view = -rd;
+        vec3 light = normalize(vec3(-0.65, -0.5, 1.6));
+        float nv = max(dot(n, view), 0.0);
+        float nl = max(dot(n, light), 0.0);
+        float fresnel = 0.035 + 0.965 * pow(1.0 - nv, 5.0);
+
+        // Thickness controls absorption; the exit ray samples the ceramic underneath.
+        vec3 transmittedRay = refract(rd, n, 1.0 / 1.43);
+        float thickness = 0.024;
+        vec3 inner = p + transmittedRay * thickness;
+        for (int i = 0; i < 32; i++) {
+          float d = sceneDistance(inner);
+          if (d > 0.0005) break;
+          float stepLength = max(-d * 1.06, 0.013);
+          thickness += stepLength;
+          inner += transmittedRay * stepLength;
+        }
+        vec3 exitWorld = inner + uWorld;
+        vec2 beneath = (exitWorld - transmittedRay * exitWorld.z / min(transmittedRay.z, -0.08)).xy;
+        vec3 absorption = -log(max(uTint, vec3(0.025))) * 1.52;
+        float opticalDepth = thickness / uSize + 0.075;
+        vec3 transmission = exp(-absorption * opticalDepth);
+        vec3 col = floorColor(beneath) * transmission * (0.76 + 0.23 * nl);
+        col += mix(uTint, vec3(1.0), 0.12) * (1.0 - exp(-opticalDepth * 2.0)) * 0.067;
+        col *= 0.89 + 0.11 * smoothstep(-0.29, 0.30, lp.z);
+        float ao = 1.0;
+        ao -= max(0.0, 0.08 - sceneDistance(p + n * 0.10)) * 0.60;
+        ao -= max(0.0, 0.18 - sceneDistance(p + n * 0.23)) * 0.35;
+        col *= clamp(ao, 0.80, 1.0);
+
+        vec3 localRay = normalize(localPoint(p + transmittedRay * 0.05) - lp);
+        for (int i = 0; i < 8; i++) {
+          vec3 relative = uBubbles[i].xyz - lp;
+          float t = dot(relative, localRay);
+          float radial = length(relative - localRay * t) / uBubbles[i].w;
+          float visible = step(0.018, t) * step(t, thickness / uSize + 0.025);
+          float edge = smoothstep(0.35, 0.83, radial) * (1.0 - smoothstep(0.83, 1.12, radial));
+          float center = 1.0 - smoothstep(0.1, 0.85, radial);
+          col = col * (1.0 - center * 0.045 * visible) + vec3(0.12) * edge * visible;
+        }
+
+        vec3 reflected = reflect(rd, n);
+        float mainBox = softbox(reflected, normalize(vec3(-0.65, -0.8, 1.65)), vec2(0.21, 0.59));
+        float strip = softbox(reflected, normalize(vec3(0.9, 0.4, 1.1)), vec2(0.07, 0.62));
+        float pin = pow(max(dot(n, normalize(light + view)), 0.0), 110.0);
+        col = mix(col, vec3(0.91, 0.95, 1.0), fresnel * 0.30);
+        col += uTint * pow(1.0 - nv, 2.6) * 0.115;
+        float gloss = mainBox * (0.40 + fresnel * 0.46) + strip * 0.27 + pin * 0.25;
+        col = mix(col, vec3(1.0, 0.997, 0.99), min(gloss, 0.90));
+        col += (hash21(gl_FragCoord.xy) - 0.5) * 0.0025;
+        fragColor = vec4(clamp(col, 0.0, 1.0), 1.0);
+        gl_FragDepth = clamp(0.5 - dot(p + uWorld, vec3(0.0, -${S.toFixed(8)}, ${C.toFixed(8)})) / 40.0, 0.0, 1.0);
+      }
+    `;
+
+    function makeProgram(fragmentSource) {
+      const program = gl.createProgram();
+      for (const [type, source] of [[gl.VERTEX_SHADER, vertexSource], [gl.FRAGMENT_SHADER, fragmentSource]]) {
+        const shader = gl.createShader(type);
+        gl.shaderSource(shader, source);
+        gl.compileShader(shader);
+        if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(shader));
+        gl.attachShader(program, shader);
+        gl.deleteShader(shader);
+      }
+      gl.linkProgram(program);
+      if (!gl.getProgramParameter(program, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(program));
+      const uniforms = {};
+      const count = gl.getProgramParameter(program, gl.ACTIVE_UNIFORMS);
+      for (let i = 0; i < count; i++) {
+        const info = gl.getActiveUniform(program, i);
+        uniforms[info.name.replace('[0]', '')] = gl.getUniformLocation(program, info.name);
+      }
+      return { program, uniforms };
+    }
+
+    let background, shadow, candy;
+    try {
+      background = makeProgram(backgroundSource);
+      shadow = makeProgram(shadowSource);
+      candy = makeProgram(candySource);
+    } catch (error) {
+      console.error(error);
+      document.querySelector('#unavailable').hidden = false;
+      document.querySelectorAll('.action, .mode-button').forEach(button => button.disabled = true);
+      return;
+    }
+
+    const vao = gl.createVertexArray();
+    gl.bindVertexArray(vao);
+    const buffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
+    gl.enableVertexAttribArray(0);
+    gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+    gl.disable(gl.DEPTH_TEST);
+    gl.enable(gl.BLEND);
+    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+
+    const definitions = [
+      { name: '蜜桃爱心', shape: 2, hex: '#f46593', size: .87, pose: [.78, -.24, -.28], desktop: [-2.55, 1.64], portrait: [-1.18, 3.73] },
+      { name: '柠檬小花', shape: 3, hex: '#f2cc2e', size: .88, pose: [.52, .30, .12], desktop: [.04, 1.68], portrait: [1.14, 3.57] },
+      { name: '葡萄软方', shape: 4, hex: '#9760d4', size: .94, pose: [.38, .33, -.28], desktop: [2.75, 1.35], portrait: [-1.13, 1.34] },
+      { name: '草莓小熊', shape: 0, hex: '#ec244c', size: .91, pose: [1.10, -.19, -.24], desktop: [-3.64, -.65], portrait: [1.13, 1.06] },
+      { name: '青柠甜圈', shape: 1, hex: '#7acb35', size: 1.02, pose: [.94, -.18, .15], desktop: [-.67, -.40], portrait: [-1.17, -1.14] },
+      { name: '蓝莓小熊', shape: 0, hex: '#338eda', size: .97, pose: [.91, .29, .23], desktop: [2.25, -.88], portrait: [1.15, -1.36] },
+      { name: '橘子小熊', shape: 0, hex: '#fa9b20', size: .84, pose: [1.28, -.22, -.24], desktop: [-1.87, -2.27], portrait: [-1.10, -3.69] },
+      { name: '薄荷甜圈', shape: 1, hex: '#30bfaa', size: .91, pose: [.69, .31, -.25], desktop: [1.13, -2.54], portrait: [1.13, -3.77] }
+    ];
+
+    function makeBubbles(shape, index) {
+      const values = [];
+      const bearPoints = [[-.15, -.24], [.19, -.39], [.10, .56], [-.22, .66], [.42, .02], [-.27, -.68], [.20, -.04], [-.06, .17]];
+      for (let i = 0; i < 8; i++) {
+        const a = i * 2.39996 + index * .73;
+        let x, y;
+        if (shape === 0) [x, y] = bearPoints[i];
+        else if (shape === 1) {
+          const r = .585 + Math.sin(i * 4.3) * .08;
+          x = Math.cos(a) * r; y = Math.sin(a) * r;
+        } else {
+          const r = .16 + (i % 3) * .13;
+          x = Math.cos(a) * r; y = Math.sin(a) * r + (shape === 2 ? .06 : 0);
+        }
+        values.push(x, y, .035 + (i % 3) * .055, .018 + ((i * 7 + index) % 5) * .004);
+      }
+      return new Float32Array(values);
+    }
+
+    function softUnion(a, b, k) {
+      const h = clamp(.5 + .5 * (b - a) / k, 0, 1);
+      return b * (1 - h) + a * h - k * h * (1 - h);
+    }
+    function ellipsoidDistance(p, radii) {
+      const k0 = Math.hypot(p[0] / radii[0], p[1] / radii[1], p[2] / radii[2]);
+      if (k0 < .00001) return -Math.min(...radii);
+      const k1 = Math.hypot(p[0] / radii[0] ** 2, p[1] / radii[1] ** 2, p[2] / radii[2] ** 2);
+      return k0 * (k0 - 1) / k1;
+    }
+    function heartDistance(x, y) {
+      x = Math.abs(x / 1.28); y = y / 1.28 + .55;
+      if (x + y > 1) return (Math.hypot(x - .25, y - .75) - .35355339) * 1.28;
+      const m = .5 * Math.max(x + y, 0);
+      return Math.sqrt(Math.min(x * x + (y - 1) ** 2, (x - m) ** 2 + (y - m) ** 2)) * Math.sign(x - y) * 1.28;
+    }
+    function modelDistance(shape, p) {
+      if (shape === 0 || shape === 3) {
+        const parts = shape === 0 ? bearParts : flowerParts;
+        let d = 0;
+        for (let i = 0; i < parts.length; i++) {
+          const part = parts[i];
+          const sample = ellipsoidDistance([p[0] - part[0], p[1] - part[1], p[2] - part[2]], part.slice(3, 6));
+          d = i ? softUnion(d, sample, part[6]) : sample;
+        }
+        return d;
+      }
+      if (shape === 1) return (Math.hypot(Math.hypot(p[0], p[1]) - .585, p[2] * 1.12) - .255) / 1.12;
+      if (shape === 2) {
+        const a = heartDistance(p[0], p[1]) + .16, b = Math.abs(p[2]) - .15;
+        return Math.min(Math.max(a, b), 0) + Math.hypot(Math.max(a, 0), Math.max(b, 0)) - .16;
+      }
+      const q = [Math.abs(p[0]) - .47, Math.abs(p[1]) - .49, Math.abs(p[2]) - .105];
+      return Math.hypot(...q.map(v => Math.max(v, 0))) + Math.min(Math.max(...q), 0) - .235;
+    }
+
+    const directions = [[1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0], [0, 0, 1], [0, 0, -1]];
+    for (let i = 0; i < 32; i++) {
+      const z = 1 - 2 * (i + .5) / 32, a = i * 2.399963;
+      const r = Math.sqrt(1 - z * z);
+      directions.push([Math.cos(a) * r, Math.sin(a) * r, z]);
+    }
+    function surfaceCloud(shape) {
+      const points = [];
+      if (shape === 0 || shape === 3) {
+        for (const part of shape === 0 ? bearParts : flowerParts) {
+          for (const n of directions) {
+            const denominator = Math.hypot(n[0] * part[3], n[1] * part[4], n[2] * part[5]);
+            points.push(n.map((value, i) => part[i] + value * part[i + 3] ** 2 / denominator));
+          }
+        }
+      } else if (shape === 1) {
+        for (let i = 0; i < 24; i++) for (let j = 0; j < 12; j++) {
+          const a = i * TAU / 24, b = j * TAU / 12;
+          const r = .585 + .255 * Math.cos(b);
+          points.push([r * Math.cos(a), r * Math.sin(a), .255 * Math.sin(b) / 1.12]);
+        }
+      } else if (shape === 2) {
+        for (let x = -.8; x <= .8; x += .1) for (let y = -.7; y <= .8; y += .1) {
+          const d = heartDistance(x, y);
+          if (d > 0) continue;
+          const edge = Math.max(0, d + .16);
+          const z = .15 + Math.sqrt(Math.max(0, .16 ** 2 - edge ** 2));
+          points.push([x, y, z], [x, y, -z]);
+        }
+        for (const side of [-1, 1]) {
+          for (let i = 0; i <= 32; i++) {
+            const a = -Math.PI / 4 + i * Math.PI / 32;
+            points.push([side * (.25 + Math.cos(a) * .35355339) * 1.28, (.20 + Math.sin(a) * .35355339) * 1.28, 0]);
+          }
+          for (let i = 0; i <= 10; i++) points.push([side * i * .064, (i * .05 - .55) * 1.28, 0]);
+        }
+      } else {
+        for (const n of directions) points.push(n.map((value, i) => Math.sign(value) * [.47, .49, .105][i] + value * .235));
+      }
+      return points;
+    }
+    const clouds = Array.from({ length: 5 }, (_, shape) => surfaceCloud(shape));
+    const shadowNormals = Array.from({ length: 12 }, (_, i) => [Math.cos(i * TAU / 12), Math.sin(i * TAU / 12)]);
+
+    let width = 1, height = 1, unit = 1, portrait = false;
+    let plate = [5.65, 3.6];
+    let initialized = false, frameId = 0, lastFrame = 0;
+    let held = null, hovered = null, focused = null, mode = 'knead';
+    const candies = definitions.map((definition, index) => {
+      const key = document.createElement('button');
+      key.type = 'button'; key.className = 'candy-key';
+      key.setAttribute('aria-label', `${definition.name}，回车或空格蹦跳，方向键移动，Shift 加方向键翻转`);
+      stage.appendChild(key);
+      const item = {
+        ...definition, index, key, color: tint(definition.hex), bubbles: makeBubbles(definition.shape, index),
+        x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, q: 0, dq: 0,
+        orientation: [0, 0, 0, 1], matrix: rotationMatrix([0, 0, 0, 1]), inverse: rotationMatrix([0, 0, 0, 1]), spin: [0, 0, 0],
+        leanX: 0, leanY: 0, leanVX: 0, leanVY: 0, kickAt: 0, kickPower: 0,
+        support: .4, totalHeight: 1, bound: 1.5, boundX: 1.5, boundY: 1.5, radius: definition.size * .73,
+        points: [], shadowPlanes: new Float32Array(36), shadowX: 1, shadowY: 1,
+        holeMatrix: [0, 0, 0, 0], holeCenter: [0, 0], holeStrength: 0,
+        anchors: new Float32Array(GRIP_COUNT * 4), offsets: new Float32Array(GRIP_COUNT * 3),
+        grips: Array.from({ length: GRIP_COUNT }, () => ({ anchor: [0, 0, 0], radius: .64, offset: [0, 0, 0], velocity: [0, 0, 0], target: [0, 0, 0], active: false }))
+      };
+      key.addEventListener('click', () => bounce(item));
+      key.addEventListener('focus', () => { focused = item; showLabel(item); });
+      key.addEventListener('blur', () => { focused = null; if (!hovered && !held) label.hidden = true; });
+      key.addEventListener('keydown', event => {
+        const directions = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, 1], ArrowDown: [0, -1] };
+        const direction = directions[event.key];
+        if (!direction) return;
+        event.preventDefault();
+        if (event.shiftKey || mode === 'rotate') {
+          const axis = cross(VIEW, [direction[0], direction[1] * C, direction[1] * S]);
+          rotate(item, axis, .20); item.spin = scale(axis, .8); wake();
+        } else {
+          item.vx += direction[0] * 3.8; item.vy += direction[1] * 3.8;
+          bounce(item, reducedMotion.matches ? 1.5 : 2.6);
+        }
+      });
+      return item;
+    });
+
+    function scales(item) { return [1 + item.q * .45, 1 + item.q * .35, 1 - item.q]; }
+    function flowPoint(item, rest, skip = -1) {
+      const p = [...rest];
+      for (let g = 0; g < GRIP_COUNT; g++) {
+        if (g === skip) continue;
+        const grip = item.grips[g], delta = grip.offset;
+        if (length3(delta) < .0001) continue;
+        const radius2 = grip.radius ** 2;
+        for (let j = 0; j < FLOW_STEPS; j++) {
+          const t = j / FLOW_STEPS;
+          const dx = p[0] - grip.anchor[0] - delta[0] * t;
+          const dy = p[1] - grip.anchor[1] - delta[1] * t;
+          const dz = p[2] - grip.anchor[2] - delta[2] * t;
+          const weight = Math.exp(-(dx * dx + dy * dy + dz * dz) / radius2) / FLOW_STEPS;
+          for (let k = 0; k < 3; k++) p[k] += delta[k] * weight;
+        }
+      }
+      return p;
+    }
+    function relativePoint(item, rest, skip = -1) {
+      const p = scale(transform(item.matrix, flowPoint(item, rest, skip)), item.size);
+      const s = scales(item);
+      for (let i = 0; i < 3; i++) p[i] *= s[i];
+      p[0] += p[2] * item.leanX; p[1] += p[2] * item.leanY;
+      return p;
+    }
+    function unpose(item, relative) {
+      const p = [...relative], s = scales(item);
+      p[0] -= p[2] * item.leanX; p[1] -= p[2] * item.leanY;
+      for (let i = 0; i < 3; i++) p[i] /= s[i];
+      return scale(transform(item.inverse, p), 1 / item.size);
+    }
+    function restPoint(item, relative) {
+      const p = unpose(item, relative);
+      let stretch = 1;
+      for (let g = GRIP_COUNT - 1; g >= 0; g--) {
+        const grip = item.grips[g], delta = grip.offset, magnitude = length3(delta);
+        if (magnitude < .0001) continue;
+        const radius2 = grip.radius ** 2;
+        for (let j = 0; j < FLOW_STEPS; j++) {
+          const t = 1 - j / FLOW_STEPS;
+          const dx = p[0] - grip.anchor[0] - delta[0] * t;
+          const dy = p[1] - grip.anchor[1] - delta[1] * t;
+          const dz = p[2] - grip.anchor[2] - delta[2] * t;
+          const distance2 = dx * dx + dy * dy + dz * dz;
+          const weight = Math.exp(-distance2 / radius2);
+          stretch *= 1 + 2 * magnitude * Math.sqrt(distance2) * weight / (FLOW_STEPS * radius2);
+          for (let k = 0; k < 3; k++) p[k] -= delta[k] * weight / FLOW_STEPS;
+        }
+      }
+      return { p, stretch };
+    }
+    function sceneDistance(item, relative) {
+      const rest = restPoint(item, relative);
+      const smallest = Math.min(1 - item.q, 1 + item.q * .45);
+      return modelDistance(item.shape, rest.p) * item.size * smallest * .74 / (rest.stretch * (1 + Math.hypot(item.leanX, item.leanY) * .5));
+    }
+    function centerZ(item) { return item.z + item.support; }
+    function centerWorld(item) { return [item.x, item.y, centerZ(item)]; }
+    function worldPoint(item, rest) { return add(centerWorld(item), relativePoint(item, rest)); }
+    function project(p) { return { x: width / 2 + p[0] * unit, y: height / 2 - (p[1] * C + p[2] * S) * unit }; }
+    function screenPosition(item) { return project(centerWorld(item)); }
+    function onViewPlane(x, y, depth) {
+      const sx = (x - width / 2) / unit, sy = (height / 2 - y) / unit;
+      return [sx, sy * C - S * depth, sy * S + C * depth];
+    }
+
+    function refreshGeometry(item) {
+      item.points = clouds[item.shape].map(rest => relativePoint(item, rest));
+      let bottom = Infinity, top = -Infinity, bound = 0, bx = 0, by = 0, sx = 0, sy = 0;
+      const planes = shadowNormals.map(() => -Infinity);
+      for (const p of item.points) {
+        bottom = Math.min(bottom, p[2]); top = Math.max(top, p[2]); bound = Math.max(bound, length3(p));
+        bx = Math.max(bx, Math.abs(p[0])); by = Math.max(by, Math.abs(p[1] * C + p[2] * S));
+        const x = p[0] + p[2] * .40625, y = p[1] + p[2] * .3125;
+        sx = Math.max(sx, Math.abs(x)); sy = Math.max(sy, Math.abs(y));
+        for (let i = 0; i < 12; i++) planes[i] = Math.max(planes[i], x * shadowNormals[i][0] + y * shadowNormals[i][1]);
+      }
+      const deformation = item.grips.reduce((sum, grip) => sum + length3(grip.offset), 0);
+      const padding = item.size * (.065 + deformation * .06);
+      item.support = -bottom + .025 * item.size;
+      item.totalHeight = top - bottom + .04;
+      item.bound = bound + padding; item.boundX = bx + padding; item.boundY = by + padding;
+      item.shadowX = sx; item.shadowY = sy;
+      for (let i = 0; i < 12; i++) item.shadowPlanes.set([...shadowNormals[i], planes[i] + .03], i * 3);
+      for (let i = 0; i < GRIP_COUNT; i++) {
+        item.anchors.set([...item.grips[i].anchor, item.grips[i].radius], i * 4);
+        item.offsets.set(item.grips[i].offset, i * 3);
+      }
+      item.holeStrength = 0;
+      if (item.shape === 1) {
+        const origin = relativePoint(item, [0, 0, 0]);
+        const a = sub(relativePoint(item, [.32, 0, 0]), origin);
+        const b = sub(relativePoint(item, [0, .32, 0]), origin);
+        const ax = a[0] + a[2] * .40625, ay = a[1] + a[2] * .3125;
+        const bx = b[0] + b[2] * .40625, by = b[1] + b[2] * .3125;
+        const determinant = ax * by - ay * bx;
+        if (Math.abs(determinant) > .012) {
+          item.holeMatrix = [by, -bx, -ay, ax].map(value => value / determinant);
+          item.holeCenter = [origin[0] + origin[2] * .40625, origin[1] + origin[2] * .3125];
+          item.holeStrength = Math.max(0, 1 - deformation * .65);
+        }
+      }
+    }
+
+    function quad(program, x, y, bx, by) {
+      const u = program.uniforms;
+      gl.uniform2f(u.uCenter, x * unit * 2 / width, y * unit * 2 / height);
+      gl.uniform2f(u.uExtent, bx * unit * 2 / width, by * unit * 2 / height);
+      gl.uniform2f(u.uBounds, bx, by);
+    }
+    function draw() {
+      gl.disable(gl.DEPTH_TEST);
+      gl.useProgram(background.program);
+      gl.uniform2fv(background.uniforms.uPlate, plate);
+      quad(background, 0, 0, width / (2 * unit), height / (2 * unit));
+      gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+      gl.useProgram(shadow.program);
+      const su = shadow.uniforms;
+      for (const item of candies) {
+        const z = centerZ(item), softness = .36 + Math.max(0, z) * .25;
+        quad(shadow, item.x + z * .40625, (item.y + z * .3125) * C, item.shadowX + softness, (item.shadowY + softness) * C);
+        gl.uniform1f(su.uHeight, item.z + Math.max(0, item.support) * .32);
+        gl.uniform3fv(su.uTint, item.color);
+        gl.uniform3fv(su.uShadowPlanes, item.shadowPlanes);
+        gl.uniform4fv(su.uHoleMatrix, item.holeMatrix);
+        gl.uniform2fv(su.uHoleCenter, item.holeCenter);
+        gl.uniform1f(su.uHoleStrength, item.holeStrength);
+        gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+      }
+      gl.enable(gl.DEPTH_TEST);
+      gl.clear(gl.DEPTH_BUFFER_BIT);
+      gl.useProgram(candy.program);
+      const cu = candy.uniforms;
+      gl.uniform2fv(cu.uPlate, plate);
+      for (const item of candies) {
+        const z = centerZ(item);
+        quad(candy, item.x, item.y * C + z * S, item.boundX, item.boundY);
+        gl.uniform1i(cu.uShape, item.shape);
+        gl.uniform1f(cu.uSize, item.size);
+        gl.uniform1f(cu.uSquish, item.q);
+        gl.uniform1f(cu.uRadius, item.bound);
+        gl.uniform2f(cu.uLean, item.leanX, item.leanY);
+        gl.uniformMatrix3fv(cu.uInverseRotation, false, item.inverse);
+        gl.uniform4fv(cu.uGrabAnchor, item.anchors);
+        gl.uniform3fv(cu.uGrabOffset, item.offsets);
+        gl.uniform3f(cu.uWorld, item.x, item.y, z);
+        gl.uniform3fv(cu.uTint, item.color);
+        gl.uniform4fv(cu.uBubbles, item.bubbles);
+        gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+        const position = screenPosition(item);
+        item.key.style.left = `${position.x}px`; item.key.style.top = `${position.y}px`;
+        item.key.style.width = `${Math.max(40, item.boundX * unit * 1.8)}px`;
+        item.key.style.height = `${Math.max(40, item.boundY * unit * 1.8)}px`;
+      }
+      const activeLabel = held?.item || hovered || focused;
+      if (activeLabel) positionLabel(activeLabel);
+    }
+
+    function defaultHint() {
+      hint.textContent = mode === 'rotate'
+        ? '拖动自由翻转 · 松手轻轻打个滚'
+        : portrait ? '拖动局部揉捏 · 双指捏合拉伸 · 点击蹦跳' : '抓住任意部位揉捏 · 右键拖动翻转 · 点击蹦跳';
+    }
+    function arrange(welcome) {
+      const now = performance.now();
+      for (const item of candies) {
+        [item.x, item.y] = portrait ? item.portrait : item.desktop;
+        item.z = item.vx = item.vy = item.vz = item.q = item.dq = 0;
+        item.leanX = item.leanY = item.leanVX = item.leanVY = 0;
+        item.spin = [0, 0, 0];
+        item.orientation = multiplyQuaternion(axisQuaternion([0, 0, 1], item.pose[2]), multiplyQuaternion(axisQuaternion([0, 1, 0], item.pose[1]), axisQuaternion([1, 0, 0], item.pose[0])));
+        item.matrix = rotationMatrix(item.orientation); item.inverse = transpose(item.matrix);
+        for (const grip of item.grips) {
+          grip.anchor = [0, 0, 0]; grip.offset = [0, 0, 0]; grip.velocity = [0, 0, 0]; grip.target = [0, 0, 0]; grip.active = false;
+        }
+        refreshGeometry(item);
+        item.kickAt = welcome && !reducedMotion.matches ? now + 130 + item.index * 65 : 0;
+        item.kickPower = 1.6;
+      }
+      hovered = null; label.hidden = true; defaultHint(); wake();
+    }
+    function resize() {
+      const rect = stage.getBoundingClientRect();
+      width = rect.width; height = rect.height;
+      const nextPortrait = width / height < 1.02, changed = nextPortrait !== portrait;
+      portrait = nextPortrait;
+      unit = Math.min(width / (portrait ? 6.8 : 12.4), height / (portrait ? 11.2 : 7.5));
+      plate = portrait ? [3.02, 5.68] : [5.65, 3.6];
+      const resolution = Math.min(devicePixelRatio || 1, 1.5);
+      canvas.width = Math.round(width * resolution); canvas.height = Math.round(height * resolution);
+      gl.viewport(0, 0, canvas.width, canvas.height);
+      if (held) releasePointer(null, true);
+      if (!initialized || changed) arrange(!initialized);
+      initialized = true; defaultHint(); wake();
+    }
+    function bounce(item, power = reducedMotion.matches ? 2.4 : 4.9 + Math.random() * .55) {
+      item.kickAt = 0;
+      if (held?.item === item) return;
+      item.z = Math.max(item.z, .008); item.vz = power; item.dq -= power * .29;
+      const energy = power * (reducedMotion.matches ? .035 : .13);
+      item.spin = add(item.spin, [(Math.random() - .5) * energy, (Math.random() - .5) * energy, (Math.random() - .5) * energy]);
+      wake();
+    }
+    function contain(item) {
+      const rx = plate[0] - item.radius, ry = plate[1] - item.radius;
+      const e = Math.hypot(item.x / rx, item.y / ry);
+      if (e <= 1) return;
+      item.x /= e; item.y /= e;
+      let nx = item.x / (rx * rx), ny = item.y / (ry * ry);
+      const length = Math.hypot(nx, ny); nx /= length; ny /= length;
+      const outward = item.vx * nx + item.vy * ny;
+      if (outward > 0) {
+        item.vx -= outward * 1.60 * nx; item.vy -= outward * 1.60 * ny;
+        item.dq += Math.min(outward * .35, 2.2);
+        item.spin = add(item.spin, [ny * outward * .16, -nx * outward * .16, outward * (nx - ny) * .06]);
+      }
+    }
+    function centroid(grab) {
+      const points = [...grab.points.values()];
+      return { x: points.reduce((sum, p) => sum + p.x, 0) / points.length, y: points.reduce((sum, p) => sum + p.y, 0) / points.length, time: performance.now() };
+    }
+    function rebaseGrab() {
+      const mean = centroid(held);
+      held.origin = mean; held.baseX = held.item.x; held.baseY = held.item.y;
+      held.baseZ = held.item.z; held.baseCenterZ = centerZ(held.item); held.history = [mean];
+      const points = [...held.points.values()];
+      held.pairAngle = points.length === 2 ? Math.atan2(points[1].y - points[0].y, points[1].x - points[0].x) : null;
+    }
+
+    function update(dt, now) {
+      for (const item of candies) {
+        const selected = held?.item === item;
+        if (item.kickAt && now >= item.kickAt) bounce(item, item.kickPower);
+        let targetQ = 0;
+        for (const grip of item.grips) grip.target = [0, 0, 0];
+        if (selected) {
+          item.vz = 0;
+          const mean = centroid(held);
+          const dx = (mean.x - held.origin.x) / unit, dy = -(mean.y - held.origin.y) / unit;
+          if (held.moved) {
+            const distance = Math.hypot(dx, dy) / item.size;
+            const follow = held.mode === 'rotate' ? 0 : held.points.size > 1 ? .88 : Math.max(.10, 1 - 1.05 / Math.max(distance, 1.05));
+            item.z += (Math.max(held.baseZ, held.mode === 'rotate' ? .50 : .24) - item.z) * (1 - Math.exp(-10 * dt));
+            const tx = held.baseX + dx * follow;
+            const ty = held.baseY + dy * follow / C - (centerZ(item) - held.baseCenterZ) * S / C;
+            item.vx += ((tx - item.x) * 82 - item.vx * 16) * dt;
+            item.vy += ((ty - item.y) * 82 - item.vy * 16) * dt;
+            item.x += item.vx * dt; item.y += item.vy * dt;
+          } else item.vx = item.vy = 0;
+          targetQ = held.mode === 'knead' ? (held.moved ? -.025 : .045) : 0;
+          if (held.mode === 'knead') {
+            for (const pointer of held.points.values()) {
+              const grip = item.grips[pointer.slot];
+              const surfaceTarget = onViewPlane(pointer.x + pointer.offsetX, pointer.y + pointer.offsetY, pointer.depth);
+              const indentation = held.moved ? .025 + pointer.pressure * .045 : .11 + pointer.pressure * .14;
+              const targetWorld = add(surfaceTarget, scale(RAY, indentation));
+              const wanted = unpose(item, sub(targetWorld, centerWorld(item)));
+              const withoutThisGrip = flowPoint(item, grip.anchor, pointer.slot);
+              grip.target = limited(sub(wanted, withoutThisGrip), 1.55);
+              if (held.moved) {
+                const lever = relativePoint(item, grip.anchor);
+                const error = sub(targetWorld, add(centerWorld(item), lever));
+                item.spin = add(item.spin, scale(cross(lever, error), dt * .65));
+              }
+            }
+          }
+        } else {
+          if (item.z > 0 || item.vz > 0) {
+            item.vz -= 12.6 * dt; item.z += item.vz * dt;
+            if (item.z <= 0) {
+              const impact = -item.vz; item.z = 0;
+              item.dq += Math.min(impact * .82, 5.8);
+              item.vz = impact > .72 ? impact * (reducedMotion.matches ? .30 : .55) : 0;
+              item.spin = add(item.spin, [item.vy * .065, -item.vx * .065, (Math.random() - .5) * impact * .035]);
+            }
+          }
+          const friction = Math.exp(-(item.z > .02 ? .58 : 4.3) * dt);
+          item.vx *= friction; item.vy *= friction;
+          item.x += item.vx * dt; item.y += item.vy * dt;
+        }
+        item.dq += ((targetQ - item.q) * 132 - item.dq * 9.8) * dt;
+        item.q = clamp(item.q + item.dq * dt, -.23, .41);
+        for (const grip of item.grips) {
+          for (let i = 0; i < 3; i++) {
+            grip.velocity[i] += ((grip.target[i] - grip.offset[i]) * 142 - grip.velocity[i] * 11.5) * dt;
+            grip.offset[i] += grip.velocity[i] * dt;
+          }
+          grip.offset = limited(grip.offset, 1.9);
+          if (!grip.active && length3(grip.offset) < .0006 && length3(grip.velocity) < .005) {
+            grip.offset = [0, 0, 0]; grip.velocity = [0, 0, 0];
+          }
+        }
+        item.leanVX += ((clamp(-item.vx * .025, -.30, .30) - item.leanX) * 88 - item.leanVX * 10) * dt;
+        item.leanVY += ((clamp(-item.vy * .025, -.30, .30) - item.leanY) * 88 - item.leanVY * 10) * dt;
+        item.leanX += item.leanVX * dt; item.leanY += item.leanVY * dt;
+        if (!(selected && held.mode === 'rotate')) {
+          const speed = length3(item.spin);
+          if (speed > .0001) rotate(item, scale(item.spin, 1 / speed), speed * dt);
+          item.spin = scale(item.spin, Math.exp(-(selected ? 8 : item.z > .03 ? 1.4 : 4.8) * dt));
+        }
+        contain(item);
+        if (!selected) {
+          if (Math.abs(item.vx) < .004) item.vx = 0;
+          if (Math.abs(item.vy) < .004) item.vy = 0;
+          if (length3(item.spin) < .004) item.spin = [0, 0, 0];
+          if (Math.abs(item.q) < .0005 && Math.abs(item.dq) < .005) item.q = item.dq = 0;
+          if (Math.abs(item.leanX) < .0005 && Math.abs(item.leanVX) < .005) item.leanX = item.leanVX = 0;
+          if (Math.abs(item.leanY) < .0005 && Math.abs(item.leanVY) < .005) item.leanY = item.leanVY = 0;
+        }
+      }
+      for (let i = 0; i < candies.length; i++) for (let j = i + 1; j < candies.length; j++) {
+        const a = candies[i], b = candies[j];
+        if (a.z > b.z + b.totalHeight - .1 || b.z > a.z + a.totalHeight - .1) continue;
+        const dx = b.x - a.x, dy = b.y - a.y, distance = Math.hypot(dx, dy), separation = a.radius + b.radius;
+        if (distance >= separation) continue;
+        const nx = distance > .0001 ? dx / distance : 1, ny = distance > .0001 ? dy / distance : 0;
+        const inverseA = held?.item === a ? 0 : 1, inverseB = held?.item === b ? 0 : 1, total = inverseA + inverseB;
+        const correction = (separation - distance) / total;
+        a.x -= nx * correction * inverseA; a.y -= ny * correction * inverseA;
+        b.x += nx * correction * inverseB; b.y += ny * correction * inverseB;
+        const relative = (b.vx - a.vx) * nx + (b.vy - a.vy) * ny;
+        if (relative < 0) {
+          const impulse = -relative * 1.56 / total;
+          a.vx -= impulse * nx * inverseA; a.vy -= impulse * ny * inverseA;
+          b.vx += impulse * nx * inverseB; b.vy += impulse * ny * inverseB;
+          a.dq += Math.min(impulse * .30, 1.9); b.dq += Math.min(impulse * .30, 1.9);
+          a.spin = add(a.spin, [ny * impulse * .10, -nx * impulse * .10, .06 * impulse]);
+          b.spin = add(b.spin, [-ny * impulse * .10, nx * impulse * .10, -.06 * impulse]);
+        }
+      }
+    }
+    function wake() {
+      if (frameId || document.hidden) return;
+      lastFrame = performance.now(); frameId = requestAnimationFrame(frame);
+    }
+    function frame(now) {
+      const dt = Math.min((now - lastFrame) / 1000, .035); lastFrame = now;
+      const steps = Math.max(1, Math.ceil(dt * 120));
+      for (let i = 0; i < steps; i++) update(dt / steps, now);
+      for (const item of candies) refreshGeometry(item);
+      draw();
+      const moving = held || candies.some(item => item.kickAt || item.z > 0 || item.vz || item.vx || item.vy || item.q || item.dq || length3(item.spin) || item.leanX || item.leanY || item.leanVX || item.leanVY || item.grips.some(grip => length3(grip.offset) || length3(grip.velocity)));
+      frameId = moving ? requestAnimationFrame(frame) : 0;
+    }
+
+    function pick(x, y, only = null) {
+      const origin = onViewPlane(x, y, 16);
+      let nearest = null, nearestTravel = Infinity;
+      for (const item of only ? [only] : candies) {
+        const relativeOrigin = sub(origin, centerWorld(item));
+        const b = dot(relativeOrigin, RAY);
+        const discriminant = b * b - dot(relativeOrigin, relativeOrigin) + item.bound ** 2;
+        if (discriminant < 0) continue;
+        const root = Math.sqrt(discriminant), limit = Math.min(-b + root, nearestTravel);
+        let travel = Math.max(0, -b - root);
+        for (let i = 0; i < 120 && travel <= limit; i++) {
+          const relative = add(relativeOrigin, scale(RAY, travel));
+          const distance = sceneDistance(item, relative);
+          if (distance < .0025) {
+            const world = add(origin, scale(RAY, travel));
+            nearest = { item, world, rest: restPoint(item, relative).p };
+            nearestTravel = travel; break;
+          }
+          travel += Math.max(distance, .0015);
+        }
+      }
+      return nearest;
+    }
+    function nearestSurface(item, x, y) {
+      let nearest = null, distance = Infinity;
+      for (let i = 0; i < item.points.length; i++) {
+        const world = add(centerWorld(item), item.points[i]), screen = project(world);
+        const metric = (screen.x - x) ** 2 + (screen.y - y) ** 2 - dot(world, VIEW) * .02;
+        if (metric < distance) { distance = metric; nearest = { item, world, rest: clouds[item.shape][i] }; }
+      }
+      return nearest;
+    }
+    function positionLabel(item) {
+      const center = screenPosition(item);
+      label.style.left = `${clamp(center.x, 72, width - 72)}px`;
+      label.style.top = `${Math.max(30, center.y - item.boundY * unit - 10)}px`;
+    }
+    function showLabel(item) {
+      label.textContent = item.name; label.style.setProperty('--flavor', item.hex); label.hidden = false; positionLabel(item);
+    }
+    function point(event) {
+      const rect = canvas.getBoundingClientRect();
+      return { x: event.clientX - rect.left, y: event.clientY - rect.top, time: performance.now(), pressure: event.pressure || .5 };
+    }
+    function rememberMean() {
+      const mean = centroid(held);
+      held.history.push(mean); held.history = held.history.filter(sample => mean.time - sample.time < 100);
+    }
+    function addPointer(event, position, hit) {
+      const item = held.item, surface = project(hit.world);
+      let slot = -1;
+      if (held.mode === 'knead') {
+        let energy = Infinity;
+        for (let i = 0; i < GRIP_COUNT; i++) {
+          const grip = item.grips[i];
+          if (grip.active) continue;
+          const score = length3(grip.offset) + length3(grip.velocity) * .04;
+          if (score < energy) { slot = i; energy = score; }
+        }
+        const grip = item.grips[slot];
+        grip.anchor = [...hit.rest]; grip.offset = [0, 0, 0]; grip.velocity = [0, 0, 0]; grip.active = true;
+        grip.radius = item.shape === 0 && Math.abs(hit.rest[1]) > .48 ? .56 : .66;
+      }
+      const dotElement = document.createElement('div'); dotElement.className = 'grip-dot'; stage.appendChild(dotElement);
+      const pointer = {
+        ...position, id: event.pointerId, startX: position.x, startY: position.y,
+        offsetX: surface.x - position.x, offsetY: surface.y - position.y,
+        depth: dot(hit.world, VIEW), initialDepth: dot(hit.world, VIEW), rest: [...hit.rest], slot, dot: dotElement
+      };
+      dotElement.style.left = `${position.x}px`; dotElement.style.top = `${position.y}px`;
+      held.points.set(event.pointerId, pointer); canvas.setPointerCapture(event.pointerId);
+      if (held.points.size > 1) { held.wasMultiple = true; held.moved = true; }
+      rebaseGrab();
+    }
+
+    canvas.addEventListener('pointerdown', event => {
+      if (event.pointerType === 'mouse' && event.button !== 0 && event.button !== 2) return;
+      const position = point(event);
+      if (held) {
+        if (held.points.size >= 2 || held.points.has(event.pointerId)) return;
+        const hit = pick(position.x, position.y, held.item) || nearestSurface(held.item, position.x, position.y);
+        event.preventDefault(); addPointer(event, position, hit);
+        hint.textContent = '两端拉开、捏合，或轻轻扭一扭。'; wake(); return;
+      }
+      const hit = pick(position.x, position.y);
+      if (!hit) return;
+      event.preventDefault();
+      const item = hit.item;
+      held = { item, mode: event.button === 2 || event.altKey ? 'rotate' : mode, points: new Map(), moved: false, wasMultiple: false, history: [] };
+      item.kickAt = 0; item.vx = item.vy = item.vz = 0; item.spin = [0, 0, 0];
+      addPointer(event, position, hit);
+      canvas.classList.add('is-grabbing'); showLabel(item); wake();
+    });
+    canvas.addEventListener('pointermove', event => {
+      const position = point(event);
+      if (!held) {
+        hovered = pick(position.x, position.y)?.item || null;
+        canvas.style.cursor = hovered ? 'grab' : 'default';
+        if (hovered) showLabel(hovered); else if (focused) showLabel(focused); else label.hidden = true;
+        return;
+      }
+      const pointer = held.points.get(event.pointerId);
+      if (!pointer) return;
+      const previousMean = centroid(held), previousTime = pointer.time;
+      Object.assign(pointer, position);
+      pointer.dot.style.left = `${position.x}px`; pointer.dot.style.top = `${position.y}px`;
+      if (!held.moved && Math.hypot(position.x - pointer.startX, position.y - pointer.startY) > 4) {
+        held.moved = true;
+        hint.textContent = held.mode === 'rotate' ? '随手翻个面，松手继续滚。' : event.pointerType === 'touch' ? '再放上一根手指，捏合或拉开。' : '拖着局部拉扯 · 滚轮可前后推拉';
+      }
+      if (held.mode === 'rotate' && held.moved) {
+        const mean = centroid(held), dx = (mean.x - previousMean.x) / unit, dy = -(mean.y - previousMean.y) / unit;
+        const axis = cross(VIEW, [dx, dy * C, dy * S]), distance = length3(axis);
+        if (distance > .00001) {
+          const direction = scale(axis, 1 / distance), angle = distance * 1.55;
+          rotate(held.item, direction, angle);
+          held.item.spin = limited(scale(direction, angle / Math.max(.012, (position.time - previousTime) / 1000)), 9);
+        }
+      }
+      if (held.points.size === 2) {
+        const points = [...held.points.values()];
+        const angle = Math.atan2(points[1].y - points[0].y, points[1].x - points[0].x);
+        let delta = angle - held.pairAngle;
+        delta = Math.atan2(Math.sin(delta), Math.cos(delta));
+        const amount = -delta * (held.mode === 'rotate' ? 1 : .5);
+        rotate(held.item, VIEW, amount); held.pairAngle = angle;
+        held.item.spin = add(scale(held.item.spin, .8), scale(VIEW, amount * 16));
+      }
+      rememberMean(); wake();
+    });
+
+    function releasePointer(event, cancelled = false) {
+      if (!held) return;
+      if (event && !held.points.has(event.pointerId)) return;
+      const grab = held, item = grab.item;
+      if (event) {
+        Object.assign(grab.points.get(event.pointerId), point(event)); rememberMean();
+      }
+      const released = event ? [grab.points.get(event.pointerId)] : [...grab.points.values()];
+      for (const pointer of released) {
+        grab.points.delete(pointer.id); pointer.dot.remove();
+        if (pointer.slot >= 0) { item.grips[pointer.slot].active = false; item.grips[pointer.slot].target = [0, 0, 0]; }
+      }
+      if (grab.points.size === 0) held = null;
+      for (const pointer of released) if (canvas.hasPointerCapture(pointer.id)) canvas.releasePointerCapture(pointer.id);
+      if (held) { held.moved = true; rebaseGrab(); wake(); return; }
+      if (!cancelled && grab.moved && grab.mode === 'knead') {
+        const first = grab.history[0], last = grab.history[grab.history.length - 1];
+        const duration = (last.time - first.time) / 1000;
+        const vx = duration > .008 ? (last.x - first.x) / (duration * unit) : 0;
+        const vy = duration > .008 ? -(last.y - first.y) / (duration * unit * C) : 0;
+        item.vx = clamp(vx * .72 + item.vx * .2, -11, 11);
+        item.vy = clamp(vy * .72 + item.vy * .2, -11, 11);
+        item.vz = clamp(.35 + Math.hypot(item.vx, item.vy) * .10, .35, 1.7);
+        const lever = relativePoint(item, released[released.length - 1].rest);
+        item.spin = limited(add(item.spin, scale(cross(lever, [item.vx, item.vy, item.vz]), .22)), 7);
+        item.dq -= 1;
+      } else if (!cancelled && !grab.moved && !grab.wasMultiple) bounce(item);
+      else if (!cancelled && grab.mode === 'rotate' && item.z > .02) item.vz = .25;
+      canvas.classList.remove('is-grabbing'); canvas.style.cursor = 'default';
+      hovered = null; label.hidden = true; defaultHint(); wake();
+    }
+    canvas.addEventListener('pointerup', event => releasePointer(event));
+    canvas.addEventListener('pointercancel', event => releasePointer(event, true));
+    canvas.addEventListener('lostpointercapture', event => releasePointer(event, true));
+    canvas.addEventListener('pointerleave', () => { if (!held) { hovered = null; if (!focused) label.hidden = true; } });
+    canvas.addEventListener('contextmenu', event => event.preventDefault());
+    canvas.addEventListener('wheel', event => {
+      if (!held || held.mode !== 'knead') return;
+      event.preventDefault(); held.moved = true;
+      for (const pointer of held.points.values()) pointer.depth = clamp(pointer.depth - event.deltaY * .0025, pointer.initialDepth - 1.3, pointer.initialDepth + 1.3);
+      wake();
+    }, { passive: false });
+
+    document.querySelectorAll('.mode-button').forEach(button => button.addEventListener('click', () => {
+      if (held) releasePointer(null, true);
+      mode = button.dataset.mode;
+      document.querySelectorAll('.mode-button').forEach(option => option.setAttribute('aria-pressed', String(option === button)));
+      defaultHint();
+    }));
+    document.querySelector('#jump-all').addEventListener('click', () => {
+      const now = performance.now();
+      for (const item of candies) {
+        item.kickAt = now + item.index * (reducedMotion.matches ? 35 : 65) + 1;
+        item.kickPower = reducedMotion.matches ? 2.3 : 4.7 + Math.random() * 1.1;
+      }
+      wake();
+    });
+    document.querySelector('#reset').addEventListener('click', () => { if (held) releasePointer(null, true); arrange(true); });
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) {
+        if (held) releasePointer(null, true);
+        cancelAnimationFrame(frameId); frameId = 0;
+      } else wake();
+    });
+    window.addEventListener('blur', () => { if (held) releasePointer(null, true); });
+    new ResizeObserver(resize).observe(stage);
+  })();
+  </script>
+</body>
+</html>

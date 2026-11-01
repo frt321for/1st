@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#FFD400">
+<title>PELICAN GP · 鹈鹕公路大奖赛</title>
+<!--
+THESIS: 一张仍在直播的平涂印刷海报——页面即赛况，物理引擎即计分板；拒绝居中 hero、卡片阵列与深底荧光的品类默认。
+OWN-WORLD: 铬黄天空/骨白公路/暖墨线稿/深青海带 + 红绿双衫；点阵计分牌、条码色带、错版描边太阳。
+STORY: 两只白鹈鹕（07 大嘴 / 42 长风）在沿海第 7 赛段互咬；长按=冲刺，点骑手/←→=进攻，遥测全部来自真实模拟。
+FIRST VIEWPORT: 全出血：上 74% 铬黄天空 + 错版太阳盘，巨型 PELICAN/GRAND PRIX 墨字被骑手骑过，地平线卡点阵遥测，下段骨白公路。
+FORM: 双层 canvas 夹 DOM 字排；canvas2D 程序化 IK 骑行循环，固定步长物理，CSS 仅负责入场。
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders:opsz,wght@10..72,100..900&family=Chivo+Mono:wght@300;400;500&family=Doto:wght@600;800;900&family=ZCOOL+QingKe+HuangYou&display=swap" rel="stylesheet">
+<style>
+:root{
+  --sun:#FFD400; --ink:#1B1712; --bone:#F5F0E4; --bone2:#E7DFCC;
+  --sea:#0E5E52; --flame:#E8492A; --leaf:#0F7A46;
+  --mono:'Chivo Mono',ui-monospace,Menlo,monospace;
+  --disp:'Big Shoulders','Arial Narrow',sans-serif;
+  --dot:'Doto',var(--mono);
+  --zh:'ZCOOL QingKe HuangYou','PingFang SC','Microsoft YaHei',sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%}
+body{
+  height:100vh;height:100dvh;
+  background:var(--sun);color:var(--ink);
+  font-family:var(--mono);overflow:hidden;
+  -webkit-font-smoothing:antialiased;
+  user-select:none;-webkit-user-select:none;
+}
+::selection{background:var(--ink);color:var(--sun)}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+#stage{position:fixed;inset:0;touch-action:none;cursor:crosshair}
+#stage canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+#bg{z-index:1}
+#fg{z-index:4;pointer-events:none}
+
+/* ---------- masthead ---------- */
+.masthead{
+  position:absolute;z-index:5;top:0;left:0;right:0;
+  display:flex;justify-content:space-between;align-items:center;gap:12px;
+  padding:15px 22px 0;font-size:11px;letter-spacing:.14em;text-transform:uppercase;
+  pointer-events:none;
+}
+.masthead b{font-family:var(--zh);font-weight:400;font-size:14px;letter-spacing:.3em;margin-right:10px;text-transform:none}
+.masthead .en{opacity:.7}
+.stripes{display:inline-block;vertical-align:-1px;margin-right:12px}
+.stripes i{display:inline-block;width:15px;height:4px;margin-right:2px}
+.stripes i:nth-child(1){background:var(--leaf)}
+.stripes i:nth-child(2){background:var(--ink)}
+.stripes i:nth-child(3){background:var(--flame)}
+.live{display:flex;align-items:center;gap:8px;white-space:nowrap}
+.live i{width:9px;height:9px;border-radius:50%;background:var(--flame);animation:pulse 1.6s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.35;transform:scale(.75)}}
+
+/* ---------- title ---------- */
+.title{position:absolute;z-index:3;left:3.5vw;top:clamp(52px,9.5vh,108px);pointer-events:none}
+.headline{
+  font-family:var(--disp);text-transform:uppercase;
+  font-size:clamp(64px,12.8vw,196px);line-height:.83;letter-spacing:-.018em;
+  font-variation-settings:'opsz' 72,'wght' 560;
+}
+.headline .line{display:block;overflow:hidden;padding-bottom:.015em}
+.headline .w{display:inline-block;transform:translateY(115%);animation:rise .85s cubic-bezier(.23,1,.32,1) forwards}
+.headline .line:nth-child(2) .w{animation-delay:.12s}
+.headline .outline{color:transparent;-webkit-text-stroke:2.5px var(--ink)}
+@keyframes rise{to{transform:translateY(0)}}
+.sub{
+  margin-top:clamp(12px,2vh,22px);display:flex;align-items:center;gap:14px;
+  font-family:var(--zh);font-size:clamp(15px,1.6vw,21px);letter-spacing:.42em;
+  opacity:0;animation:fadein .6s ease .55s forwards;
+}
+.sub small{font-family:var(--mono);font-size:10px;letter-spacing:.18em;opacity:.85;
+  border:1.5px solid var(--ink);padding:4px 9px 3px;border-radius:2px}
+@keyframes fadein{to{opacity:1}}
+
+.vertical{
+  position:absolute;z-index:3;right:20px;top:50%;transform:translateY(-50%);
+  writing-mode:vertical-rl;font-family:var(--zh);font-size:13px;letter-spacing:.5em;
+  opacity:.66;pointer-events:none;
+}
+
+/* ---------- telemetry ---------- */
+.telemetry{
+  position:absolute;z-index:5;left:50%;top:74%;transform:translate(-50%,-56%);
+  display:grid;grid-template-columns:repeat(5,auto);
+  background:var(--bone);border:2px solid var(--ink);box-shadow:7px 7px 0 var(--ink);
+  pointer-events:none;opacity:0;animation:fadein .6s ease .7s forwards;
+}
+.cell{padding:9px 16px 11px;border-left:1.5px solid var(--ink);white-space:nowrap}
+.cell:first-child{border-left:0}
+.cell .lbl{display:block;font-size:9.5px;letter-spacing:.16em;opacity:.8;margin-bottom:3px;text-transform:uppercase}
+.cell .val{font-family:var(--dot);font-weight:900;font-size:clamp(17px,2vw,24px);line-height:1;font-variation-settings:'ROND' 60}
+.cell .val small{font-family:var(--mono);font-size:9px;letter-spacing:.06em;margin-left:4px;opacity:.75}
+.cell.flash{animation:cellflash .55s ease}
+@keyframes cellflash{0%{background:var(--sun)}100%{background:var(--bone)}}
+body.sprint .cell.spd .val{color:var(--flame)}
+
+/* ---------- hud ---------- */
+.hud{
+  position:absolute;z-index:5;left:20px;right:20px;bottom:46px;
+  display:flex;justify-content:space-between;align-items:flex-end;gap:16px;
+  pointer-events:none;opacity:0;animation:fadein .6s ease .85s forwards;
+}
+.squad{display:flex;flex-direction:column;gap:7px}
+.row{display:flex;align-items:center;gap:9px;font-size:10px;letter-spacing:.1em}
+.row .bib{font-family:var(--dot);font-weight:900;font-size:12px;border:1.5px solid var(--ink);
+  padding:3px 6px 1px;background:var(--bone)}
+.row .nm{font-family:var(--zh);letter-spacing:.2em;font-size:12px}
+.row .bar{width:clamp(80px,13vw,170px);height:8px;border:1.5px solid var(--ink);background:var(--bone);position:relative;overflow:hidden}
+.row .bar i{position:absolute;top:0;bottom:0;left:0;width:100%;transition:width .3s linear}
+.row.g .bar i{background:var(--leaf)}
+.row.r .bar i{background:var(--flame)}
+.ops{display:flex;flex-direction:column;align-items:flex-end;gap:9px}
+.btns{display:flex;gap:9px}
+button{
+  font-family:var(--mono);font-size:11px;letter-spacing:.12em;
+  padding:12px 15px;background:var(--bone);color:var(--ink);
+  border:2px solid var(--ink);box-shadow:3px 3px 0 var(--ink);cursor:pointer;
+  display:flex;align-items:center;gap:8px;touch-action:manipulation;
+  transition:background 140ms ease-out,color 140ms ease-out;
+}
+button i{width:8px;height:8px;border-radius:50%}
+#atk0 i{background:var(--leaf)}
+#atk1 i{background:var(--flame)}
+button:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--ink)}
+button:focus-visible{outline:2px dashed var(--ink);outline-offset:3px}
+@media (hover:hover) and (pointer:fine){
+  button:hover{background:var(--ink);color:var(--bone)}
+}
+.hint{font-size:10px;letter-spacing:.1em;opacity:.78;text-align:right}
+
+/* ---------- ticker ---------- */
+.ticker{
+  position:absolute;z-index:5;left:0;right:0;bottom:0;height:32px;
+  background:var(--ink);color:var(--bone);border-top:2px solid var(--ink);
+  display:flex;align-items:center;overflow:hidden;
+}
+.tick{display:inline-flex;white-space:nowrap;width:max-content;
+  animation:tick 46s linear infinite;font-size:10px;letter-spacing:.12em}
+.tick span{padding-right:2.5em}
+@keyframes tick{to{transform:translateX(-50%)}}
+
+/* ---------- responsive ---------- */
+@media (max-width:860px){
+  .vertical{display:none}
+  .title{left:16px}
+  .headline{font-size:clamp(58px,16.5vw,120px)}
+  .sub{letter-spacing:.22em;flex-wrap:wrap;gap:8px}
+  .masthead{padding:12px 14px 0;font-size:9.5px}
+  .masthead b{font-size:12px;letter-spacing:.2em}
+  .masthead .en{display:none}
+  .telemetry{transform:translate(-50%,-56%);box-shadow:5px 5px 0 var(--ink)}
+  .cell{padding:6px 9px 8px}
+  .cell .lbl{font-size:7.5px;margin-bottom:2px}
+  .cell .val{font-size:14px}
+  .hud{left:12px;right:12px;bottom:40px;flex-direction:column;align-items:stretch;gap:10px}
+  .squad{gap:5px}
+  .row .bar{flex:1}
+  .ops{align-items:stretch}
+  .btns{gap:8px}
+  .btns button{flex:1;justify-content:center}
+  .hint{text-align:center;font-size:9px}
+}
+@media (max-width:380px){
+  .cell{padding:6px 6px 8px}
+  .cell .val{font-size:12px}
+}
+@media (prefers-reduced-motion:reduce){
+  .headline .w{animation:fadein .3s ease forwards;transform:none}
+  .live i{animation:none}
+  .tick{animation:none}
+  .row .bar i{transition:none}
+  .telemetry,.hud,.sub{animation-duration:.3s}
+}
+</style>
+</head>
+<body>
+
+<div id="stage">
+  <canvas id="bg" aria-hidden="true"></canvas>
+
+  <div class="title">
+    <h1 class="headline">
+      <span class="line"><span class="w">Pelican</span></span>
+      <span class="line"><span class="w outline">Grand Prix</span></span>
+    </h1>
+    <p class="sub"><span>鹈鹕公路大奖赛</span><small>SEASIDE STAGE · 第 7 赛段</small></p>
+  </div>
+  <p class="vertical">海风侧逆 · 喙位偏低 · 全力摇车</p>
+
+  <canvas id="fg" aria-hidden="true"></canvas>
+
+  <header class="masthead">
+    <div><span class="stripes" aria-hidden="true"><i></i><i></i><i></i></span><b>鹈鹕公路大奖赛</b><span class="en">Pelican Grand Prix — Official Feed</span></div>
+    <div class="live"><span id="clock">14:32:07</span><i aria-hidden="true"></i>LIVE 直播</div>
+  </header>
+
+  <section class="telemetry" aria-label="赛况遥测">
+    <div class="cell" id="cellLead"><span class="lbl">领先 Leader</span><span class="val" id="tLead">07 大嘴</span></div>
+    <div class="cell"><span class="lbl">时差 Gap</span><span class="val"><span id="tGap">+0.0</span><small>s</small></span></div>
+    <div class="cell spd"><span class="lbl">速度 Speed</span><span class="val"><span id="tSpd">45.0</span><small>km/h</small></span></div>
+    <div class="cell"><span class="lbl">踏频 Cadence</span><span class="val"><span id="tCad">83</span><small>rpm</small></span></div>
+    <div class="cell"><span class="lbl">里程 Dist</span><span class="val"><span id="tDist">0.00</span><small>km</small></span></div>
+  </section>
+
+  <footer class="hud">
+    <div class="squad">
+      <div class="row g"><span class="bib">07</span><span class="nm">大嘴</span><span class="bar"><i id="st0"></i></span></div>
+      <div class="row r"><span class="bib">42</span><span class="nm">长风</span><span class="bar"><i id="st1"></i></span></div>
+    </div>
+    <div class="ops">
+      <div class="btns">
+        <button id="atk0" aria-label="命令 07 大嘴进攻"><i aria-hidden="true"></i>07 进攻</button>
+        <button id="atk1" aria-label="命令 42 长风进攻"><i aria-hidden="true"></i>42 进攻</button>
+      </div>
+      <p class="hint">长按画面 / SPACE = 全队冲刺 · 点骑手或 ← → = 单飞进攻</p>
+    </div>
+  </footer>
+
+  <div class="ticker" aria-hidden="true"><div class="tick"><span id="tk1"></span><span id="tk2"></span></div></div>
+
+  <p class="sr-only">两只白鹈鹕正骑公路赛车沿海堤竞速：07 号大嘴穿绿衫，42 号长风穿红衫。长按页面可让全队冲刺，点击某位骑手可命令其单飞进攻。</p>
+</div>
+
+<noscript><p style="position:fixed;inset:auto 0 40px;text-align:center;font-size:13px">需要启用 JavaScript 才能观看这场比赛。</p></noscript>
+
+<script>
+(()=>{ 'use strict';
+const TAU=Math.PI*2;
+const C={sun:'#FFD400',ink:'#1B1712',bone:'#F5F0E4',bone2:'#E7DFCC',sea:'#0E5E52',flame:'#E8492A',leaf:'#0F7A46'};
+const RM=matchMedia('(prefers-reduced-motion: reduce)').matches;
+const TS=RM?0.4:1;                 // reduced-motion → 全局慢放，去掉抖动
+const ROAD_TOP=0.74, SEA_H=0.085;
+
+const stage=document.getElementById('stage');
+const bg=document.getElementById('bg'), fg=document.getElementById('fg');
+const bx=bg.getContext('2d'), fx=fg.getContext('2d');
+let W=innerWidth,H=innerHeight,DPR=1;
+function resize(){
+  W=innerWidth;H=innerHeight;DPR=Math.min(2,devicePixelRatio||1);
+  for(const [c,x] of [[bg,bx],[fg,fx]]){
+    c.width=Math.round(W*DPR);c.height=Math.round(H*DPR);
+    x.setTransform(DPR,0,0,DPR,0,0);
+  }
+}
+addEventListener('resize',resize);resize();
+
+/* ---------------- 物理世界 ---------------- */
+const PBASE=225, DRAG=0.0158, ROLL=0.051, MASS=78, GEAR=4.4, WR=0.34;
+const Kf=()=>Math.min(23,Math.max(9,W*0.0135));   // 世界米 → 屏幕像素（压缩）
+
+const riders=[
+  {i:0,bib:'07',name:'大嘴',col:C.leaf ,x: 0.0,v:11.6,crank:1.1,wheel:0,boostP:0,boostT:0,sta:100,sprint:0,aiT:6 ,sx:0,sy:0,sc:1,ln:1},
+  {i:1,bib:'42',name:'长风',col:C.flame,x:-0.9,v:11.6,crank:4.0,wheel:0,boostP:0,boostT:0,sta:100,sprint:0,aiT:11,sx:0,sy:0,sc:1,ln:0}
+];
+let sprintAll=false, camX=W*0.52+460, gapPx=90, simT=0, scrollPx=0, prevLead=null;
+const labels=[], dust=[];
+
+function attack(r){
+  if(r.boostT>0||r.sta<25)return false;
+  r.boostP=205;r.boostT=3.4;r.sta=Math.max(0,r.sta-8);
+  labels.push({r,t:0});
+  return true;
+}
+
+function physics(dt){
+  simT+=dt;
+  for(const r of riders){
+    let P=PBASE;
+    const o=riders[1-r.i], d=o.x-r.x;
+    if(d<0){const g=-d; if(g<7)P*=1.06; else if(g>26)P*=1.10;}   // 跟车 / 追击
+    if(r.boostT>0){P+=r.boostP;r.boostT-=dt;r.sta-=11*dt;}
+    if(sprintAll){P+=300;r.sta-=15*dt;}
+    if(r.boostT<=0&&!sprintAll)r.sta=Math.min(100,r.sta+4.6*dt);
+    if(r.sta<=0){r.sta=0;P=Math.min(P,PBASE*0.72);}               // 撞墙
+    r.aiT-=dt;
+    if(r.aiT<=0){r.aiT=7+Math.random()*9;
+      if(!sprintAll&&r.boostT<=0&&r.sta>62&&Math.random()<0.72)attack(r);}
+    r.v=Math.max(3.2,r.v+(P-ROLL*r.v-DRAG*r.v*r.v)/MASS*dt);
+    r.x+=r.v*dt;
+    r.wheel=(r.wheel+r.v/WR*dt)%TAU;
+    r.crank=(r.crank+r.v/WR/GEAR*dt)%TAU;
+    r.sprint+=(((sprintAll||r.boostT>0)?1:0)-r.sprint)*Math.min(1,dt*5.5);
+  }
+  const lead=riders[0].x>riders[1].x?riders[0]:riders[1], trail=riders[1-lead.i];
+  const d=Math.abs(riders[0].x-riders[1].x);
+  gapPx+=((Math.min(Math.max(d*Kf(),26),W*0.34))-gapPx)*Math.min(1,dt*4.5);
+  lead.ln+=(1-lead.ln)*Math.min(1,dt*4);
+  trail.ln+=(0-trail.ln)*Math.min(1,dt*4);
+  lead.sx=camX+gapPx/2; trail.sx=camX-gapPx/2;
+  for(const r of riders){ r.sy=H*(0.818+0.087*r.ln); r.sc=0.90+0.15*r.ln; }
+  scrollPx+=( (riders[0].v+riders[1].v)/2*Kf()*2.4 )*dt;
+  if(prevLead!==lead){ prevLead=lead; const c=document.getElementById('cellLead');
+    c.classList.remove('flash'); void c.offsetWidth; c.classList.add('flash'); }
+}
+
+/* ---------------- 绘制 ---------------- */
+const mx={v:0,t:0}, my={v:0,t:0};
+const clouds=[], streaks=[]; let lightX=0;
+for(let i=0;i<4;i++)clouds.push({x:Math.random()*1.3,y:0.06+Math.random()*0.2,s:0.6+Math.random()*0.8,f:0.5+Math.random()*0.5});
+for(let i=0;i<26;i++)streaks.push({x:Math.random()*1.6-0.3,y:Math.random(),band:Math.random(),on:false});
+lightX=Math.random();
+
+function renderBG(t,dt){
+  const rTY=H*ROAD_TOP, seaB=rTY+H*SEA_H, avgV=(riders[0].v+riders[1].v)/2;
+  const midX=(riders[0].x+riders[1].x)/2, K=Kf();
+  mx.v+=(mx.t-mx.v)*Math.min(1,dt*4); my.v+=(my.t-my.v)*Math.min(1,dt*4);
+
+  bx.fillStyle=C.sun; bx.fillRect(0,0,W,rTY+2);
+  // 错版太阳
+  const scx=W*0.72+mx.v*-16, scy=H*0.235+my.v*-9, sr=Math.min(W,H)*0.155;
+  bx.fillStyle=C.bone; bx.beginPath(); bx.arc(scx,scy,sr,0,TAU); bx.fill();
+  bx.strokeStyle=C.ink; bx.lineWidth=2; bx.beginPath(); bx.arc(scx+9,scy+7,sr,0,TAU); bx.stroke();
+  // 云
+  bx.fillStyle=C.bone;
+  for(const c of clouds){
+    c.x-=avgV*TS*K*0.06*c.f*dt+dt*0.004; if(c.x<-0.2)c.x=1.25;
+    const cx=c.x*W,cy=c.y*H,s=c.s*Math.min(W,H)*0.05;
+    bx.beginPath();
+    bx.ellipse(cx,cy,s*1.9,s*0.55,0,0,TAU);
+    bx.ellipse(cx-s*0.9,cy-s*0.35,s*0.95,s*0.5,0,0,TAU);
+    bx.ellipse(cx+s*1.0,cy-s*0.3,s*1.05,s*0.48,0,0,TAU);
+    bx.fill();
+  }
+  // 海带 + 灯塔
+  bx.fillStyle=C.sea; bx.fillRect(0,rTY,W,SEA_H*H+2);
+  bx.strokeStyle=C.ink; bx.lineWidth=2;
+  bx.beginPath(); bx.moveTo(0,rTY); bx.lineTo(W,rTY); bx.stroke();
+  lightX-=avgV*TS*K*0.045*dt/W; if(lightX<-0.06)lightX=1.06;
+  const lx=lightX*W, lh=H*0.045;
+  bx.fillStyle='rgba(27,23,18,0.85)';
+  bx.beginPath();
+  bx.moveTo(lx-lh*0.22,rTY); bx.lineTo(lx-lh*0.12,rTY-lh); bx.lineTo(lx+lh*0.12,rTY-lh);
+  bx.lineTo(lx+lh*0.22,rTY); bx.closePath(); bx.fill();
+  bx.fillRect(lx-lh*0.2,rTY-lh*1.22,lh*0.4,lh*0.24);
+  // 公路
+  bx.fillStyle=C.bone; bx.fillRect(0,seaB,W,H-seaB);
+  bx.lineWidth=3; bx.beginPath(); bx.moveTo(0,seaB); bx.lineTo(W,seaB); bx.stroke();
+  // 中央虚线
+  const dy=seaB+(H-seaB)*0.46, per=58, off=scrollPx%per;
+  bx.fillStyle=C.ink;
+  for(let x=-per+off;x<W;x+=per)bx.fillRect(x,dy-1.5,30,3);
+  // 里程牌
+  bx.strokeStyle=C.ink;bx.lineWidth=2.5;
+  const lo=midX-(camX+70)/K, hi=midX+(W-camX+70)/K;
+  for(let m=Math.ceil(lo/150)*150;m<hi;m+=150){
+    const sx=camX+(m-midX)*K; if(sx<-60||sx>W+60)continue;
+    bx.beginPath();bx.moveTo(sx,seaB+4);bx.lineTo(sx,seaB-26);bx.stroke();
+    bx.fillStyle=C.bone;bx.fillRect(sx-17,seaB-42,34,16);
+    bx.lineWidth=1.5;bx.strokeRect(sx-17,seaB-42,34,16);bx.lineWidth=2.5;
+    bx.fillStyle=C.ink;bx.font='9px "Chivo Mono",monospace';bx.textAlign='center';bx.textBaseline='middle';
+    bx.fillText((m/1000).toFixed(1),sx,seaB-33.5);
+    const fl=Math.sin(t*9+m)*2.5;
+    bx.fillStyle=C.flame;
+    bx.beginPath();bx.moveTo(sx,seaB-42);bx.lineTo(sx+15+fl,seaB-37.5+fl*0.4);bx.lineTo(sx,seaB-33);bx.closePath();bx.fill();
+    bx.lineWidth=1.2;bx.stroke();bx.lineWidth=2.5;
+  }
+  // 速度线
+  const sf=Math.min(1,Math.max(0,(avgV-14)/6));
+  for(const s of streaks){
+    if(!s.on){ if(sf>0.1&&Math.random()<0.05){s.on=true;s.x=W+Math.random()*W*0.3;} else continue; }
+    s.x-=avgV*K*2.6*1.15*dt;
+    if(s.x<-180||sf<=0.01){s.on=false;continue;}
+    const y=s.band<(SEA_H/(ROAD_TOP+SEA_H))?rTY+8+s.band*SEA_H*H*0.8:seaB+14+s.band*(H-seaB-28);
+    const len=50+s.band*110;
+    if(y<rTY){bx.strokeStyle='rgba(245,240,228,0.5)';bx.lineWidth=3;}
+    else{bx.strokeStyle='rgba(27,23,18,0.16)';bx.lineWidth=2.5;}
+    bx.beginPath();bx.moveTo(s.x,y);bx.lineTo(s.x+len,y);bx.stroke();
+    if(s.x+len<W*0.98&&Math.random()<0.02)s.on=false;
+  }
+}
+
+function wheel(x2,cx,cy,R,ang,v){
+  x2.strokeStyle=C.ink;x2.lineWidth=0.15*R;
+  x2.beginPath();x2.arc(cx,cy,R,0,TAU);x2.stroke();
+  x2.lineWidth=0.05*R;
+  x2.beginPath();x2.arc(cx,cy,R*0.82,0,TAU);x2.stroke();
+  x2.lineWidth=1.4;x2.globalAlpha=0.35;
+  for(let i=0;i<8;i++){
+    const a=ang+i*TAU/8;
+    x2.beginPath();x2.moveTo(cx+Math.cos(a)*R*0.1,cy+Math.sin(a)*R*0.1);
+    x2.lineTo(cx+Math.cos(a)*R*0.78,cy+Math.sin(a)*R*0.78);x2.stroke();
+  }
+  x2.globalAlpha=1;
+  if(v>13){x2.globalAlpha=0.1;x2.lineWidth=2;
+    for(let i=0;i<3;i++){const a=ang*1.7+i*2.09;
+      x2.beginPath();x2.arc(cx,cy,R*0.55,a,a+1.1);x2.stroke();}
+    x2.globalAlpha=1;}
+  x2.fillStyle=C.ink;x2.beginPath();x2.arc(cx,cy,0.07*R,0,TAU);x2.fill();
+}
+
+function limb(x2,hip,ank,R,mut){
+  const L1=1.32*R,L2=1.28*R;
+  let dx=ank.x-hip.x,dy=ank.y-hip.y;
+  const d0=Math.hypot(dx,dy)||0.001,d=Math.min(d0,L1+L2-0.6);
+  dx=dx/d0*d;dy=dy/d0*d;
+  const a=(L1*L1-L2*L2+d*d)/(2*d),h=Math.sqrt(Math.max(0,L1*L1-a*a));
+  const ux=dx/d,uy=dy/d;
+  const kx=hip.x+ux*a+uy*h,ky=hip.y+uy*a-ux*h;
+  const ink=mut?'rgba(27,23,18,0.5)':C.ink,bone=mut?C.bone2:C.bone;
+  x2.lineCap='round';x2.lineJoin='round';
+  for(const [col,w] of [[ink,0.34*R],[bone,0.20*R]]){
+    x2.strokeStyle=col;x2.lineWidth=w;
+    x2.beginPath();x2.moveTo(hip.x,hip.y);x2.lineTo(kx,ky);x2.lineTo(ank.x,ank.y);x2.stroke();
+  }
+  x2.beginPath();
+  x2.moveTo(ank.x-0.05*R,ank.y-0.02*R);
+  x2.lineTo(ank.x+0.42*R,ank.y+0.04*R);
+  x2.lineTo(ank.x+0.06*R,ank.y+0.24*R);
+  x2.closePath();
+  x2.fillStyle=bone;x2.fill();
+  x2.strokeStyle=ink;x2.lineWidth=2;x2.stroke();
+}
+
+function renderFG(t,dt){
+  fx.clearRect(0,0,W,H);
+  const shk=(sprintAll&&!RM)?Math.sin(t*57)*1.3+Math.sin(t*89)*0.8:0;
+  fx.save();fx.translate(shk*0.7,Math.sin(t*71)*shk*0.5);
+
+  const order=[...riders].sort((a,b)=>a.sc-b.sc);
+  for(const r of order)drawRider(fx,r,t);
+  // 尘土
+  for(let i=dust.length-1;i>=0;i--){
+    const p=dust[i];p.t+=dt;
+    if(p.t>p.life){dust.splice(i,1);continue;}
+    p.x+=p.vx*dt;p.y+=p.vy*dt;
+    fx.globalAlpha=0.22*(1-p.t/p.life);
+    fx.fillStyle=C.ink;fx.beginPath();fx.arc(p.x,p.y,p.r*(1+p.t*2),0,TAU);fx.fill();
+  }
+  fx.globalAlpha=1;
+  // 进攻标签
+  for(let i=labels.length-1;i>=0;i--){
+    const L=labels[i];L.t+=dt;
+    if(L.t>0.95){labels.splice(i,1);continue;}
+    const r=L.r,a=1-L.t/0.95,topY=r.sy-4.9*46*r.sc-8-L.t*22;
+    fx.globalAlpha=a;
+    fx.fillStyle=C.ink;
+    for(let k=-1;k<=1;k++){
+      fx.lineWidth=2;fx.beginPath();
+      fx.moveTo(r.sx-52+L.t*30,topY+4+k*6);
+      fx.lineTo(r.sx-30+L.t*30,topY+4+k*6);fx.stroke();
+    }
+    const w=74;
+    fx.fillStyle=C.bone;fx.fillRect(r.sx-w/2+3,topY-9+3,w,22);
+    fx.strokeStyle=C.ink;fx.lineWidth=2;fx.strokeRect(r.sx-w/2,topY-9,w,22);
+    fx.fillStyle=C.ink;fx.font='13px "ZCOOL QingKe HuangYou",sans-serif';
+    fx.textAlign='center';fx.textBaseline='middle';
+    fx.fillText('进攻!',r.sx,topY+2.5);
+    fx.globalAlpha=1;
+  }
+  fx.restore();
+}
+
+function drawRider(x2,r,t){
+  const s=r.sc,u=46*s,R=46;
+  const bob=RM?0:Math.sin(r.crank*2)*1.5*(1-0.45*r.sprint)+Math.sin(simT*39+r.i*7)*0.5*Math.min(1,r.v/14);
+  x2.save();x2.translate(r.sx,r.sy+bob);x2.scale(s,s);
+  const hip={x:1.02*R,y:-2.86*R},BB={x:1.18*R,y:-0.80*R};
+  const axR={x:0,y:-R},axF={x:2.85*R,y:-R};
+  const th=r.crank;
+  const pedN={x:BB.x+Math.cos(th)*0.45*R,y:BB.y+Math.sin(th)*0.45*R};
+  const pedF={x:BB.x+Math.cos(th+Math.PI)*0.45*R,y:BB.y+Math.sin(th+Math.PI)*0.45*R};
+  // 阴影
+  x2.fillStyle='rgba(27,23,18,0.10)';
+  x2.beginPath();x2.ellipse(1.45*R,0.05*R,2.05*R,0.16*R,0,0,TAU);x2.fill();
+  // 远侧腿 + 远曲柄
+  limb(x2,{x:1.06*R,y:-2.84*R},{x:pedF.x,y:pedF.y-0.10*R},R,true);
+  x2.strokeStyle=C.ink;x2.lineWidth=3;x2.lineCap='round';
+  x2.beginPath();x2.moveTo(BB.x,BB.y);x2.lineTo(pedF.x,pedF.y);x2.stroke();
+  x2.fillStyle=C.ink;x2.fillRect(pedF.x-0.16*R,pedF.y-0.035*R,0.32*R,0.07*R);
+  // 车轮
+  wheel(x2,axR.x,axR.y,R,r.wheel,r.v);
+  wheel(x2,axF.x,axF.y,R,r.wheel,r.v);
+  // 车架
+  x2.strokeStyle=C.ink;x2.lineWidth=Math.max(2.6,0.075*R);x2.lineCap='round';
+  x2.beginPath();
+  x2.moveTo(BB.x,BB.y);x2.lineTo(2.44*R,-2.02*R);          // 下管
+  x2.moveTo(1.03*R,-2.62*R);x2.lineTo(2.36*R,-2.40*R);      // 上管
+  x2.moveTo(BB.x,BB.y);x2.lineTo(1.03*R,-2.62*R);           // 座管
+  x2.moveTo(1.03*R,-2.92*R);x2.lineTo(1.03*R,-2.60*R);      // 座杆
+  x2.moveTo(BB.x,BB.y);x2.lineTo(axR.x,axR.y);              // 后下叉
+  x2.moveTo(1.03*R,-2.60*R);x2.lineTo(axR.x,axR.y);         // 后上叉
+  x2.moveTo(2.44*R,-2.02*R);x2.lineTo(axF.x,axF.y);         // 前叉
+  x2.moveTo(2.30*R,-2.52*R);x2.lineTo(2.44*R,-2.02*R);      // 头管
+  x2.moveTo(2.30*R,-2.52*R);x2.lineTo(2.36*R,-2.62*R);      // 把立
+  x2.stroke();
+  // 弯把
+  x2.lineWidth=0.09*R;
+  x2.beginPath();x2.moveTo(2.36*R,-2.62*R);
+  x2.bezierCurveTo(2.62*R,-2.63*R,2.72*R,-2.52*R,2.66*R,-2.34*R);
+  x2.quadraticCurveTo(2.62*R,-2.28*R,2.56*R,-2.30*R);
+  x2.stroke();
+  // 链轮 / 飞轮 / 链条
+  x2.lineWidth=2;
+  x2.beginPath();x2.arc(BB.x,BB.y,0.30*R,0,TAU);x2.stroke();
+  x2.beginPath();x2.arc(axR.x,axR.y,0.115*R,0,TAU);x2.stroke();
+  x2.setLineDash([4,3]);x2.lineDashOffset=-(r.x*40)%7;x2.lineWidth=1.6;
+  x2.beginPath();
+  x2.moveTo(BB.x,BB.y-0.30*R);x2.lineTo(axR.x,axR.y-0.115*R);
+  x2.moveTo(BB.x,BB.y+0.30*R);x2.lineTo(axR.x,axR.y+0.115*R);
+  x2.stroke();x2.setLineDash([]);
+  // 坐垫 / 水壶 / 号码牌
+  x2.fillStyle=C.ink;x2.fillRect(0.70*R,-3.02*R,0.66*R,0.13*R);
+  const dax=2.44*R-BB.x,day=-2.02*R-BB.y,da=Math.atan2(day,dax);
+  x2.save();x2.translate((BB.x+2.44*R)/2,(BB.y-2.02*R)/2);x2.rotate(da);
+  x2.fillStyle=C.bone2;x2.fillRect(-0.09*R,-0.17*R,0.18*R,0.34*R);
+  x2.strokeStyle=C.ink;x2.lineWidth=1.5;x2.strokeRect(-0.09*R,-0.17*R,0.18*R,0.34*R);
+  x2.restore();
+  x2.save();x2.translate(2.52*R,-1.76*R);x2.rotate(0.12);
+  x2.fillStyle=C.bone;x2.fillRect(-0.21*R,-0.17*R,0.42*R,0.34*R);
+  x2.strokeStyle=C.ink;x2.lineWidth=2;x2.strokeRect(-0.21*R,-0.17*R,0.42*R,0.34*R);
+  x2.fillStyle=C.ink;x2.font=`900 ${0.26*R}px Doto,monospace`;
+  x2.textAlign='center';x2.textBaseline='middle';x2.fillText(r.bib,0,0.02*R);
+  x2.restore();
+  // 尾羽
+  const thb=0.62-(0.32*r.sprint);
+  const S={x:hip.x+Math.cos(thb)*1.55*R,y:hip.y-Math.sin(thb)*1.55*R};
+  const bAng=Math.atan2(S.y-hip.y,S.x-hip.x)+Math.PI;
+  x2.fillStyle=C.ink;
+  for(let k=-1;k<=1;k++){
+    const a=bAng+0.26*k;
+    x2.beginPath();
+    x2.moveTo(hip.x-Math.cos(bAng)*0.2*R,hip.y-Math.sin(bAng)*0.2*R);
+    x2.lineTo(hip.x+Math.cos(a)*0.62*R,hip.y+Math.sin(a)*0.62*R);
+    x2.lineTo(hip.x+Math.cos(a+0.16)*0.30*R,hip.y+Math.sin(a+0.16)*0.30*R);
+    x2.closePath();x2.fill();
+  }
+  // 躯干（墨底 + 骨白）
+  x2.lineCap='round';
+  x2.strokeStyle=C.ink;x2.lineWidth=1.35*R+4;
+  x2.beginPath();x2.moveTo(hip.x,hip.y);x2.lineTo(S.x,S.y);x2.stroke();
+  x2.strokeStyle=C.bone;x2.lineWidth=1.35*R;
+  x2.beginPath();x2.moveTo(hip.x,hip.y);x2.lineTo(S.x,S.y);x2.stroke();
+  const per={x:Math.sin(thb),y:Math.cos(thb)};
+  const bl={x:hip.x+(S.x-hip.x)*0.45+per.x*0.30*R,y:hip.y+(S.y-hip.y)*0.45+per.y*0.30*R};
+  x2.fillStyle=C.ink;x2.beginPath();x2.arc(bl.x,bl.y,0.70*R+2,0,TAU);x2.fill();
+  x2.fillStyle=C.bone;x2.beginPath();x2.arc(bl.x,bl.y,0.70*R,0,TAU);x2.fill();
+  // 车衣
+  x2.strokeStyle=r.col;x2.lineWidth=1.30*R;
+  x2.beginPath();
+  x2.moveTo(hip.x+(S.x-hip.x)*0.16,hip.y+(S.y-hip.y)*0.16);
+  x2.lineTo(hip.x+(S.x-hip.x)*0.96,hip.y+(S.y-hip.y)*0.96);
+  x2.stroke();
+  x2.fillStyle=r.col;x2.beginPath();x2.arc(bl.x,bl.y,0.66*R,0,TAU);x2.fill();
+  // 脖颈（圆珠链两遍出描边）
+  const H2={x:S.x+(0.95+0.33*r.sprint)*R,y:S.y+(-0.88+0.58*r.sprint)*R};
+  const c1={x:S.x+0.30*R,y:S.y-0.85*R},c2={x:H2.x-0.55*R,y:H2.y+0.45*R};
+  const N=9;
+  for(const [col,off] of [[C.ink,1.8],[C.bone,0]]){
+    x2.fillStyle=col;
+    for(let i=0;i<=N;i++){
+      const p=i/N,q=1-p;
+      const px=q*q*q*S.x+3*q*q*p*c1.x+3*q*p*p*c2.x+p*p*p*H2.x;
+      const py=q*q*q*S.y+3*q*q*p*c1.y+3*q*p*p*c2.y+p*p*p*H2.y;
+      const rad=(0.30-(0.09*p))*R+off;
+      x2.beginPath();x2.arc(px,py,rad,0,TAU);x2.fill();
+    }
+  }
+  // 头
+  x2.fillStyle=C.ink;x2.beginPath();x2.arc(H2.x,H2.y,0.35*R+2,0,TAU);x2.fill();
+  x2.fillStyle=C.bone;x2.beginPath();x2.arc(H2.x,H2.y,0.35*R,0,TAU);x2.fill();
+  // 车帽
+  x2.fillStyle=r.col;
+  x2.beginPath();x2.arc(H2.x,H2.y,0.37*R,Math.PI+0.25,TAU-0.25);x2.closePath();x2.fill();
+  x2.strokeStyle=C.ink;x2.lineWidth=2;x2.stroke();
+  x2.fillStyle=C.bone;
+  x2.beginPath();
+  x2.moveTo(H2.x+0.24*R,H2.y-0.18*R);
+  x2.quadraticCurveTo(H2.x+0.55*R,H2.y-0.26*R,H2.x+0.72*R,H2.y-0.06*R);
+  x2.quadraticCurveTo(H2.x+0.46*R,H2.y-0.12*R,H2.x+0.24*R,H2.y-0.02*R);
+  x2.closePath();x2.fill();x2.stroke();
+  // 喉囊 + 上喙
+  const bil=0.15+Math.min(1,Math.max(0,(r.v-9)/11))*0.7
+    +(RM?0:Math.sin(t*13+r.i*4)*0.05*Math.min(1,r.v/16))+r.sprint*0.25;
+  const T={x:H2.x+1.62*R,y:H2.y+(0.34+0.10*r.sprint)*R};
+  x2.fillStyle=C.flame;x2.strokeStyle=C.ink;x2.lineWidth=2;
+  x2.beginPath();
+  x2.moveTo(H2.x+0.16*R,H2.y+0.04*R);
+  x2.quadraticCurveTo(H2.x+0.78*R,H2.y+(0.50+bil*0.62)*R,T.x-0.02*R,T.y);
+  x2.quadraticCurveTo(H2.x+0.55*R,H2.y+(0.26+bil*0.42)*R,H2.x+0.16*R,H2.y+0.12*R);
+  x2.closePath();x2.fill();x2.stroke();
+  x2.fillStyle=C.sun;
+  x2.beginPath();
+  x2.moveTo(H2.x+0.16*R,H2.y-0.16*R);
+  x2.quadraticCurveTo(H2.x+0.95*R,H2.y-0.10*R,T.x,T.y-0.02*R);
+  x2.lineTo(H2.x+0.20*R,H2.y+0.12*R);
+  x2.closePath();x2.fill();x2.stroke();
+  x2.fillStyle=C.ink;
+  x2.beginPath();x2.arc(H2.x+0.55*R,H2.y-0.09*R,0.025*R,0,TAU);x2.fill();
+  x2.beginPath();x2.arc(H2.x+0.10*R,H2.y-0.10*R,0.075*R,0,TAU);x2.fill();
+  x2.fillStyle=C.bone;
+  x2.beginPath();x2.arc(H2.x+0.12*R,H2.y-0.12*R,0.024*R,0,TAU);x2.fill();
+  // 翅膀扶把（拱形锥形翼 + 翼尖飞羽）
+  const G={x:2.64*R,y:-2.40*R};
+  const wx=G.x-S.x,wy=G.y-S.y,wl=Math.hypot(wx,wy)||0.001;
+  let pxp=-wy/wl,pyp=wx/wl;
+  if(pyp>0){pxp=-pxp;pyp=-pyp;}
+  const w0=0.20*R,w1=0.085*R,midx=(S.x+G.x)/2,midy=(S.y+G.y)/2;
+  x2.fillStyle=C.bone;x2.strokeStyle=C.ink;x2.lineWidth=2.2;
+  x2.beginPath();
+  x2.moveTo(S.x+pxp*w0,S.y+pyp*w0);
+  x2.quadraticCurveTo(midx+pxp*0.14*R,midy+pyp*0.14*R,G.x+pxp*w1,G.y+pyp*w1);
+  x2.lineTo(G.x-pxp*w1,G.y-pyp*w1);
+  x2.quadraticCurveTo(midx-pxp*0.22*R,midy-pyp*0.22*R,S.x-pxp*w0,S.y-pyp*w0);
+  x2.closePath();x2.fill();x2.stroke();
+  x2.strokeStyle=C.ink;x2.lineWidth=3;
+  const dnx=wx/wl,dny=wy/wl;
+  for(const a of [-0.45,0,0.45]){
+    const ca=Math.cos(a),sa=Math.sin(a);
+    x2.beginPath();x2.moveTo(G.x,G.y);
+    x2.lineTo(G.x+(dnx*ca-dny*sa)*0.30*R,G.y+(dnx*sa+dny*ca)*0.30*R);
+    x2.stroke();
+  }
+  // 近侧曲柄 + 踏板 + 近侧腿
+  x2.strokeStyle=C.ink;x2.lineWidth=3.2;x2.lineCap='round';
+  x2.beginPath();x2.moveTo(BB.x,BB.y);x2.lineTo(pedN.x,pedN.y);x2.stroke();
+  x2.fillStyle=C.ink;x2.fillRect(pedN.x-0.16*R,pedN.y-0.035*R,0.32*R,0.07*R);
+  limb(x2,{x:1.00*R,y:-2.86*R},{x:pedN.x,y:pedN.y-0.10*R},R,false);
+  x2.restore();
+}
+
+/* ---------------- 交互 ---------------- */
+function hitRider(x,y){
+  for(const r of riders){
+    const u=46*r.sc;
+    if(Math.abs(x-r.sx)<2.0*u&&y>r.sy-4.9*u-12&&y<r.sy+0.3*u)return r;
+  }
+  return null;
+}
+let pid=null,pT=0,holdTimer=0;
+stage.addEventListener('pointerdown',e=>{
+  if(e.target.closest('button'))return;
+  if(pid!==null)return;
+  pid=e.pointerId;pT=performance.now();
+  clearTimeout(holdTimer);
+  holdTimer=setTimeout(()=>{sprintAll=true;document.body.classList.add('sprint');},230);
+});
+function endPointer(e){
+  if(e.pointerId!==pid)return;
+  clearTimeout(holdTimer);
+  const ms=performance.now()-pT;
+  if(!sprintAll&&ms<230){const r=hitRider(e.clientX,e.clientY);if(r)attack(r);}
+  sprintAll=false;document.body.classList.remove('sprint');pid=null;
+}
+addEventListener('pointerup',endPointer);
+addEventListener('pointercancel',endPointer);
+stage.addEventListener('contextmenu',e=>e.preventDefault());
+stage.addEventListener('pointermove',e=>{
+  mx.t=(e.clientX/W-0.5)*2;my.t=(e.clientY/H-0.5)*2;
+  stage.style.cursor=hitRider(e.clientX,e.clientY)?'pointer':'crosshair';
+});
+addEventListener('keydown',e=>{
+  if(e.repeat)return;
+  if(e.code==='Space'){e.preventDefault();sprintAll=true;document.body.classList.add('sprint');}
+  else if(e.code==='ArrowLeft')attack(riders[0]);
+  else if(e.code==='ArrowRight')attack(riders[1]);
+});
+addEventListener('keyup',e=>{
+  if(e.code==='Space'){sprintAll=false;document.body.classList.remove('sprint');}
+});
+document.getElementById('atk0').addEventListener('click',()=>attack(riders[0]));
+document.getElementById('atk1').addEventListener('click',()=>attack(riders[1]));
+
+/* ---------------- 遥测 HUD ---------------- */
+const h1=document.querySelector('.headline');
+const elLead=document.getElementById('tLead');
+function updateHUD(){
+  const lead=riders[0].x>riders[1].x?riders[0]:riders[1];
+  const d=Math.abs(riders[0].x-riders[1].x);
+  elLead.textContent=lead.bib+' '+lead.name;
+  elLead.style.color=lead.col;
+  document.getElementById('tGap').textContent='+'+Math.min(9.9,d/Math.max(lead.v,4)).toFixed(1);
+  document.getElementById('tSpd').textContent=(lead.v*3.6).toFixed(1);
+  document.getElementById('tCad').textContent=Math.round(lead.v*60/(WR*GEAR*TAU));
+  document.getElementById('tDist').textContent=(lead.x/1000).toFixed(2);
+  for(const r of riders)document.getElementById('st'+r.i).style.width=r.sta+'%';
+  const f=Math.min(1,Math.max(0,((riders[0].v+riders[1].v)/2-10.5)/9));
+  h1.style.fontVariationSettings=`'opsz' 72,'wght' ${Math.round((480+420*f)/20)*20}`;
+  h1.style.letterSpacing=(-0.018-0.010*f).toFixed(4)+'em';
+}
+
+/* ---------------- 跑马灯 / 时钟 ---------------- */
+const TICKS=[
+  '第 7 赛段 · 海堤公路 · 侧风 12 KM/H · 全程 14.2 KM',
+  '大嘴把喉囊收进气流里，声称这是最便宜的空气动力学套件',
+  '长风的车队经理拒绝回应关于竹制车架的传闻',
+  '解说席：只要踩得够快，喙就不会挡住视线，这是一条战术',
+  '鹈鹕车手协会温馨提醒：冲刺时请勿吞鱼',
+  '观众席上一只信天翁举起横幅：风不是我放的'
+].join('  ◆  ')+'  ◆  ';
+document.getElementById('tk1').textContent=TICKS;
+document.getElementById('tk2').textContent=TICKS;
+const clock=document.getElementById('clock');
+setInterval(()=>{
+  const n=new Date();
+  clock.textContent=[n.getHours(),n.getMinutes(),n.getSeconds()]
+    .map(v=>String(v).padStart(2,'0')).join(':');
+},1000);
+
+/* ---------------- 主循环 ---------------- */
+let last=performance.now(),t0=last,acc=0,telAcc=1;
+function frame(now){
+  requestAnimationFrame(frame);
+  const dt=Math.min((now-last)/1000,0.06);last=now;
+  // 出场：车队从画外骑入
+  const ip=Math.min(1,(now-t0)/1600),ie=1-Math.pow(1-ip,3);
+  camX+=((W*0.52+(1-ie)*Math.min(560,W*0.55))-camX)*Math.min(1,dt*3.5);
+  acc+=dt*TS;
+  const step=1/120;let n=0;
+  while(acc>=step&&n<12){physics(step);acc-=step;n++;}
+  if(n===12)acc=0;
+  renderBG(now/1000,dt);
+  renderFG(now/1000,dt);
+  if(!RM)for(const r of riders){
+    if((sprintAll||r.boostT>0)&&Math.random()<0.3)
+      dust.push({x:r.sx-0.1*46*r.sc,y:r.sy-2,vx:-(60+r.v*5),vy:-(6+Math.random()*14),
+        r:2+Math.random()*3,t:0,life:0.5});
+  }
+  telAcc+=dt;
+  if(telAcc>0.12){telAcc=0;updateHUD();}
+}
+requestAnimationFrame(frame);
+
+})();
+</script>
+</body>
+</html>

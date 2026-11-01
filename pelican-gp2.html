@@ -1,0 +1,892 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PELICAN GP /// 盐滩直线加速赛</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Tourney:ital,wght@0,500;0,700;0,900;1,700;1,900&family=Archivo:wght@400;600&family=Chivo+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --salt:#EFEDE6;        /* 正午晒白的盐滩画布 */
+    --salt-dim:#E2DCCB;    /* 盐滩地面 */
+    --ink:#17140F;         /* 暖墨 */
+    --ink-soft:#3A352C;
+    --coral:#F03D12;       /* 07 RIOT 车队 */
+    --coral-hot:#FF7A33;
+    --teal:#0F6B5C;        /* 13 MONSOON 车队 */
+    --teal-hot:#1B8A76;
+    --flare:#FFCE00;       /* 警示黄：喙尖 / 腿 / 发车按钮 */
+    --sea:#A9C4BB;         /* 远海 */
+    --road:#24201A;        /* 沥青 */
+    --font-display:"Tourney", sans-serif;
+    --font-body:"Archivo", sans-serif;
+    --font-mono:"Chivo Mono", monospace;
+    --ease-out:cubic-bezier(0.23,1,0.32,1);
+    --ease-punch:cubic-bezier(0.77,0,0.175,1);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    background:var(--salt);
+    color:var(--ink);
+    font-family:var(--font-body);
+    overflow-x:hidden;
+    -webkit-font-smoothing:antialiased;
+  }
+  ::selection{background:var(--coral);color:var(--salt)}
+
+  /* ============ 第一屏 · 赛道舞台 ============ */
+  .stage{
+    position:relative;
+    height:100vh;
+    height:100svh;
+    overflow:hidden;
+    background:var(--salt);
+  }
+  .stage svg.scene{
+    position:absolute;inset:0;
+    width:100%;height:100%;
+    display:block;
+    animation:sceneIn 900ms var(--ease-out) both;
+  }
+  @keyframes sceneIn{from{opacity:0}to{opacity:1}}
+
+  /* ---- 转播 HUD 条 ---- */
+  .hud{
+    position:absolute;top:0;left:0;right:0;z-index:5;
+    display:flex;align-items:stretch;
+    font-family:var(--font-mono);
+    font-size:11px;letter-spacing:.08em;
+    transform:translateY(-110%);
+    animation:hudIn 600ms 500ms var(--ease-out) forwards;
+  }
+  @keyframes hudIn{to{transform:translateY(0)}}
+  .hud .live{
+    background:var(--coral);color:var(--salt);
+    display:flex;align-items:center;gap:8px;
+    padding:10px 16px;font-weight:700;white-space:nowrap;
+  }
+  .hud .live i{
+    width:8px;height:8px;border-radius:50%;background:var(--salt);
+    animation:blink 1.6s steps(1) infinite;
+  }
+  @keyframes blink{50%{opacity:.15}}
+  .hud .track{
+    background:var(--ink);color:var(--salt);
+    display:flex;align-items:center;padding:10px 18px;
+    white-space:nowrap;flex:1;min-width:0;overflow:hidden;
+  }
+  .hud .tower{
+    background:var(--ink);color:var(--salt);
+    display:flex;align-items:center;gap:0;
+    margin-left:auto;white-space:nowrap;
+  }
+  .tower .cell{
+    padding:10px 16px;border-left:1px solid rgba(239,237,230,.18);
+    display:flex;align-items:baseline;gap:8px;
+  }
+  .tower .k{font-size:9px;opacity:.55;letter-spacing:.14em}
+  .tower .v{font-size:15px;font-weight:700;font-variant-numeric:tabular-nums}
+  .tower .v.speed{color:var(--flare);min-width:7ch;text-align:right}
+  .tower .v.pos{color:var(--salt);min-width:4ch}
+
+  /* ---- 巨型标题（速度双影） ---- */
+  .titleBlock{
+    position:absolute;left:4vw;bottom:6vh;z-index:4;
+    pointer-events:none;
+  }
+  .kicker{
+    font-family:var(--font-mono);font-size:12px;letter-spacing:.22em;
+    margin-bottom:1.2vh;
+    animation:riseIn 700ms 250ms var(--ease-out) both;
+  }
+  .kicker b{color:var(--coral)}
+  h1.mega{
+    font-family:var(--font-display);
+    font-weight:900;font-style:italic;
+    font-size:clamp(3.4rem,12.5vw,10.5rem);
+    line-height:.86;letter-spacing:-.02em;
+    text-transform:uppercase;
+    color:var(--ink);
+    animation:riseIn 700ms 380ms var(--ease-out) both;
+  }
+  h1.mega .ghost{
+    position:absolute;left:-.045em;top:.045em;z-index:-1;
+    color:transparent;
+    -webkit-text-stroke:2px var(--coral);
+    pointer-events:none;
+  }
+  h1.mega .row{position:relative;display:block}
+  @keyframes riseIn{
+    from{opacity:0;transform:translateY(26px);clip-path:inset(0 0 100% 0)}
+    to{opacity:1;transform:translateY(0);clip-path:inset(0 0 -20% 0)}
+  }
+  .subline{
+    margin-top:1.6vh;
+    font-family:var(--font-mono);font-size:12px;letter-spacing:.12em;
+    color:var(--ink-soft);max-width:44ch;line-height:1.7;
+    animation:riseIn 700ms 520ms var(--ease-out) both;
+  }
+  .subline .zh{display:block;font-family:var(--font-body);font-size:13px;letter-spacing:.35em;color:var(--ink)}
+
+  /* ---- 发车控件 ---- */
+  .launch{
+    position:absolute;right:4vw;bottom:6vh;z-index:6;
+    display:flex;flex-direction:column;align-items:flex-end;gap:12px;
+    animation:riseIn 700ms 650ms var(--ease-out) both;
+  }
+  .launch .hint{
+    font-family:var(--font-mono);font-size:11px;letter-spacing:.2em;
+    color:var(--ink-soft);text-align:right;
+  }
+  .btn-launch{
+    appearance:none;border:none;cursor:pointer;
+    background:var(--flare);color:var(--ink);
+    font-family:var(--font-display);font-weight:900;font-style:italic;
+    font-size:clamp(1rem,1.6vw,1.35rem);letter-spacing:.04em;text-transform:uppercase;
+    padding:16px 34px;
+    transform:skewX(-8deg);
+    box-shadow:5px 5px 0 var(--ink);
+    transition:transform 140ms var(--ease-out), box-shadow 140ms var(--ease-out), background 140ms;
+  }
+  .btn-launch span{display:inline-block;transform:skewX(8deg)}
+  .btn-launch:hover{transform:skewX(-8deg) translate(-2px,-2px);box-shadow:8px 8px 0 var(--ink)}
+  .btn-launch:active{transform:skewX(-8deg) translate(3px,3px);box-shadow:1px 1px 0 var(--ink)}
+  .btn-launch:focus-visible{outline:3px solid var(--coral);outline-offset:3px}
+  .btn-launch.racing{background:var(--ink);color:var(--salt)}
+
+  /* ============ 遥测段 ============ */
+  .telemetry{
+    position:relative;z-index:2;
+    padding:14vh 4vw 10vh;
+    border-top:2px solid var(--ink);
+    background:var(--salt);
+  }
+  .tele-head{
+    display:flex;align-items:baseline;justify-content:space-between;gap:16px;
+    flex-wrap:wrap;margin-bottom:7vh;
+  }
+  .tele-head h2{
+    font-family:var(--font-display);font-weight:700;font-style:italic;
+    font-size:clamp(1.6rem,3.6vw,2.8rem);letter-spacing:-.01em;text-transform:uppercase;
+  }
+  .tele-head .note{
+    font-family:var(--font-mono);font-size:11px;letter-spacing:.18em;color:var(--ink-soft);
+  }
+  .crew{
+    display:grid;
+    grid-template-columns:minmax(90px,.5fr) 1.4fr 2.2fr;
+    gap:2vw 3vw;align-items:center;
+    padding:5vh 0;
+    border-top:1px solid var(--ink);
+  }
+  .crew .num{
+    font-family:var(--font-display);font-weight:900;font-style:italic;
+    font-size:clamp(3rem,7vw,5.5rem);line-height:1;letter-spacing:-.03em;
+  }
+  .crew.c07 .num{color:var(--coral)}
+  .crew.c13 .num{color:var(--teal)}
+  .crew .who h3{
+    font-family:var(--font-display);font-weight:700;text-transform:uppercase;
+    font-size:clamp(1.3rem,2.4vw,1.9rem);letter-spacing:.01em;
+  }
+  .crew .who p{
+    font-family:var(--font-body);font-size:13px;letter-spacing:.28em;
+    color:var(--ink-soft);margin-top:8px;
+  }
+  .stats{display:grid;gap:18px}
+  .stat .row{
+    display:flex;justify-content:space-between;align-items:baseline;
+    font-family:var(--font-mono);font-size:12px;letter-spacing:.1em;
+    margin-bottom:7px;
+  }
+  .stat .row b{font-size:15px;font-variant-numeric:tabular-nums}
+  .stat .bar{
+    height:8px;background:rgba(23,20,15,.1);
+    transform:skewX(-18deg);overflow:hidden;
+  }
+  .stat .bar i{
+    display:block;height:100%;
+    transform:scaleX(0);transform-origin:left;
+    transition:transform 900ms var(--ease-punch);
+  }
+  .crew.c07 .bar i{background:var(--coral)}
+  .crew.c13 .bar i{background:var(--teal)}
+  .crew.in .bar i{transform:scaleX(var(--fill))}
+  .crew.in{animation:crewIn 650ms var(--ease-out) both}
+  @keyframes crewIn{
+    from{opacity:0;transform:translateY(18px)}
+    to{opacity:1;transform:translateY(0)}
+  }
+
+  /* ============ 跑马灯 ============ */
+  .marquee{
+    background:var(--ink);color:var(--salt);
+    transform:rotate(-1.6deg) scale(1.03);
+    overflow:hidden;white-space:nowrap;
+    padding:14px 0;
+    border-top:2px solid var(--ink);border-bottom:2px solid var(--ink);
+  }
+  .marquee .belt{display:inline-flex;animation:belt 22s linear infinite;will-change:transform}
+  .marquee span{
+    font-family:var(--font-display);font-weight:900;font-style:italic;
+    font-size:clamp(1.5rem,3vw,2.4rem);text-transform:uppercase;
+    letter-spacing:.02em;padding-right:.6em;
+  }
+  .marquee em{font-style:italic;color:var(--flare);padding:0 .35em}
+  @keyframes belt{to{transform:translateX(-50%)}}
+
+  /* ============ 收尾 ============ */
+  .finale{padding:0 0 0}
+  .checker{
+    height:76px;margin:10vh 0 0;
+    background:repeating-conic-gradient(var(--ink) 0 25%, var(--salt) 0 50%);
+    background-size:46px 46px;
+    transform:rotate(-1.2deg) scale(1.03);
+    -webkit-mask-image:linear-gradient(90deg,transparent,#000 12%,#000 88%,transparent);
+            mask-image:linear-gradient(90deg,transparent,#000 12%,#000 88%,transparent);
+  }
+  .flag{
+    text-align:center;padding:10vh 4vw 12vh;
+  }
+  .flag h2{
+    font-family:var(--font-display);font-weight:900;font-style:italic;
+    font-size:clamp(3rem,11vw,9rem);line-height:.9;letter-spacing:-.02em;
+    text-transform:uppercase;
+  }
+  .flag h2 .out{
+    color:transparent;-webkit-text-stroke:2.5px var(--ink);
+  }
+  .flag .zh{
+    margin-top:3vh;font-size:14px;letter-spacing:.5em;color:var(--ink-soft);
+  }
+  .flag .again{
+    margin-top:4vh;
+    font-family:var(--font-mono);font-size:11px;letter-spacing:.2em;color:var(--ink-soft);
+  }
+  .colophon{
+    display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;
+    padding:22px 4vw;border-top:1px solid var(--ink);
+    font-family:var(--font-mono);font-size:10px;letter-spacing:.18em;color:var(--ink-soft);
+  }
+
+  /* ============ 响应式 ============ */
+  @media (max-width:860px){
+    .hud .track{display:none}
+    .tower .cell{padding:9px 10px}
+    .tower .v{font-size:13px}
+    .crew{grid-template-columns:1fr;gap:14px;padding:4vh 0}
+    .titleBlock{left:5vw;bottom:16vh}
+    .launch{right:5vw;bottom:4.5vh}
+    .subline{max-width:30ch}
+  }
+
+  /* ============ 动效降级 ============ */
+  @media (prefers-reduced-motion: reduce){
+    .stage svg.scene,.hud,.kicker,h1.mega,.subline,.launch{animation-duration:.01ms!important;animation-delay:0ms!important}
+    .marquee .belt{animation-duration:120s}
+    .hud .live i{animation:none}
+    .stat .bar i{transition-duration:.2s}
+  }
+</style>
+</head>
+<body>
+<main>
+  <!-- ================= 第一屏：赛道 ================= -->
+  <section class="stage" aria-label="两只鹈鹕赛车在盐滩赛道上对决">
+    <svg class="scene" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+      <defs>
+        <!-- 远海光带 -->
+        <linearGradient id="seaG" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#A9C4BB"/>
+          <stop offset="1" stop-color="#93B2A9"/>
+        </linearGradient>
+        <!-- 车身光泽 -->
+        <linearGradient id="gloss" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#FFFFFF" stop-opacity=".32"/>
+          <stop offset=".45" stop-color="#FFFFFF" stop-opacity="0"/>
+        </linearGradient>
+      </defs>
+
+      <g id="shake">
+        <!-- 天空 / 太阳 -->
+        <g id="L-sky">
+          <rect x="-20" y="-20" width="1640" height="520" fill="var(--salt)"/>
+          <circle cx="290" cy="180" r="86" fill="#FFFFFF"/>
+          <circle cx="290" cy="180" r="112" fill="none" stroke="#FFFFFF" stroke-opacity=".55" stroke-width="2"/>
+          <circle cx="290" cy="180" r="146" fill="none" stroke="#FFFFFF" stroke-opacity=".25" stroke-width="2"/>
+          <g font-family="'Chivo Mono',monospace" font-size="11" letter-spacing="4" fill="#17140F" fill-opacity=".38">
+            <text x="1148" y="66">SUN 12:04 /// AIR 41°C</text>
+            <text x="1148" y="86">TRACK TEMP 58°C — GRIP: SLIPPERY SALT</text>
+          </g>
+        </g>
+
+        <!-- 海 -->
+        <g id="L-sea">
+          <rect x="-20" y="462" width="1640" height="86" fill="url(#seaG)"/>
+          <g id="seaLoop"></g>
+        </g>
+
+        <!-- 盐滩 + 远处遮阳伞观众 -->
+        <g id="L-flat">
+          <rect x="-20" y="548" width="1640" height="100" fill="var(--salt-dim)"/>
+          <g id="umbLoop"></g>
+        </g>
+
+        <!-- 护栏 + 广告板 -->
+        <g id="L-rail">
+          <g id="railLoop"></g>
+        </g>
+
+        <!-- 路肩 + 路面 + 车道线 -->
+        <g id="L-road">
+          <g id="curbLoop"></g>
+          <rect x="-20" y="662" width="1640" height="250" fill="var(--road)"/>
+          <rect x="-20" y="662" width="1640" height="10" fill="#17140F"/>
+          <line id="laneDash" x1="-140" y1="772" x2="1740" y2="772" stroke="var(--salt)" stroke-width="9" stroke-dasharray="72 96" stroke-opacity=".9"/>
+          <line x1="-20" y1="897" x2="1620" y2="897" stroke="var(--salt)" stroke-opacity=".18" stroke-width="3"/>
+        </g>
+
+        <!-- 尘土 -->
+        <g id="L-dust"></g>
+
+        <!-- 赛车（JS 注入两只） -->
+        <g id="L-cars"></g>
+
+        <!-- 前景速度线 -->
+        <g id="L-streaks"></g>
+
+        <!-- 发车灯 -->
+        <g id="L-lights">
+          <g transform="translate(1042,104)">
+            <rect x="0" y="0" width="300" height="92" rx="12" fill="var(--ink)"/>
+            <rect x="0" y="0" width="300" height="92" rx="12" fill="none" stroke="#000" stroke-opacity=".4"/>
+            <g id="lampRow" transform="translate(30,26)">
+              <circle class="lamp" cx="0"   cy="20" r="17" fill="#3A352C"/>
+              <circle class="lamp" cx="60"  cy="20" r="17" fill="#3A352C"/>
+              <circle class="lamp" cx="120" cy="20" r="17" fill="#3A352C"/>
+              <circle class="lamp" cx="180" cy="20" r="17" fill="#3A352C"/>
+              <circle class="lamp" cx="240" cy="20" r="17" fill="#3A352C"/>
+            </g>
+            <text x="12" y="116" font-family="'Chivo Mono',monospace" font-size="11" letter-spacing="3" fill="#17140F" fill-opacity=".55">START LIGHTS — 灯灭即发车</text>
+          </g>
+        </g>
+      </g>
+    </svg>
+
+    <!-- HUD -->
+    <header class="hud">
+      <div class="live"><i></i>LIVE</div>
+      <div class="track">SALT FLAT INTERNATIONAL — 2.4 KM STRAIGHT /// ROUND 04 · DUEL MODE · 双车对决</div>
+      <div class="tower">
+        <div class="cell"><span class="k">POS</span><span class="v pos" id="hudPos">P2·P1</span></div>
+        <div class="cell"><span class="k">LAP</span><span class="v" id="hudLap">00:00.000</span></div>
+        <div class="cell"><span class="k">SPD</span><span class="v speed" id="hudSpd">000 KM/H</span></div>
+      </div>
+    </header>
+
+    <!-- 标题 -->
+    <div class="titleBlock">
+      <p class="kicker"><b>ROUND 04</b> — COASTAL SALT FLAT / 海岸盐滩</p>
+      <h1 class="mega">
+        <span class="row">PELICAN<span class="ghost" aria-hidden="true">PELICAN</span></span>
+        <span class="row">GP<span class="ghost" aria-hidden="true">GP</span></span>
+      </h1>
+      <p class="subline">
+        TWO PELICANS. ONE STRAIGHT. NO BRAKES.
+        <span class="zh">两只鹈鹕 · 一条直道 · 全速掠过盐滩</span>
+      </p>
+    </div>
+
+    <!-- 发车 -->
+    <div class="launch">
+      <p class="hint" id="launchHint">PRESS TO LAUNCH /// 点击发车</p>
+      <button class="btn-launch" id="btnLaunch" type="button"><span>START ENGINE</span></button>
+    </div>
+  </section>
+
+  <!-- ================= 遥测 ================= -->
+  <section class="telemetry" aria-label="车队遥测数据">
+    <div class="tele-head">
+      <h2>Telemetry /// Duel Feed</h2>
+      <p class="note">SIMULATED FEED — 模拟转播数据 · 单位公制</p>
+    </div>
+
+    <article class="crew c07" data-num="07">
+      <div class="num">07</div>
+      <div class="who">
+        <h3>Riot 喉囊暴动号</h3>
+        <p>PELECANUS RACING — CORAL WORKS</p>
+      </div>
+      <div class="stats">
+        <div class="stat"><div class="row"><span>TOP SPEED 极速</span><b>412 KM/H</b></div><div class="bar"><i style="--fill:.96"></i></div></div>
+        <div class="stat"><div class="row"><span>POUCH INTAKE 喉囊进气量</span><b>11.2 L/S</b></div><div class="bar"><i style="--fill:.74"></i></div></div>
+        <div class="stat"><div class="row"><span>WING LOAD 翼面负荷</span><b>184 KG/M²</b></div><div class="bar"><i style="--fill:.58"></i></div></div>
+      </div>
+    </article>
+
+    <article class="crew c13" data-num="13">
+      <div class="num">13</div>
+      <div class="who">
+        <h3>Monsoon 季风号</h3>
+        <p>PELECANUS RACING — TEAL PRIVATEER</p>
+      </div>
+      <div class="stats">
+        <div class="stat"><div class="row"><span>TOP SPEED 极速</span><b>398 KM/H</b></div><div class="bar"><i style="--fill:.9"></i></div></div>
+        <div class="stat"><div class="row"><span>POUCH INTAKE 喉囊进气量</span><b>12.6 L/S</b></div><div class="bar"><i style="--fill:.84"></i></div></div>
+        <div class="stat"><div class="row"><span>WING LOAD 翼面负荷</span><b>171 KG/M²</b></div><div class="bar"><i style="--fill:.52"></i></div></div>
+      </div>
+    </article>
+  </section>
+
+  <!-- 跑马灯 -->
+  <div class="marquee" aria-hidden="true">
+    <div class="belt" id="belt">
+      <span>PELICAN GP<em>///</em>SALT FLAT<em>///</em>412 KM/H<em>///</em>LIGHTS OUT<em>///</em>喉囊即引擎<em>///</em></span>
+    </div>
+  </div>
+
+  <!-- 收尾 -->
+  <footer class="finale">
+    <div class="checker" aria-hidden="true"></div>
+    <div class="flag">
+      <h2>LIGHTS <span class="out">OUT.</span></h2>
+      <p class="zh">灯灭，即是开始</p>
+      <p class="again">REPLAY THE DUEL — 回到第一屏，再发一次车</p>
+    </div>
+    <div class="colophon">
+      <span>PELICAN GP — BUILT FOR THE SALT</span>
+      <span>SVG / RAF / NO ENGINE — 盐滩制造</span>
+    </div>
+  </footer>
+</main>
+
+<script>
+(function(){
+  "use strict";
+  var SVGNS="http://www.w3.org/2000/svg";
+  var reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  /* ================= 鹈鹕赛车图纸（局部坐标 0..340 × 0..196，地面 y=196） ================= */
+  function pelicanSVG(id, C){
+    return '' +
+    '<g id="'+id+'">' +
+      /* 高速拖尾 */
+      '<g class="trails" stroke="#FFFFFF" stroke-linecap="round" opacity="0">' +
+        '<line class="trail" x1="52" y1="106" x2="52" y2="106" stroke-width="3"/>' +
+        '<line class="trail" x1="58" y1="122" x2="58" y2="122" stroke-width="2.4"/>' +
+        '<line class="trail" x1="64" y1="138" x2="64" y2="138" stroke-width="2"/>' +
+      '</g>' +
+      /* 后轮 */
+      '<g class="wheelR">' +
+        '<circle cx="78" cy="160" r="36" fill="#1A160F"/>' +
+        '<circle cx="78" cy="160" r="31" fill="none" stroke="#0D0B08" stroke-width="7" stroke-dasharray="6 11"/>' +
+        '<circle cx="78" cy="160" r="14" fill="'+C.salt+'"/>' +
+        '<g stroke="'+C.ink+'" stroke-width="3.4" stroke-linecap="round">' +
+          '<line x1="78" y1="148" x2="78" y2="172"/>' +
+          '<line x1="67" y1="154" x2="89" y2="166"/>' +
+          '<line x1="67" y1="166" x2="89" y2="154"/>' +
+        '</g>' +
+        '<circle cx="78" cy="160" r="4.5" fill="'+C.ink+'"/>' +
+      '</g>' +
+      /* 前轮 */
+      '<g class="wheelF">' +
+        '<circle cx="252" cy="168" r="28" fill="#1A160F"/>' +
+        '<circle cx="252" cy="168" r="23.5" fill="none" stroke="#0D0B08" stroke-width="6" stroke-dasharray="5 10"/>' +
+        '<circle cx="252" cy="168" r="11" fill="'+C.salt+'"/>' +
+        '<g stroke="'+C.ink+'" stroke-width="3" stroke-linecap="round">' +
+          '<line x1="252" y1="158" x2="252" y2="178"/>' +
+          '<line x1="243" y1="163" x2="261" y2="173"/>' +
+          '<line x1="243" y1="173" x2="261" y2="163"/>' +
+        '</g>' +
+        '<circle cx="252" cy="168" r="3.6" fill="'+C.ink+'"/>' +
+      '</g>' +
+      /* 驱动腿 ×2（几何鹈鹕腿，向后蹬踏） */
+      '<g class="legA">' +
+        '<path d="M128 140 L106 172 L92 190" fill="none" stroke="'+C.leg+'" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>' +
+        '<path d="M92 190 l-16 2 l10 9 z" fill="'+C.leg+'"/>' +
+      '</g>' +
+      '<g class="legB">' +
+        '<path d="M152 142 L132 174 L118 192" fill="none" stroke="'+C.legD+'" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>' +
+        '<path d="M118 192 l-16 2 l10 9 z" fill="'+C.legD+'"/>' +
+      '</g>' +
+      /* 车身（鹈鹕躯干）——悬挂独立颠簸 */
+      '<g class="bodyG">' +
+        /* 收拢的翅膀（侧箱） */
+        '<path d="M212 104 C168 96 118 106 88 118 C124 114 176 108 212 110 Z" fill="'+C.ink+'" opacity=".85"/>' +
+        /* 主车身：鹈鹕胸腹 × GP 侧影 */
+        '<path d="M300 138 C294 127 272 116 252 113 C232 98 212 93 194 93 C166 91 122 95 98 103 C78 109 62 112 52 110 C44 116 46 125 57 131 C64 138 86 143 112 144 L234 149 C264 149 297 147 300 138 Z" fill="'+C.body+'"/>' +
+        '<path d="M300 138 C294 127 272 116 252 113 C232 98 212 93 194 93 C166 91 122 95 98 103 C78 109 62 112 52 110 C44 116 46 125 57 131 C64 138 86 143 112 144 L234 149 C264 149 297 147 300 138 Z" fill="url(#gloss)"/>' +
+        /* 腹部暗面 */
+        '<path d="M64 130 C92 141 170 147 240 148 C266 148 293 146 300 138 C297 145 288 149 270 150 L110 146 C86 145 70 139 64 130 Z" fill="'+C.deep+'" opacity=".9"/>' +
+        /* 赛车条纹 */
+        '<path d="M84 115 L262 123 L262 129 L84 122 Z" fill="'+C.salt+'"/>' +
+        '<path d="M92 132 L250 138 L250 141 L92 136 Z" fill="'+C.salt+'" opacity=".55"/>' +
+        /* 尾翼（翅膀上翘板） */
+        '<path d="M30 92 L84 84 L86 95 L32 103 Z" fill="'+C.ink+'"/>' +
+        '<path d="M44 101 L78 96 L79 104 L45 109 Z" fill="'+C.deep+'"/>' +
+        '<path d="M62 104 L70 103 L72 116 L64 117 Z" fill="'+C.ink+'"/>' +
+        /* 号码牌 */
+        '<circle cx="152" cy="120" r="19" fill="'+C.salt+'"/>' +
+        '<circle cx="152" cy="120" r="19" fill="none" stroke="'+C.body+'" stroke-width="3"/>' +
+        '<text x="152" y="129" text-anchor="middle" font-family="Tourney, sans-serif" font-weight="900" font-style="italic" font-size="24" fill="'+C.ink+'">'+C.num+'</text>' +
+        /* 头 */
+        '<circle cx="238" cy="86" r="14" fill="'+C.body+'"/>' +
+        '<path d="M226 80 C230 70 246 69 251 78 C253 82 252 86 250 88 C240 84 232 82 226 80 Z" fill="'+C.helmet+'"/>' +
+        '<path d="M247 80 C250 83 250 87 248 89 L241 87 Z" fill="'+C.ink+'"/>' +
+        '<path d="M233 71 L236 69 L238 74 L234 75 Z" fill="'+C.body+'"/>' +
+        /* 上喙（前翼） */
+        '<path d="M246 90 L322 96 L320 103 L246 102 Z" fill="'+C.beak+'"/>' +
+        '<path d="M304 96 L322 96 L320 103 L304 102 Z" fill="'+C.flare+'"/>' +
+        /* 喉囊——高速风袋（JS 驱动鼓胀） */
+        '<g class="pouch">' +
+          '<path d="M247 100 C256 134 294 132 317 102 L247 100 Z" fill="'+C.pouch+'"/>' +
+          '<path d="M258 112 C270 122 292 120 306 106 C296 118 272 122 258 112 Z" fill="'+C.pouchD+'" opacity=".8"/>' +
+        '</g>' +
+      '</g>' +
+    '</g>';
+  }
+
+  var CAR_A = { num:"07", body:"#F03D12", deep:"#B02A0A", beak:"#F03D12", beakTip:"#FFCE00",
+                pouch:"#FF7A33", pouchD:"#D95A1A", leg:"#FFCE00", legD:"#D9A400",
+                helmet:"#FFFFFF", salt:"#EFEDE6", ink:"#17140F" };
+  var CAR_B = { num:"13", body:"#0F6B5C", deep:"#094A3E", beak:"#EFEDE6", beakTip:"#FFCE00",
+                pouch:"#1B8A76", pouchD:"#0F6B5C", leg:"#FFCE00", legD:"#D9A400",
+                helmet:"#FFFFFF", salt:"#EFEDE6", ink:"#17140F" };
+
+  document.getElementById("L-cars").innerHTML =
+    pelicanSVG("carA", CAR_A) + pelicanSVG("carB", CAR_B);
+
+  var carA = document.getElementById("carA");
+  var carB = document.getElementById("carB");
+
+  /* ================= 环境层：程序化生成循环图案 ================= */
+  function el(name, attrs, parent){
+    var n=document.createElementNS(SVGNS,name);
+    for(var k in attrs) n.setAttribute(k, attrs[k]);
+    if(parent) parent.appendChild(n);
+    return n;
+  }
+  function loopGroup(host, W, copies, builder){
+    var g=el("g",{},host);
+    for(var i=0;i<copies;i++){
+      var sub=el("g",{transform:"translate("+(i*W)+",0)"},g);
+      builder(sub,i);
+    }
+    return g;
+  }
+
+  /* 海浪 */
+  loopGroup(document.getElementById("seaLoop"), 800, 3, function(sub){
+    el("path",{d:"M40 486 C120 478 200 494 280 488 C360 482 430 492 520 486",fill:"none",stroke:"#FFFFFF","stroke-opacity":".5","stroke-width":"3","stroke-linecap":"round"},sub);
+    el("path",{d:"M560 520 C640 514 700 526 780 520",fill:"none",stroke:"#FFFFFF","stroke-opacity":".35","stroke-width":"2.4","stroke-linecap":"round"},sub);
+    el("path",{d:"M120 536 C200 530 260 540 340 536",fill:"none",stroke:"#FFFFFF","stroke-opacity":".28","stroke-width":"2","stroke-linecap":"round"},sub);
+  });
+
+  /* 远处遮阳伞 + 观众 */
+  function umbrella(sub,x,y,c){
+    el("path",{d:"M"+x+" "+y+" l26 -30 l26 30 z",fill:c},sub);
+    el("line",{x1:x+26,y1:y-30,x2:x+26,y2:y+34,stroke:"#17140F","stroke-width":"3"},sub);
+    el("circle",{cx:x+8,cy:y+38,r:4,fill:"#17140F"},sub);
+    el("circle",{cx:x+20,cy:y+40,r:4,fill:"#17140F"},sub);
+    el("circle",{cx:x+44,cy:y+38,r:4,fill:"#17140F"},sub);
+  }
+  loopGroup(document.getElementById("umbLoop"), 800, 3, function(sub){
+    umbrella(sub, 80, 552, "#F03D12");
+    umbrella(sub, 330, 556, "#17140F");
+    umbrella(sub, 600, 550, "#0F6B5C");
+    el("rect",{x:450,y:560,width:70,height:12,fill:"#17140F"},sub);
+    el("rect",{x:450,y:560,width:70,height:4,fill:"#FFCE00"},sub);
+  });
+
+  /* 护栏 + 广告板 */
+  var adTexts=["PELICAN GP","SALT SPEED","412","LIGHTS OUT","喉囊即引擎"];
+  loopGroup(document.getElementById("railLoop"), 400, 5, function(sub,i){
+    var x0=0;
+    el("rect",{x:x0+18,y:566,width:340,height:44,fill:"#17140F"},sub);
+    el("rect",{x:x0+18,y:566,width:340,height:44,fill:"none",stroke:"#17140F"},sub);
+    var t=el("text",{x:x0+188,y:596,"text-anchor":"middle","font-family":"Tourney, sans-serif","font-weight":"900","font-style":"italic","font-size":"26",fill:"#EFEDE6","letter-spacing":"2"},sub);
+    t.textContent=adTexts[i%adTexts.length];
+    el("rect",{x:x0+18,y:566,width:340,height:6,fill: i%2 ? "#FFCE00" : "#F03D12"},sub);
+    el("line",{x1:x0+10,y1:612,x2:x0+366,y2:612,stroke:"#17140F","stroke-width":"4"},sub);
+    el("line",{x1:x0+30,y1:612,x2:x0+30,y2:650,stroke:"#17140F","stroke-width":"5"},sub);
+    el("line",{x1:x0+200,y1:612,x2:x0+200,y2:650,stroke:"#17140F","stroke-width":"5"},sub);
+    el("line",{x1:x0+356,y1:612,x2:x0+356,y2:650,stroke:"#17140F","stroke-width":"5"},sub);
+  });
+
+  /* 红白路肩石 */
+  var curbHost=document.getElementById("curbLoop");
+  var curbG=el("g",{},curbHost);
+  for(var cb=0;cb<13;cb++){
+    el("rect",{x:-160+cb*140,y:640,width:70,height:24,fill:(cb%2? "#EFEDE6":"#F03D12")},curbG);
+    el("rect",{x:-160+cb*140+70,y:640,width:70,height:24,fill:(cb%2? "#F03D12":"#EFEDE6")},curbG);
+  }
+
+  /* 速度线池 */
+  var streakHost=document.getElementById("L-streaks");
+  var STREAKS=26, streaks=[];
+  for(var si=0;si<STREAKS;si++){
+    var sky=si<8;
+    var ln=el("line",{x1:-200,y1:0,x2:-200,y2:0,stroke: sky?"#17140F":"#FFFFFF","stroke-width": sky?2:2.6,"stroke-linecap":"round",opacity:0},streakHost);
+    streaks.push({el:ln, sky:sky, y:0, x:Math.random()*2200, k:0.5+Math.random()*1.4, a:0.25+Math.random()*0.5});
+  }
+
+  /* 尘土池 */
+  var dustHost=document.getElementById("L-dust");
+  var DUST=42, dust=[], dustPool=[];
+  for(var di=0;di<DUST;di++){
+    var c=el("circle",{cx:-100,cy:-100,r:3,fill: di%4===0 ? "#17140F" : "#D8D0BA",opacity:0},dustHost);
+    dustPool.push(c);
+  }
+
+  /* ================= 状态机 ================= */
+  var S={
+    mode:"idle",          // idle | count | race
+    v:0.12, target:0.12,  // 世界速度 0..1
+    t:0, last:performance.now(),
+    lampStep:0, lampTimer:0,
+    lapStart:0, lap:0,
+    autoTimer:0,
+    raceT:0
+  };
+  var lamps=[].slice.call(document.querySelectorAll("#lampRow .lamp"));
+  var btn=document.getElementById("btnLaunch");
+  var hint=document.getElementById("launchHint");
+  var hudSpd=document.getElementById("hudSpd");
+  var hudLap=document.getElementById("hudLap");
+  var hudPos=document.getElementById("hudPos");
+
+  function setLamps(n){
+    lamps.forEach(function(l,i){
+      l.setAttribute("fill", i<n ? "#F03D12" : "#3A352C");
+      if(i<n){ l.style.filter="drop-shadow(0 0 10px rgba(240,61,18,.55))"; }
+      else{ l.style.filter="none"; }
+    });
+  }
+  function pad(n,l){ n=String(n); while(n.length<l) n="0"+n; return n; }
+  function lapStr(ms){
+    var m=Math.floor(ms/60000), s=Math.floor(ms%60000/1000), x=Math.floor(ms%1000);
+    return pad(m,2)+":"+pad(s,2)+"."+pad(x,3);
+  }
+
+  function launch(){
+    if(S.mode!=="idle") { resetRace(); return; }
+    S.mode="count"; S.lampStep=0; S.lampTimer=0;
+    btn.classList.add("racing");
+    btn.firstElementChild.textContent="ABORT / 复位";
+    hint.textContent="HOLD… /// 五灯逐亮";
+  }
+  function lightsOut(){
+    S.mode="race";
+    S.target=1; S.lapStart=S.t; S.raceT=0;
+    setLamps(0);
+    hint.textContent="LIGHTS OUT! /// 灯灭！";
+    btn.firstElementChild.textContent="RESTART RACE";
+    setTimeout(function(){ if(S.mode==="race") hint.textContent="FLAT OUT /// 全速"; }, 1600);
+  }
+  function resetRace(){
+    S.mode="idle"; S.target=0.12; S.lampStep=0; S.lap=0; S.raceT=0;
+    setLamps(0);
+    btn.classList.remove("racing");
+    btn.firstElementChild.textContent="START ENGINE";
+    hint.textContent="PRESS TO LAUNCH /// 点击发车";
+    hudLap.textContent="00:00.000";
+  }
+  btn.addEventListener("click", function(){
+    if(S.mode==="race"){ resetRace(); }
+    else if(S.mode==="count"){ resetRace(); }
+    else launch();
+  });
+  /* 9 秒无操作自动进入发车流程 */
+  S.autoTimer=9;
+
+  /* ================= 布局常量 ================= */
+  var SEA_W=800, UMB_W=800, RAIL_W=400, CURB_W=140;
+  var off={sea:0,umb:0,rail:0,curb:0,dash:0};
+  var seaG=document.getElementById("seaLoop"),
+      umbG=document.getElementById("umbLoop"),
+      railG=document.getElementById("railLoop"),
+      curbT=document.getElementById("curbLoop"),
+      dash=document.getElementById("laneDash"),
+      shakeG=document.getElementById("shake");
+  var trailsA=carA.querySelectorAll(".trail"),
+      trailsB=carB.querySelectorAll(".trail");
+
+  function placeCar(car, x, groundY, scale){
+    car.setAttribute("transform","translate("+x.toFixed(1)+","+(groundY-196*scale).toFixed(1)+") scale("+scale+")");
+  }
+
+  /* 主循环 */
+  var wheels={ A:{f:carA.querySelector(".wheelF"), r:carA.querySelector(".wheelR"), fa:0, ra:0},
+               B:{f:carB.querySelector(".wheelF"), r:carB.querySelector(".wheelR"), fa:0, ra:0} };
+  var legs={ A:{a:carA.querySelector(".legA"), b:carA.querySelector(".legB")},
+             B:{a:carB.querySelector(".legA"), b:carB.querySelector(".legB")} };
+  var bodyGA=carA.querySelector(".bodyG"), bodyGB=carB.querySelector(".bodyG");
+  var pouchA=carA.querySelector(".pouch"), pouchB=carB.querySelector(".pouch");
+  var wingA=carA.querySelector(".trails"), wingB=carB.querySelector(".trails");
+
+  function frame(now){
+    var dt=Math.min((now-S.last)/1000, 0.05); S.last=now;
+    S.t+=dt;
+
+    /* 速度插值（临界阻尼感） */
+    S.v += (S.target - S.v) * (reduceMotion? 0.02 : 0.045);
+    if(S.mode!=="race") S.target = 0.12;
+    var v=S.v;
+
+    /* 发车倒计时 */
+    if(S.mode==="count"){
+      S.lampTimer+=dt;
+      if(S.lampStep<5 && S.lampTimer>0.62){
+        S.lampTimer=0; S.lampStep++; setLamps(S.lampStep);
+        if(S.lampStep===5){ S.lampTimer=-(0.45+Math.random()*0.6); }
+      }
+      if(S.lampStep===5 && S.lampTimer>0){ lightsOut(); }
+    }
+    /* 自动发车 */
+    if(S.mode==="idle" && !reduceMotion){
+      S.autoTimer-=dt;
+      if(S.autoTimer<=0){ launch(); }
+    } else if(S.mode==="idle"){ S.autoTimer=9; }
+    if(S.mode!=="idle") S.autoTimer=9;
+
+    /* 计时 */
+    if(S.mode==="race"){ S.lap=(S.t-S.lapStart)*1000; hudLap.textContent=lapStr(S.lap); }
+
+    /* 视差滚动 */
+    off.sea  += v*36*dt;  off.umb += v*120*dt;
+    off.rail += v*300*dt; off.curb+= v*560*dt; off.dash+= v*720*dt;
+    seaG.setAttribute("transform","translate("+(-(off.sea%SEA_W)).toFixed(1)+",0)");
+    umbG.setAttribute("transform","translate("+(-(off.umb%UMB_W)).toFixed(1)+",0)");
+    railG.setAttribute("transform","translate("+(-(off.rail%RAIL_W)).toFixed(1)+",0)");
+    curbT.setAttribute("transform","translate("+(-(off.curb%CURB_W)).toFixed(1)+",0)");
+    dash.setAttribute("stroke-dashoffset", (-off.dash).toFixed(1));
+
+    /* 双车拉锯（超越战） */
+    var s=Math.sin(S.raceT*0.5);
+    if(S.mode!=="race"){ s=0; } else { S.raceT+=dt; }
+    var swing=reduceMotion? 60 : 170;
+    var ax=720+s*swing, bx=960-s*swing;
+    placeCar(carA, ax, 756, 0.95);
+    placeCar(carB, bx, 876, 1.12);
+
+    /* 排名（超越判定与几何超越点 s=0.706 对齐） */
+    var aLead = s>0.71;
+    hudPos.textContent = aLead? "P1·P2" : "P2·P1";
+
+    /* 引擎震动镜头 */
+    if(!reduceMotion){
+      var sh=v*v;
+      var sx=Math.sin(S.t*31)*2.1*sh + Math.sin(S.t*17.3)*1.2*sh;
+      var sy=Math.sin(S.t*37.7)*1.7*sh + Math.sin(S.t*23.1)*1.0*sh;
+      shakeG.setAttribute("transform","translate("+sx.toFixed(2)+","+sy.toFixed(2)+")");
+    }
+
+    /* 轮 / 腿 / 悬挂 / 喉囊 */
+    [["A",1180],["B",1180]].forEach(function(cfg){
+      var key=cfg[0], w=wheels[key], step=v*(reduceMotion? 120 : cfg[1])*dt;
+      w.fa+=step*1.28; w.ra+=step;
+      w.f.setAttribute("transform","rotate("+ (w.fa%360).toFixed(1) +" 252 168)");
+      w.r.setAttribute("transform","rotate("+ (w.ra%360).toFixed(1) +" 78 160)");
+    });
+    var legPhase=S.t*(reduceMotion?4:13);
+    var la=Math.sin(legPhase)*26-8, lb=Math.sin(legPhase+Math.PI)*26-8;
+    legs.A.a.setAttribute("transform","rotate("+la.toFixed(1)+" 128 140)");
+    legs.A.b.setAttribute("transform","rotate("+lb.toFixed(1)+" 152 142)");
+    legs.B.a.setAttribute("transform","rotate("+lb.toFixed(1)+" 128 140)");
+    legs.B.b.setAttribute("transform","rotate("+la.toFixed(1)+" 152 142)");
+
+    if(!reduceMotion){
+      var bA=Math.sin(S.t*9)*2.2*(0.3+v), bB=Math.sin(S.t*9+1.7)*2.2*(0.3+v);
+      var pA=Math.sin(S.t*2.1)*1.1*v, pB=Math.sin(S.t*2.1+1.1)*1.1*v;
+      bodyGA.setAttribute("transform","translate(0,"+bA.toFixed(2)+") rotate("+pA.toFixed(2)+" 170 130)");
+      bodyGB.setAttribute("transform","translate(0,"+bB.toFixed(2)+") rotate("+pB.toFixed(2)+" 170 130)");
+      var gA=1+0.1*Math.sin(S.t*3.1)+v*0.14, gB=1+0.1*Math.sin(S.t*3.1+2)+v*0.14;
+      pouchA.setAttribute("transform","translate(247 100) scale(1 "+gA.toFixed(3)+") translate(-247 -100)");
+      pouchB.setAttribute("transform","translate(247 100) scale(1 "+gB.toFixed(3)+") translate(-247 -100)");
+    }
+
+    /* 拖尾长度 */
+    var tlen=[120,190,260];
+    [ [wingA,trailsA], [wingB,trailsB] ].forEach(function(pair,pi){
+      var g=pair[0], list=pair[1];
+      var o=Math.max(0, v-0.25)*0.85;
+      g.setAttribute("opacity", o.toFixed(2));
+      list.forEach(function(l,i){
+        var len=tlen[i]*v;
+        l.setAttribute("x2", (52-8-i*6-len).toFixed(0));
+      });
+    });
+
+    /* 速度线 */
+    streaks.forEach(function(st){
+      if(reduceMotion){ st.el.setAttribute("opacity",0); return; }
+      if(st.y===0){ st.y = st.sky? 480+Math.random()*140 : 668+Math.random()*220; st.el.setAttribute("y1",st.y); st.el.setAttribute("y2",st.y); }
+      st.x -= v*(st.sky?900:1500)*st.k*dt;
+      var len=(40+v*240)*st.k;
+      if(st.x < -len-60){ st.x=1650+Math.random()*500; st.y= st.sky? 480+Math.random()*140 : 668+Math.random()*220; st.el.setAttribute("y1",st.y); st.el.setAttribute("y2",st.y); }
+      st.el.setAttribute("x1",st.x.toFixed(0));
+      st.el.setAttribute("x2",(st.x+len).toFixed(0));
+      st.el.setAttribute("opacity", (st.a*v).toFixed(2));
+    });
+
+    /* 尘土 */
+    if(!reduceMotion){
+      var emit=v>0.3 && Math.random()<v*0.9;
+      if(emit){
+        var p=dustPool[dustI++%DUST];
+        var fromB=Math.random()<0.5;
+        var wx=fromB? bx+78*1.12 : ax+78*0.95;
+        var wy=fromB? 876-6 : 756-6;
+        p._x=wx; p._y=wy;
+        p._vx=-(180+Math.random()*320)*v; p._vy=-(30+Math.random()*90);
+        p._life=0.5+Math.random()*0.5; p._age=0;
+        p._r=2+Math.random()*4;
+      }
+      dustPool.forEach(function(p){
+        if(!p._age&&p._age!==0){return;}
+        if(p._life>0){
+          p._age+=dt; p._life-=dt;
+          p._x+=p._vx*dt; p._y+=p._vy*dt; p._vy+=60*dt;
+          p.setAttribute("cx",p._x.toFixed(0)); p.setAttribute("cy",p._y.toFixed(0));
+          p.setAttribute("r",(p._r*(1+p._age*2.4)).toFixed(1));
+          p.setAttribute("opacity",(0.5*Math.max(p._life,0)).toFixed(2));
+        } else { p.setAttribute("opacity",0); }
+      });
+    }
+
+    /* HUD 速度 */
+    var spd=Math.round(58 + v*354 + Math.sin(S.t*9.7)*4*v);
+    hudSpd.textContent=pad(spd,3)+" KM/H";
+
+    requestAnimationFrame(frame);
+  }
+  var dustI=0;
+  requestAnimationFrame(frame);
+
+  /* ================= 第二屏揭示 ================= */
+  var belt=document.getElementById("belt");
+  belt.innerHTML=belt.innerHTML+belt.innerHTML; /* 无缝跑马灯 */
+
+  var crews=[].slice.call(document.querySelectorAll(".crew"));
+  if("IntersectionObserver" in window){
+    var io=new IntersectionObserver(function(es){
+      es.forEach(function(e){
+        if(e.isIntersecting){
+          var idx=crews.indexOf(e.target);
+          e.target.style.animationDelay=(idx*120)+"ms";
+          e.target.classList.add("in");
+          io.unobserve(e.target);
+        }
+      });
+    },{threshold:0.35});
+    crews.forEach(function(c){ io.observe(c); });
+  } else {
+    crews.forEach(function(c){ c.classList.add("in"); });
+  }
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>汐语港 · Tidewhisper Harbour</title>
+<link rel="stylesheet" href="css/fonts.css">
+<style>
+  :root{
+    --ink:#0b0e14; --paper:#f4efe4; --gold:#e8b25c; --line:rgba(244,239,228,.22);
+    --glass:rgba(10,13,20,.52); --glass2:rgba(10,13,20,.38);
+    --sans:'Space Grotesk','PingFang SC','Microsoft YaHei',sans-serif;
+    --serif:'DM Serif Display','Songti SC','SimSun',serif;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%;overflow:hidden;background:var(--ink)}
+  body{font-family:var(--sans);color:var(--paper);-webkit-font-smoothing:antialiased}
+  #scene{position:fixed;inset:0;width:100%;height:100%;display:block;cursor:grab}
+  #scene.dragging{cursor:grabbing}
+
+  /* ————— HUD ————— */
+  #hud{position:fixed;inset:0;pointer-events:none;z-index:5}
+  #hud .panel{pointer-events:auto}
+
+  /* 左上:镇名 */
+  #brand{position:absolute;top:26px;left:30px;max-width:340px}
+  #brand .overline{font-size:10px;letter-spacing:.34em;opacity:.72;text-transform:uppercase;
+    text-shadow:0 1px 8px rgba(0,0,0,.5)}
+  #brand h1{font-family:var(--serif);font-weight:400;font-size:56px;line-height:1.02;margin:10px 0 2px;
+    text-shadow:0 2px 24px rgba(0,0,0,.45);letter-spacing:.02em}
+  #brand h1 em{font-style:normal;color:var(--gold)}
+  #brand .latin{font-size:11px;letter-spacing:.52em;opacity:.85;text-transform:uppercase}
+  #brand .rule{width:64px;height:1px;background:var(--gold);margin:14px 0 10px;opacity:.9}
+  #brand .sub{font-size:11.5px;letter-spacing:.14em;opacity:.66;line-height:1.7}
+
+  /* 右上:时辰仪 */
+  #timebox{position:absolute;top:22px;right:28px;display:flex;align-items:center;gap:16px}
+  #dial{width:96px;height:96px;filter:drop-shadow(0 2px 10px rgba(0,0,0,.4))}
+  #dial .ring{fill:none;stroke:var(--line);stroke-width:1.4}
+  #dial .dayarc{fill:none;stroke:rgba(232,178,92,.55);stroke-width:2.4;stroke-linecap:round}
+  #dial .tick{stroke:rgba(244,239,228,.4);stroke-width:1}
+  #dial .marker{fill:var(--gold);stroke:rgba(10,13,20,.6);stroke-width:1.5;transition:fill .5s}
+  #dial .marker.night{fill:#9fb4dd}
+  #readout{text-align:right}
+  #clock{font-family:var(--serif);font-size:52px;line-height:1;letter-spacing:.04em;
+    font-variant-numeric:tabular-nums;text-shadow:0 2px 18px rgba(0,0,0,.5)}
+  #clock small{font-size:20px;opacity:.7;margin-left:2px}
+  #phase{font-size:10.5px;letter-spacing:.42em;opacity:.75;margin-top:6px;text-transform:uppercase}
+  #status{display:inline-flex;align-items:center;gap:7px;margin-top:9px;padding:5px 12px;
+    border:1px solid var(--line);border-radius:999px;font-size:10.5px;letter-spacing:.22em;
+    background:var(--glass);backdrop-filter:blur(8px)}
+  #status .dot{width:6px;height:6px;border-radius:50%;background:var(--gold);
+    box-shadow:0 0 8px var(--gold)}
+  #status.paused .dot{background:#e06a52;box-shadow:0 0 8px #e06a52;animation:none}
+  #status.manual .dot{background:#9fb4dd;box-shadow:0 0 8px #9fb4dd}
+
+  /* 底部:控制台 */
+  #console{position:absolute;left:50%;bottom:24px;transform:translateX(-50%);
+    display:flex;flex-direction:column;align-items:center;gap:10px}
+  .ctl-row{display:flex;align-items:stretch;border:1px solid var(--line);border-radius:14px;
+    background:var(--glass);backdrop-filter:blur(14px) saturate(1.25);overflow:hidden;
+    box-shadow:0 10px 34px rgba(0,0,0,.35)}
+  .ctl-row button{
+    appearance:none;border:none;background:transparent;color:var(--paper);cursor:pointer;
+    padding:11px 20px 10px;display:flex;flex-direction:column;align-items:center;gap:3px;
+    border-right:1px solid rgba(244,239,228,.1);transition:background .25s,color .25s;min-width:86px}
+  .ctl-row button:last-child{border-right:none}
+  .ctl-row button b{font-size:13.5px;font-weight:500;letter-spacing:.3em;text-indent:.3em}
+  .ctl-row button i{font-style:normal;font-size:8.5px;letter-spacing:.3em;opacity:.5}
+  .ctl-row button:hover{background:rgba(244,239,228,.08)}
+  .ctl-row button.on{background:rgba(232,178,92,.16);color:var(--gold)}
+  .ctl-row button.on i{opacity:.8}
+  .ctl-row button.accent{color:var(--gold)}
+  #btnPause.paused b{color:#e0765e}
+
+  .slider-row{display:flex;align-items:center;gap:12px;padding:9px 18px;border:1px solid var(--line);
+    border-radius:999px;background:var(--glass2);backdrop-filter:blur(12px)}
+  .slider-row .lbl{font-size:9px;letter-spacing:.3em;opacity:.55}
+  #timeSlider{-webkit-appearance:none;appearance:none;width:300px;height:22px;background:transparent;cursor:pointer}
+  #timeSlider::-webkit-slider-runnable-track{height:3px;border-radius:2px;
+    background:linear-gradient(90deg,#20304d 0%,#4a5f86 22%,#cfd8e2 42%,#e8d9a8 55%,#cfd8e2 70%,#4a5f86 86%,#20304d 100%)}
+  #timeSlider::-webkit-slider-thumb{-webkit-appearance:none;width:15px;height:15px;border-radius:50%;
+    background:var(--paper);border:2.5px solid var(--gold);margin-top:-6px;
+    box-shadow:0 0 10px rgba(232,178,92,.7)}
+  #timeSlider::-moz-range-track{height:3px;border-radius:2px;
+    background:linear-gradient(90deg,#20304d,#4a5f86 22%,#cfd8e2 42%,#e8d9a8 55%,#cfd8e2 70%,#4a5f86 86%,#20304d)}
+  #timeSlider::-moz-range-thumb{width:13px;height:13px;border-radius:50%;background:var(--paper);
+    border:2.5px solid var(--gold);box-shadow:0 0 10px rgba(232,178,92,.7)}
+
+  /* 左下:提示 */
+  #hint{position:absolute;left:30px;bottom:26px;font-size:10px;letter-spacing:.26em;opacity:.5;line-height:2}
+  #hint b{color:var(--gold);font-weight:500}
+
+  /* 入场幕帘 */
+  #veil{position:fixed;inset:0;z-index:20;background:#0b0e14;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;gap:14px;transition:opacity 1.1s ease;pointer-events:none}
+  #veil .vt{font-family:var(--serif);font-size:54px;letter-spacing:.06em;opacity:0;
+    animation:veilin 1.4s .1s ease forwards}
+  #veil .vl{font-size:11px;letter-spacing:.6em;opacity:0;color:var(--gold);
+    animation:veilin 1.4s .35s ease forwards}
+  #veil .vb{width:120px;height:1px;background:var(--gold);opacity:0;animation:veilin 1.2s .5s ease forwards}
+  @keyframes veilin{to{opacity:1}}
+  #veil.gone{opacity:0}
+
+  /* 窄视口适配 */
+  @media (max-width:1180px){
+    #brand{max-width:280px}
+    #brand h1{font-size:42px}
+    #clock{font-size:40px}
+    #dial{width:78px;height:78px}
+    .ctl-row button{min-width:70px;padding:9px 13px 8px}
+    .ctl-row button b{font-size:12px}
+    #timeSlider{width:210px}
+    #console{bottom:16px}
+  }
+  @media (max-height:820px){
+    #brand h1{font-size:38px;margin-top:6px}
+    #brand .sub{display:none}
+    #clock{font-size:36px}
+    #dial{width:70px;height:70px}
+  }
+</style>
+</head>
+<body>
+<canvas id="scene"></canvas>
+
+<div id="hud">
+  <header id="brand" class="panel">
+    <div class="overline">箱庭计划 N°07 — 港湾 / 台阶 / 潮汐</div>
+    <h1>汐<em>语</em>港</h1>
+    <div class="latin">Tidewhisper&nbsp;Harbour</div>
+    <div class="rule"></div>
+    <div class="sub">一座用 120 秒过完昼夜的箱庭海镇<br>钟塔与灯塔共用同一个时刻</div>
+  </header>
+
+  <div id="timebox" class="panel">
+    <svg id="dial" viewBox="0 0 100 100">
+      <circle cx="50" cy="50" r="48" fill="rgba(10,13,20,0.38)"/>
+      <path class="dayarc" d="M 15 50 A 35 35 0 0 1 85 50"/>
+      <circle class="ring" cx="50" cy="50" r="41"/>
+      <g id="ticks"></g>
+      <circle id="marker" class="marker" cx="50" cy="9" r="4.6"/>
+    </svg>
+    <div id="readout">
+      <div id="clock">09:00</div>
+      <div id="phase">清晨 · MORNING</div>
+      <div id="status"><span class="dot"></span><span id="statusTxt">自动运行</span></div>
+    </div>
+  </div>
+
+  <div id="console" class="panel">
+    <div class="ctl-row">
+      <button id="btnDay"><b>白昼</b><i>SET 12:00</i></button>
+      <button id="btnNight"><b>夜晚</b><i>SET 22:00</i></button>
+      <button id="btnAuto" class="on"><b>自动</b><i>CYCLE ON</i></button>
+      <button id="btnPause"><b>暂停</b><i>PAUSE</i></button>
+      <button id="btnCam"><b>视角</b><i>RESET</i></button>
+    </div>
+    <div class="slider-row">
+      <span class="lbl">子夜</span>
+      <input id="timeSlider" type="range" min="0" max="1439" step="1" value="540">
+      <span class="lbl">正午</span>
+    </div>
+  </div>
+
+  <div id="hint" class="panel">
+    <b>拖拽</b>&nbsp;环绕旋转&nbsp;&nbsp;·&nbsp;&nbsp;<b>滚轮</b>&nbsp;推近拉远&nbsp;&nbsp;·&nbsp;&nbsp;<b>双击</b>&nbsp;复位视角<br>
+    快捷键&nbsp;D&nbsp;白昼&nbsp;/&nbsp;N&nbsp;夜晚&nbsp;/&nbsp;A&nbsp;自动&nbsp;/&nbsp;空格&nbsp;暂停
+  </div>
+</div>
+
+<div id="veil">
+  <div class="vt">汐语港</div>
+  <div class="vl">TIDEWHISPER&nbsp;HARBOUR</div>
+  <div class="vb"></div>
+</div>
+
+<script src="js/three.min.js"></script>
+<script src="js/terrain.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>

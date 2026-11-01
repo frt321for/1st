@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>奶龙体素 NAILONG®VOXEL-LAB</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%230a0a0b'/%3E%3Crect x='3' y='3' width='10' height='10' fill='%23f5c531'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- 3D 舞台 -->
+<div id="stage"><canvas id="gl"></canvas></div>
+
+<!-- 背景巨型字（描边，悬浮于模型之上制造层间穿插） -->
+<div class="giant parallax" data-depth="0.045" aria-hidden="true">NAILONG</div>
+
+<!-- 颗粒 + 暗角 -->
+<div class="grain" aria-hidden="true"></div>
+<div class="vignette" aria-hidden="true"></div>
+
+<!-- 顶部 HUD -->
+<header class="hud top">
+  <div class="logo">
+    <span class="dot"></span>
+    <span class="l1">NAILONG<sup>®</sup>VOXEL-LAB</span>
+    <span class="l2">奶龙体素工业化研究所 / EST.2026</span>
+  </div>
+  <div class="top-right">
+    <figure class="src" data-cursor="源图">
+      <img id="srcThumb" alt="源图 奶蛙.jpeg">
+      <figcaption>SRC — 奶蛙.JPEG</figcaption>
+    </figure>
+    <button id="snd" class="mono-btn" data-cursor="声音">SND&nbsp;[OFF]</button>
+    <div class="idx mono">INDEX<br><b id="idxNum">01</b><i>/04</i></div>
+  </div>
+</header>
+
+<!-- 两侧竖排实验排版 -->
+<aside class="vert left parallax" data-depth="0.03" aria-hidden="true">
+  <span class="f">奶</span><span class="o">龙</span><span class="f">体</span><span class="o">素</span><span class="f">计</span><span class="o">划</span>
+</aside>
+<aside class="vert right" aria-hidden="true">VOXEL&nbsp;DECONSTRUCTION&nbsp;—&nbsp;DATASET&nbsp;001&nbsp;—&nbsp;MMXXVI&nbsp;—</aside>
+
+<!-- 左下主视觉文字 -->
+<div class="hud bl parallax" data-depth="0.02">
+  <div class="fig mono">FIG.01 — 程序化体素 / PROCEDURAL SDF</div>
+  <h1 class="display"><span class="fill">奶龙</span><span class="stroke">解构</span></h1>
+  <div class="sub anton">VOXEL&nbsp;DISSECTION&nbsp;<em>®</em>&nbsp;096<sup>3</sup></div>
+</div>
+
+<!-- 右下遥测数据 -->
+<div class="hud readout mono" id="readout">
+  <div class="row"><s>SRC</s><b>奶蛙.JPEG</b></div>
+  <div class="row"><s>GRID</s><b id="rGrid">096³ · SOLID</b></div>
+  <div class="row"><s>VOX</s><b id="rVox">------</b></div>
+  <div class="row"><s>MODE</s><b id="rMode">原色 ORIGIN</b></div>
+  <div class="row"><s>EXPL</s><b id="rExpl">000%</b></div>
+  <div class="row"><s>ROT</s><b id="rRot">+000°</b></div>
+  <div class="row"><s>FPS</s><b id="rFps">--</b></div>
+  <div class="swatches" id="swatches"></div>
+</div>
+
+<!-- 材质模式切换 -->
+<nav class="chips" id="chips">
+  <button class="chip active" data-mode="0" data-cursor="材质"><i>01</i>原色<em>ORIGIN</em></button>
+  <button class="chip" data-mode="1" data-cursor="材质"><i>02</i>陶瓷<em>CLAY</em></button>
+  <button class="chip" data-mode="2" data-cursor="材质"><i>03</i>全息<em>HOLO</em></button>
+  <button class="chip" data-mode="3" data-cursor="材质"><i>04</i>熔融<em>MELT</em></button>
+</nav>
+
+<div class="hint mono">拖拽 旋转&ensp;/&ensp;滚轮 解构&ensp;/&ensp;双击 爆炸&ensp;/&ensp;键盘 1-4 材质</div>
+
+<!-- 底部跑马灯 -->
+<div class="marquee" aria-hidden="true">
+  <div class="track" id="marqueeTrack"></div>
+</div>
+
+<!-- 载入序幕 -->
+<div id="loader">
+  <div class="l-tag mono">NAILONG®VOXEL-LAB — INITIALIZING</div>
+  <div class="pct anton" id="pct">00</div>
+  <div class="bar"><i id="barFill"></i></div>
+  <div class="l-label mono">正在体素化&nbsp;/&nbsp;VOXELIZING&nbsp;SOURCE&nbsp;…</div>
+</div>
+
+<!-- 自定义光标 -->
+<div class="cursor-dot" id="curDot"></div>
+<div class="cursor-ring" id="curRing"><span id="curLabel"></span></div>
+
+<!-- WebGL 失败提示 -->
+<div id="webglFail" hidden>YOUR BROWSER DOES NOT SUPPORT WEBGL — 请使用现代浏览器打开</div>
+
+<script src="vendor/three.min.js"></script>
+<script src="vendor/CopyShader.js"></script>
+<script src="vendor/LuminosityHighPassShader.js"></script>
+<script src="vendor/EffectComposer.js"></script>
+<script src="vendor/RenderPass.js"></script>
+<script src="vendor/ShaderPass.js"></script>
+<script src="vendor/UnrealBloomPass.js"></script>
+<script src="assets/src.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>聚灵球 · VITAE ORB</title>
+<style>
+:root{
+  --bg1:#0d1020;--potion:#7c5cf0;--level:62;
+  --ink:#e8ecfa;--dim:#8b93b8;--faint:#565e80;--brass:#c9a86a;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{
+  min-height:100vh;overflow:hidden;
+  background:
+    radial-gradient(700px 480px at 50% 30%, rgba(124,92,240,.14), transparent 60%),
+    radial-gradient(1200px 800px at 50% 118%, #131836, var(--bg1) 60%, #070912 100%);
+  display:flex;align-items:center;justify-content:center;gap:6vw;flex-wrap:wrap;
+  font-family:"PingFang SC","Microsoft YaHei",sans-serif;color:var(--ink);padding:30px 18px;
+}
+.serif{font-family:Georgia,"Songti SC",serif}
+
+/* ---------- 悬浮尘埃 ---------- */
+.dust span{
+  position:absolute;width:2.5px;height:2.5px;border-radius:50%;background:rgba(180,190,255,.5);
+  animation:float var(--t) ease-in-out infinite alternate;animation-delay:var(--dl);
+}
+@keyframes float{from{transform:translateY(0);opacity:.15}to{transform:translateY(-26px);opacity:.7}}
+
+/* ---------- 球体 ---------- */
+.stage{position:relative;display:flex;flex-direction:column;align-items:center}
+.spot{position:absolute;top:-140px;left:50%;transform:translateX(-50%);width:420px;height:260px;pointer-events:none;
+  background:conic-gradient(from 180deg at 50% 0%, transparent 44%, rgba(232,200,138,.10) 49%, rgba(232,200,138,.16) 50%, rgba(232,200,138,.10) 51%, transparent 56%);
+  filter:blur(5px);
+}
+.orbwrap{position:relative;width:min(340px,72vw);aspect-ratio:1;animation:levit 5.4s ease-in-out infinite alternate}
+@keyframes levit{from{transform:translateY(6px)}to{transform:translateY(-10px)}}
+.orbwrap.storm{animation:quake .14s ease-in-out infinite}
+@keyframes quake{
+  0%{transform:translate(0,0) rotate(0)}
+  25%{transform:translate(-3px,2px) rotate(-.7deg)}
+  50%{transform:translate(2px,-2px) rotate(.6deg)}
+  75%{transform:translate(-2px,-1px) rotate(-.4deg)}
+  100%{transform:translate(1px,2px) rotate(.5deg)}
+}
+/* 玻璃球本体 */
+.orb{
+  position:absolute;inset:0;border-radius:50%;overflow:hidden;
+  background:
+    radial-gradient(circle at 32% 26%, rgba(255,255,255,.30), rgba(255,255,255,.05) 34%, transparent 50%),
+    radial-gradient(circle at 72% 82%, rgba(255,255,255,.10), transparent 34%),
+    radial-gradient(circle at 50% 46%, rgba(150,165,220,.06), rgba(16,20,40,.28) 74%, rgba(190,205,255,.34) 94%, rgba(255,255,255,.55) 99%);
+  box-shadow:
+    inset 0 0 60px rgba(140,155,230,.16),
+    inset 0 -18px 44px rgba(255,255,255,.13),
+    0 34px 70px rgba(5,7,16,.65),
+    0 0 0 1px rgba(200,210,255,.14),
+    0 0 90px rgba(var(--pc,124,92,240),.22);
+  transition:box-shadow .5s;
+}
+/* 玻璃反光斑 */
+.orb .g1{position:absolute;left:16%;top:12%;width:26%;height:16%;border-radius:50%;
+  background:radial-gradient(ellipse, rgba(255,255,255,.85), transparent 70%);
+  transform:rotate(-32deg);filter:blur(1px)}
+.orb .g2{position:absolute;right:12%;bottom:16%;width:14%;height:8%;border-radius:50%;
+  background:radial-gradient(ellipse, rgba(255,255,255,.4), transparent 70%);
+  transform:rotate(28deg);filter:blur(1px)}
+.orb .rim{position:absolute;inset:2%;border-radius:50%;pointer-events:none;
+  box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.1), inset 0 14px 30px rgba(255,255,255,.06)}
+/* 内胆（液体容器）：略小于球 */
+.bowl{
+  position:absolute;inset:4.5%;border-radius:50%;overflow:hidden;
+  box-shadow:inset 0 12px 30px rgba(10,12,30,.5), inset 0 -10px 26px rgba(10,12,30,.35);
+}
+/* 液体 */
+.liquid{
+  position:absolute;left:-6%;right:-6%;bottom:-2%;height:calc(var(--level) * 1%);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--potion) 55%, #ffffff 0%) 0%, var(--potion) 26%, color-mix(in srgb, var(--potion) 62%, #000 38%) 100%);
+  transition:height .9s cubic-bezier(.3,.9,.3,1), background .5s;
+}
+/* 波浪（双层 SVG） */
+.waves{position:absolute;left:0;right:0;top:-19%;height:20%}
+.waves svg{position:absolute;inset:0;width:200%;height:100%}
+.wave{fill:var(--potion);transition:fill .5s}
+.w1{animation:wave 5.2s linear infinite;opacity:.85}
+.w2{animation:wave 3.4s linear infinite reverse;opacity:.55;transform:translateY(4%)}
+@keyframes wave{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+/* 摇晃风暴 */
+.storm .wave{animation-duration:1.1s}
+.storm .w2{animation-duration:.7s}
+.storm .waves{top:-30%;height:31%}
+.storm .liquid{transition:height .18s ease-in-out}
+/* 液面高光 */
+.ltop{position:absolute;left:0;right:0;top:-1.5%;height:3px;border-radius:99px;
+  background:linear-gradient(90deg,transparent, rgba(255,255,255,.75), transparent);
+  filter:blur(.5px)}
+/* 气泡 */
+.bub{position:absolute;border-radius:50%;border:1px solid rgba(255,255,255,.5);
+  background:radial-gradient(circle at 34% 30%, rgba(255,255,255,.75), rgba(255,255,255,.1));
+  animation:rise var(--t) ease-in infinite;bottom:-4%;pointer-events:none}
+@keyframes rise{
+  0%{transform:translateY(0) translateX(0);opacity:0}
+  12%{opacity:.85}
+  100%{transform:translateY(calc(-1 * var(--d))) translateX(var(--dx));opacity:0}
+}
+/* 球底折光 */
+.glowfloor{
+  width:66%;height:26px;margin-top:-10px;border-radius:50%;
+  background:radial-gradient(ellipse, rgba(var(--pc,124,92,240),.5), transparent 68%);
+  filter:blur(6px);transition:background .5s;
+}
+/* 底座 */
+.stand{width:52%;height:54px;margin-top:-6px;position:relative}
+.stand .neck{position:absolute;left:32%;right:32%;top:-6px;height:20px;
+  background:linear-gradient(180deg,#e2c893,#8a6f3c 60%,#5c4520);
+  clip-path:polygon(12% 0,88% 0,100% 100%,0 100%)}
+.stand .plate{
+  position:absolute;left:0;right:0;top:22px;height:30px;border-radius:50%;
+  background:
+    radial-gradient(120% 160% at 50% 0%, #e8cf98 0%, #a98850 42%, #6b5327 78%, #41320f 100%);
+  box-shadow:0 14px 30px rgba(0,0,0,.6), inset 0 2px 3px rgba(255,240,200,.65), inset 0 -3px 6px rgba(0,0,0,.4);
+}
+.stand .plate::after{content:"VITAE · MMXXVI";position:absolute;left:50%;top:56%;transform:translateX(-50%);
+  font-size:6.5px;letter-spacing:.4em;color:rgba(60,44,12,.75);font-family:Consolas,monospace;white-space:nowrap}
+/* 百分比 */
+.pct{
+  position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:5;text-align:center;pointer-events:none;
+}
+.pct .n{font-size:clamp(44px,9vw,58px);font-weight:700;font-variant-numeric:tabular-nums;
+  color:#fff;text-shadow:0 2px 14px rgba(0,0,0,.55), 0 0 30px rgba(var(--pc,124,92,240),.9);
+  transition:text-shadow .5s}
+.pct .l{font-size:10.5px;letter-spacing:.44em;color:rgba(255,255,255,.8);text-shadow:0 1px 8px rgba(0,0,0,.6);text-indent:.44em}
+.pct .sub2{font-size:9.5px;letter-spacing:.3em;color:rgba(255,255,255,.55);margin-top:3px;text-indent:.3em}
+/* 球名 */
+.title{text-align:center;margin-top:26px}
+.title h1{font-size:19px;letter-spacing:.4em;text-indent:.4em;font-weight:600}
+.title p{margin-top:6px;font-size:11px;letter-spacing:.3em;color:var(--dim)}
+
+/* ---------- 控制台 ---------- */
+.panel{
+  width:min(330px,86vw);border:1px solid rgba(255,255,255,.1);border-radius:20px;
+  background:rgba(14,17,34,.72);backdrop-filter:blur(10px);padding:24px 24px 20px;
+  box-shadow:0 30px 70px rgba(4,6,16,.5);
+}
+.panel h2{font-size:11px;letter-spacing:.4em;color:var(--brass);margin-bottom:18px;display:flex;align-items:center;gap:10px}
+.panel h2::after{content:"";flex:1;height:1px;background:linear-gradient(90deg,rgba(201,168,106,.4),transparent)}
+.plabel{display:flex;justify-content:space-between;font-size:12px;color:var(--dim);letter-spacing:.1em;margin-bottom:8px}
+.plabel b{color:var(--ink);font-variant-numeric:tabular-nums}
+input[type=range]{
+  -webkit-appearance:none;appearance:none;width:100%;height:6px;border-radius:3px;outline-offset:6px;
+  background:linear-gradient(90deg,var(--potion) var(--p,62%),rgba(255,255,255,.12) var(--p,62%));
+}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;border-radius:50%;
+  background:#fff;border:2.5px solid var(--potion);box-shadow:0 2px 10px rgba(0,0,0,.4);cursor:grab}
+input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;background:#fff;border:2.5px solid var(--potion);cursor:grab}
+.potions{display:grid;grid-template-columns:repeat(6,1fr);gap:9px;margin-top:8px}
+.pt{
+  aspect-ratio:1;border-radius:50%;border:2px solid transparent;cursor:pointer;position:relative;transition:.16s;
+  box-shadow:inset 0 -5px 9px rgba(0,0,0,.4), inset 0 4px 7px rgba(255,255,255,.4);
+}
+.pt:hover{transform:scale(1.1)}
+.pt.on{border-color:#fff;box-shadow:0 0 0 3px rgba(255,255,255,.15), inset 0 -5px 9px rgba(0,0,0,.4)}
+.customrow{display:flex;align-items:center;gap:12px;margin-top:16px;font-size:12px;color:var(--dim)}
+.customrow input[type=color]{
+  width:38px;height:30px;border:1px solid rgba(255,255,255,.16);border-radius:8px;background:none;cursor:pointer;padding:2px;
+}
+.acts{display:flex;gap:9px;margin-top:20px}
+.abtn{
+  flex:1;height:44px;border-radius:11px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.05);
+  color:var(--ink);font-size:13px;letter-spacing:.14em;cursor:pointer;transition:.18s;
+}
+.abtn:hover{background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.3)}
+.abtn.stormy{background:linear-gradient(135deg,#a85cf0,#5c7cf0);border-color:transparent;color:#fff;font-weight:600}
+.abtn:disabled{opacity:.4;cursor:not-allowed}
+.hint{margin-top:16px;font-size:10.5px;color:var(--faint);letter-spacing:.12em;line-height:1.9}
+@media (max-width:860px){body{overflow:auto}}
+@media (prefers-reduced-motion:reduce){
+  .orbwrap{animation:none}
+  .w1,.w2,.bub,.dust span{animation:none}
+  .orbwrap.storm{animation:none}
+}
+</style>
+</head>
+<body>
+
+<!-- 尘埃 -->
+<div class="dust" id="dust" aria-hidden="true"></div>
+
+<!-- ============ 球 ============ -->
+<div class="stage">
+  <div class="spot" aria-hidden="true"></div>
+  <div class="orbwrap" id="orbwrap" role="img" aria-label="魔法球：当前充能 62%">
+    <div class="orb">
+      <div class="bowl">
+        <div class="liquid" id="liquid">
+          <div class="waves">
+            <svg class="w1" viewBox="0 0 1200 120" preserveAspectRatio="none"><path class="wave" id="pw1" d=""/></svg>
+            <svg class="w2" viewBox="0 0 1200 120" preserveAspectRatio="none"><path class="wave" id="pw2" d=""/></svg>
+          </div>
+          <div class="ltop"></div>
+          <div id="bubs"></div>
+        </div>
+      </div>
+      <span class="g1"></span><span class="g2"></span><span class="rim"></span>
+    </div>
+    <div class="pct">
+      <div class="n" id="pctN">62<span style="font-size:.5em">%</span></div>
+      <div class="l">魔力充能</div>
+      <div class="sub2" id="potionName">星辉原液 · UNCOMMON</div>
+    </div>
+  </div>
+  <div class="glowfloor" aria-hidden="true"></div>
+  <div class="stand" aria-hidden="true"><span class="neck"></span><span class="plate"></span></div>
+  <div class="title">
+    <h1 class="serif">聚灵球</h1>
+    <p>VITAE ORB · 药液可注入 · 可摇晃 · 请勿饮用</p>
+  </div>
+</div>
+
+<!-- ============ 控制台 ============ -->
+<div class="panel">
+  <h2>炼金控制台 ALCHEMY</h2>
+
+  <div class="plabel"><span>液位 LIQUID</span><b id="lvlTxt">62%</b></div>
+  <input type="range" id="levelRange" min="0" max="100" value="62" aria-label="液体比例">
+
+  <div class="plabel" style="margin-top:22px"><span>药剂 POTION</span><b id="potionTag">星辉原液</b></div>
+  <div class="potions" id="potions">
+    <button class="pt on" data-c="#7c5cf0" data-n="星辉原液" data-r="UNCOMMON" style="background:linear-gradient(160deg,#a98fff,#6a48d8)" aria-label="星辉原液"></button>
+    <button class="pt" data-c="#39d0a4" data-n="回春药剂" data-r="RARE" style="background:linear-gradient(160deg,#7be8c6,#22a37e)" aria-label="回春药剂"></button>
+    <button class="pt" data-c="#f0785c" data-n="烈焰唾沫" data-r="COMMON" style="background:linear-gradient(160deg,#ff9c7e,#d8563c)" aria-label="烈焰唾沫"></button>
+    <button class="pt" data-c="#4aa8f0" data-n="寒冰凝露" data-r="RARE" style="background:linear-gradient(160deg,#8cc8ff,#2f86c8)" aria-label="寒冰凝露"></button>
+    <button class="pt" data-c="#e8b84a" data-n="点金石浆" data-r="LEGENDARY" style="background:linear-gradient(160deg,#ffd884,#c8902c)" aria-label="点金石浆"></button>
+    <button class="pt" data-c="#f05ca8" data-n="虚空玫瑰" data-r="EPIC" style="background:linear-gradient(160deg,#ff96c8,#c84a88)" aria-label="虚空玫瑰"></button>
+  </div>
+  <div class="customrow">
+    <input type="color" id="customColor" value="#7c5cf0" aria-label="自定义药液颜色">
+    <span>或用取色器调配自有秘方 —— 颜色与辉光同步变化</span>
+  </div>
+
+  <div class="acts">
+    <button class="abtn" id="pourBtn">＋ 注入 5%</button>
+    <button class="abtn" id="drainBtn">− 抽取 5%</button>
+    <button class="abtn stormy" id="stormBtn">摇 晃</button>
+  </div>
+
+  <p class="hint">拖动滑杆实时调整液面 · 波浪与气泡为持续动画 ·<br>「摇晃」将在 2.4 秒内掀起风暴，请扶稳水晶。</p>
+</div>
+
+<script>
+"use strict";
+/* ================= 波浪 path 生成（两倍宽，无缝循环） ================= */
+function wavePath(amp,phase){
+  let d=`M0,60`;
+  const W=1200;
+  for(let x=0;x<=W*2;x+=30){
+    const y=60-Math.sin((x/W)*Math.PI*6+phase)*amp-Math.sin((x/W)*Math.PI*13+phase*1.7)*amp*.32;
+    d+=` L${x},${y.toFixed(1)}`;
+  }
+  d+=` L${W*2},120 L0,120 Z`;
+  return d;
+}
+const pw1=document.getElementById('pw1'),pw2=document.getElementById('pw2');
+function refreshWaves(amp){
+  pw1.setAttribute('d',wavePath(amp,0));
+  pw2.setAttribute('d',wavePath(amp*.8,2.2));
+}
+refreshWaves(16);
+let baseAmp=16;
+/* ================= 状态 ================= */
+let level=62,color=[124,92,240];
+const orbwrap=document.getElementById('orbwrap');
+const liquid=document.getElementById('liquid');
+const pctN=document.getElementById('pctN');
+function hexToRgb(h){
+  h=h.replace('#','');
+  return [parseInt(h.slice(0,2),16),parseInt(h.slice(2,4),16),parseInt(h.slice(4,6),16)];
+}
+function apply(){
+  const [r,g,b]=color;
+  liquid.style.background=
+    `linear-gradient(180deg, rgb(${Math.min(255,r+58)},${Math.min(255,g+58)},${Math.min(255,b+58)}) 0%, rgb(${r},${g},${b}) 26%, rgb(${Math.round(r*.62)},${Math.round(g*.62)},${Math.round(b*.62)}) 100%)`;
+  document.documentElement.style.setProperty('--pc',`${r},${g},${b}`);
+  document.querySelectorAll('.wave').forEach(w=>w.style.fill=`rgb(${r},${g},${b})`);
+  document.querySelectorAll('.pt').forEach(p=>p.classList.toggle('on',hexToRgb(p.dataset.c).join()===color.join()));
+}
+function setLevel(v,animate=true){
+  level=Math.max(0,Math.min(100,v));
+  document.documentElement.style.setProperty('--level',level);
+  document.getElementById('lvlTxt').textContent=level+'%';
+  document.getElementById('levelRange').value=level;
+  document.getElementById('levelRange').style.setProperty('--p',level+'%');
+  /* 数字动画 */
+  const from=parseInt(pctN.textContent)||0,to=level,start=performance.now();
+  if(!animate){pctN.innerHTML=to+'<span style="font-size:.5em">%</span>';return}
+  (function step(now){
+    const k=Math.min((now-start)/700,1),e=1-Math.pow(1-k,3);
+    const v=Math.round(from+(to-from)*e);
+    pctN.innerHTML=v+'<span style="font-size:.5em">%</span>';
+    if(k<1)requestAnimationFrame(step);
+  })(start);
+  orbwrap.setAttribute('aria-label',`魔法球：当前充能 ${level}%`);
+}
+/* 滑杆 */
+const range=document.getElementById('levelRange');
+range.addEventListener('input',()=>{setLevel(+range.value,false);document.getElementById('lvlTxt').textContent=range.value+'%'});
+range.addEventListener('change',()=>setLevel(+range.value));
+/* 药剂预设 */
+document.querySelectorAll('.pt').forEach(p=>{
+  p.addEventListener('click',()=>{
+    color=hexToRgb(p.dataset.c);
+    document.getElementById('customColor').value=p.dataset.c;
+    document.getElementById('potionName').textContent=p.dataset.n+' · '+p.dataset.r;
+    document.getElementById('potionTag').textContent=p.dataset.n;
+    apply();
+  });
+});
+document.getElementById('customColor').addEventListener('input',e=>{
+  color=hexToRgb(e.target.value);
+  document.getElementById('potionName').textContent='自有秘方 · CUSTOM';
+  document.getElementById('potionTag').textContent='自定义';
+  apply();
+});
+/* 注入 / 抽取 */
+document.getElementById('pourBtn').addEventListener('click',()=>setLevel(level+5));
+document.getElementById('drainBtn').addEventListener('click',()=>setLevel(level-5));
+/* 摇晃风暴 */
+const stormBtn=document.getElementById('stormBtn');
+stormBtn.addEventListener('click',()=>{
+  if(stormBtn.disabled)return;
+  stormBtn.disabled=true;
+  orbwrap.classList.add('storm');
+  refreshWaves(34);
+  const iv=setInterval(spawnBub,90);
+  setTimeout(()=>{
+    orbwrap.classList.remove('storm');
+    refreshWaves(baseAmp);
+    clearInterval(iv);
+    stormBtn.disabled=false;
+  },2400);
+});
+/* ================= 气泡 ================= */
+const bubs=document.getElementById('bubs');
+function spawnBub(){
+  if(level<4)return;
+  const b=document.createElement('span');
+  b.className='bub';
+  const s=2+Math.random()*6;
+  b.style.width=b.style.height=s+'px';
+  b.style.left=(6+Math.random()*88)+'%';
+  b.style.setProperty('--t',(2.2+Math.random()*2.6)+'s');
+  b.style.setProperty('--d',(20+Math.random()*(level-8))+'%');
+  b.style.setProperty('--dx',(Math.random()*22-11)+'px');
+  bubs.appendChild(b);
+  setTimeout(()=>b.remove(),5200);
+}
+setInterval(()=>{if(!stormBtn.disabled)spawnBub()},700);
+/* ================= 尘埃 ================= */
+const dust=document.getElementById('dust');
+for(let i=0;i<26;i++){
+  const s=document.createElement('span');
+  s.style.left=Math.random()*100+'vw';
+  s.style.top=Math.random()*100+'vh';
+  s.style.setProperty('--t',(3+Math.random()*4)+'s');
+  s.style.setProperty('--dl',(Math.random()*4)+'s');
+  dust.appendChild(s);
+}
+/* 启动 */
+apply();
+setLevel(62,false);
+range.style.setProperty('--p','62%');
+</script>
+</body>
+</html>

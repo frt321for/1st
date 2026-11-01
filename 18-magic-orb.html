@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<!--
+DIRECTION CONTRACT
+THESIS         把它当成一件量器，而不是一个发光的装饰球：有刻度、有读数、有可控的液位与色相。
+               液面是全页唯一的分界线，它同时切开玻璃、刻度和那个巨大的百分比数字。
+               拒绝「模糊光球 + 霓虹辉光」的做法。
+OWN-WORLD      冷石墨台面 + 无色玻璃 + 一种由色相滑块决定的液体色；
+               玻璃只靠高光、边缘光与折射带表现，不加任何外发光；
+               刻度、百分比、容积一律等宽表格数字。
+STORY          先看见球和它当前的液位，再从刻度确认这是多少，
+               然后用右侧的控制改变液位与颜色，看液面重新晃匀、焦散跟着变色。
+FIRST VIEWPORT 球占据左侧主体并在台面上投下一块被液体染色的焦散光斑；
+               百分比数字压在球心，液面横穿它；控制面板在右侧同一水平线上。
+SIGNATURE      液面穿过百分比数字——水面之上是冷白，水下换成液体的深色调，
+               液位一变，数字的分界跟着走。
+-->
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>魔法球 · 液位与色相</title>
+<style>
+/* ==========================================================================
+   魔法球
+   ========================================================================== */
+
+:root{
+  --bg-0:#101315;
+  --bg-1:#171b1e;
+  --bg-2:#1f2428;
+  --bg-3:#2a3035;
+
+  --ink:#e9eef1;
+  --ink-2:#a4b0b6;
+  --ink-3:#859399;
+
+  --hair:rgba(233,238,241,.14);
+  --hair-2:rgba(233,238,241,.26);
+
+  /* 由 JS 写入 */
+  --hue:196;
+  --fill:62;
+
+  --liq-1:hsl(var(--hue) 78% 62%);
+  --liq-2:hsl(var(--hue) 82% 44%);
+  --liq-3:hsl(var(--hue) 86% 28%);
+  --liq-deep:hsl(var(--hue) 80% 11%);
+  --liq-pale:hsl(var(--hue) 70% 88%);
+
+  --r-sm:5px; --r-md:10px; --r-lg:16px;
+
+  --font:"PingFang SC","Hiragino Sans GB","Microsoft YaHei",
+         ui-sans-serif,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  --mono:ui-monospace,"SF Mono","Cascadia Mono",Consolas,monospace;
+  --ease:cubic-bezier(.22,.61,.36,1);
+}
+
+*,*::before,*::after{ box-sizing:border-box; }
+html,body{ margin:0; padding:0; overflow-x:clip; }
+html{ color-scheme:dark; }
+
+body{
+  min-height:100dvh;
+  background:
+    radial-gradient(120% 70% at 34% 0%, #1e2428 0%, transparent 60%),
+    radial-gradient(90% 60% at 76% 100%, #191e21 0%, transparent 62%),
+    var(--bg-0);
+  color:var(--ink);
+  font-family:var(--font);
+  font-size:16px;
+  line-height:1.6;
+  -webkit-font-smoothing:antialiased;
+}
+
+h1,h2,h3,p,ul,dl,dd,dt{ margin:0; padding:0; }
+ul{ list-style:none; }
+button,input{ font:inherit; }
+
+:focus-visible{ outline:2px solid var(--liq-1); outline-offset:3px; border-radius:4px; }
+
+.mono{ font-family:var(--mono); font-variant-numeric:tabular-nums; }
+.sr{
+  position:absolute; width:1px; height:1px; padding:0; margin:-1px;
+  overflow:hidden; clip-path:inset(50%); white-space:nowrap; border:0;
+}
+
+/* ==========================================================================
+   布局
+   ========================================================================== */
+.stage{
+  min-height:100dvh;
+  display:grid;
+  grid-template-columns:minmax(0,1fr) minmax(290px,360px);
+  gap:clamp(1.5rem,5vw,4.5rem);
+  align-items:center;
+  padding:clamp(1.25rem,4vw,3rem);
+  max-width:1360px;
+  margin-inline:auto;
+}
+
+.bench{
+  --r:min(38vw, 42vh, 300px);
+  position:relative;
+  display:grid;
+  place-items:center;
+  padding-block:clamp(1rem,4vw,3rem);
+}
+
+/* 台面 */
+.bench::after{
+  content:"";
+  position:absolute;
+  left:50%; translate:-50% 0;
+  bottom:calc(50% - var(--r) - 34px);
+  width:calc(var(--r) * 3.1);
+  height:1px;
+  background:linear-gradient(90deg, transparent, var(--hair-2) 22%, var(--hair-2) 78%, transparent);
+}
+
+/* ==========================================================================
+   球
+   ========================================================================== */
+.orb{
+  position:relative;
+  width:calc(var(--r) * 2);
+  height:calc(var(--r) * 2);
+  border-radius:50%;
+  isolation:isolate;
+}
+
+/* 焦散：被液体染色的地面光斑 */
+.caustic{
+  position:absolute;
+  left:50%; translate:-50% 0;
+  top:calc(100% + 12px);
+  width:126%; height:16%;
+  border-radius:50%;
+  background:
+    radial-gradient(closest-side, hsl(var(--hue) 90% 58% / .5), transparent 72%),
+    radial-gradient(closest-side at 40% 46%, hsl(var(--hue) 95% 72% / .5), transparent 58%);
+  filter:blur(18px);
+  opacity:calc(.22 + var(--fill) / 210);
+  transition:opacity .5s var(--ease), background .5s var(--ease);
+  z-index:-2;
+}
+/* 接触阴影 */
+.contact{
+  position:absolute;
+  left:50%; translate:-50% 0;
+  top:calc(100% + 4px);
+  width:64%; height:6%;
+  border-radius:50%;
+  background:radial-gradient(closest-side, rgba(0,0,0,.72), transparent 74%);
+  filter:blur(9px);
+  z-index:-2;
+}
+
+/* 玻璃内腔 */
+.glass{
+  position:absolute; inset:0;
+  border-radius:50%;
+  overflow:hidden;
+  background:
+    radial-gradient(88% 88% at 32% 26%, rgba(255,255,255,.09), transparent 58%),
+    radial-gradient(120% 120% at 50% 50%, rgba(20,26,30,.5) 42%, rgba(9,12,14,.86) 100%);
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,.12),
+    inset 0 -22px 48px -24px rgba(0,0,0,.9);
+}
+
+/* ---- 液体 ---- */
+.liquid{
+  position:absolute;
+  left:-30%; right:-30%;
+  bottom:0;
+  height:calc(var(--fill) * 1%);
+  transition:height .55s var(--ease);
+  z-index:1;
+}
+.liquid__body{
+  position:absolute;
+  left:0; right:0; top:14px; bottom:0;
+  background:linear-gradient(180deg, var(--liq-2) 0%, var(--liq-3) 62%, var(--liq-deep) 100%);
+  transition:background .45s var(--ease);
+}
+/* 靠近液面的一层更亮，模拟透光 */
+.liquid__body::after{
+  content:"";
+  position:absolute; left:0; right:0; top:0; height:38%;
+  background:linear-gradient(180deg, hsl(var(--hue) 90% 68% / .55), transparent);
+}
+
+/* 波：两枚旋转的圆角方块，交叠出起伏的上缘 */
+.wave{
+  position:absolute;
+  left:50%; top:0;
+  width:calc(var(--r) * 3.4);
+  height:calc(var(--r) * 3.4);
+  translate:-50% -50%;
+  border-radius:43% 47% 44% 46%;
+  animation:spin var(--sp,7s) linear infinite;
+  transform-origin:50% 50%;
+  will-change:transform;
+}
+.wave--1{ background:var(--liq-2); --sp:7.5s; opacity:1; }
+.wave--2{ background:var(--liq-1); --sp:11s;  opacity:.42; border-radius:46% 42% 47% 45%; animation-direction:reverse; }
+.wave--3{ background:hsl(var(--hue) 92% 74%); --sp:15s; opacity:.22; border-radius:41% 49% 43% 48%; }
+@keyframes spin{ to{ rotate:360deg; } }
+
+/* 整团液体的轻微倾斜（晃动） */
+.liquid{ transform-origin:50% 100%; }
+.liquid[data-slosh="true"]{ animation:slosh 5.4s ease-in-out infinite alternate; }
+@keyframes slosh{
+  from{ transform:rotate(calc(var(--amp,1) * -1.1deg)); }
+  to  { transform:rotate(calc(var(--amp,1) * 1.1deg)); }
+}
+
+/* 液面高光线 */
+.meniscus{
+  position:absolute;
+  left:0; right:0;
+  bottom:calc(var(--fill) * 1%);
+  height:2px;
+  background:linear-gradient(90deg, transparent, hsl(var(--hue) 96% 84% / .85) 24%, hsl(var(--hue) 96% 92% / .95) 50%, hsl(var(--hue) 96% 84% / .85) 76%, transparent);
+  filter:blur(.6px);
+  z-index:3;
+  transition:bottom .55s var(--ease);
+  opacity:.9;
+}
+
+/* 气泡 */
+.bubbles{ position:absolute; inset:0; z-index:2; overflow:hidden; pointer-events:none; }
+.bub{
+  position:absolute;
+  bottom:-8%;
+  border-radius:50%;
+  background:radial-gradient(circle at 34% 30%, rgba(255,255,255,.9), hsl(var(--hue) 90% 80% / .28) 58%, transparent 70%);
+  box-shadow:inset 0 0 0 1px hsl(var(--hue) 90% 90% / .35);
+  animation:rise var(--bd,7s) linear infinite;
+  animation-delay:var(--bdelay,0s);
+  opacity:0;
+}
+@keyframes rise{
+  0%   { transform:translateY(0) translateX(0) scale(.7); opacity:0; }
+  12%  { opacity:.85; }
+  86%  { opacity:.7; }
+  100% { transform:translateY(calc(var(--fill) * -1%)) translateX(var(--bx,6px)) scale(1.1); opacity:0; }
+}
+
+/* ---- 读数：液面切开数字 ---- */
+.readout{
+  position:absolute; inset:0;
+  display:grid; place-items:center;
+  z-index:4;
+  pointer-events:none;
+}
+.num{
+  position:absolute;
+  font-family:var(--mono);
+  font-variant-numeric:tabular-nums;
+  font-size:calc(var(--r) * .62);
+  font-weight:700;
+  letter-spacing:-.05em;
+  line-height:1;
+  user-select:none;
+}
+.num small{ font-size:.34em; font-weight:600; letter-spacing:-.02em; margin-left:.06em; }
+.num--above{ color:#eaf1f4; text-shadow:0 2px 14px rgba(0,0,0,.6); }
+.num--under{
+  color:var(--liq-deep);
+  text-shadow:0 1px 0 hsl(var(--hue) 90% 74% / .45);
+  clip-path:inset(calc((100% - var(--fill) * 1%)) 0 0 0);
+  transition:clip-path .55s var(--ease), color .45s var(--ease);
+}
+
+/* ---- 刻度：立在球体左侧的量尺，不压在球面上 ---- */
+.scale{
+  position:absolute;
+  left:50%; top:50%;
+  width:calc(var(--r) * 2);
+  height:calc(var(--r) * 2);
+  translate:-50% -50%;
+  z-index:5;
+  pointer-events:none;
+}
+.scale::before{
+  content:"";
+  position:absolute;
+  right:calc(50% + var(--r) + 12px);
+  top:0; bottom:0;
+  width:1px;
+  background:linear-gradient(180deg, transparent, var(--hair-2) 8%, var(--hair-2) 92%, transparent);
+}
+.tick{
+  position:absolute;
+  right:calc(50% + var(--r) + 12px);
+  height:1px;
+  background:rgba(233,238,241,.35);
+  width:8px;
+}
+.tick--maj{ width:15px; background:rgba(233,238,241,.62); }
+.tick__lbl{
+  position:absolute;
+  right:20px; top:50%;
+  translate:0 -50%;
+  font-family:var(--mono);
+  font-size:clamp(9px, calc(var(--r) * .055), 13px);
+  color:var(--ink-3);
+}
+/* 当前液位游标 */
+.cursor{
+  position:absolute;
+  right:calc(50% + var(--r) + 6px);
+  bottom:calc(var(--fill) * 1%);
+  width:0; height:0;
+  border-top:5px solid transparent;
+  border-bottom:5px solid transparent;
+  border-right:8px solid hsl(var(--hue) 92% 66%);
+  translate:0 5px;
+  transition:bottom .55s var(--ease), border-right-color .45s var(--ease);
+}
+
+/* ---- 玻璃表面：高光 / 边缘光 / 折射带 ---- */
+.shell{
+  position:absolute; inset:0;
+  border-radius:50%;
+  z-index:6;
+  pointer-events:none;
+  background:
+    /* 主高光 */
+    radial-gradient(22% 16% at 30% 22%, rgba(255,255,255,.92), rgba(255,255,255,.1) 58%, transparent 72%),
+    /* 次高光 */
+    radial-gradient(9% 6% at 24% 34%, rgba(255,255,255,.6), transparent 70%),
+    /* 底部反光 */
+    radial-gradient(34% 12% at 62% 88%, rgba(255,255,255,.22), transparent 70%),
+    /* 折射带 */
+    linear-gradient(126deg, transparent 46%, rgba(255,255,255,.07) 50%, transparent 54%);
+  box-shadow:
+    inset 0 0 0 1.5px rgba(255,255,255,.2),
+    inset -14px -18px 44px -20px rgba(255,255,255,.24),
+    inset 12px 14px 40px -24px rgba(255,255,255,.5),
+    0 30px 70px -34px rgba(0,0,0,.9);
+}
+/* 边缘光：底部一圈由液体染色 */
+.rim{
+  position:absolute; inset:0;
+  border-radius:50%;
+  z-index:5;
+  pointer-events:none;
+  box-shadow:inset 0 -3px 18px -6px hsl(var(--hue) 92% 62% / calc(var(--fill) / 140));
+  transition:box-shadow .5s var(--ease);
+}
+
+/* ==========================================================================
+   控制面板
+   ========================================================================== */
+.panel{ display:flex; flex-direction:column; gap:1rem; min-width:0; }
+
+.panel__head{ padding-bottom:.9rem; border-bottom:1px solid var(--hair); }
+.panel__head h1{ font-size:1.35rem; font-weight:680; letter-spacing:-.024em; }
+.panel__head p{ margin-top:.35rem; font-size:.875rem; color:var(--ink-3); text-wrap:pretty; }
+
+.card{
+  background:var(--bg-1);
+  border:1px solid var(--hair);
+  border-radius:var(--r-lg);
+  padding:1rem 1.05rem 1.1rem;
+}
+.card h2{
+  font-size:.6875rem; letter-spacing:.18em; text-transform:uppercase;
+  color:var(--ink-3); font-weight:640; margin-bottom:.75rem;
+  display:flex; justify-content:space-between; align-items:baseline; gap:1ch;
+}
+.card h2 b{
+  font-family:var(--mono); font-size:1.15rem; font-weight:700;
+  letter-spacing:-.02em; color:var(--ink); text-transform:none;
+}
+
+/* 滑块 */
+.rng{ width:100%; height:26px; appearance:none; background:transparent; cursor:pointer; margin:0; }
+.rng::-webkit-slider-runnable-track{
+  height:6px; border-radius:99px;
+  background:linear-gradient(90deg, var(--trk, var(--liq-2)) 0 var(--p,50%), var(--bg-3) var(--p,50%) 100%);
+}
+.rng::-moz-range-track{ height:6px; border-radius:99px; background:var(--bg-3); }
+.rng::-moz-range-progress{ height:6px; border-radius:99px; background:var(--trk, var(--liq-2)); }
+.rng::-webkit-slider-thumb{
+  appearance:none;
+  width:22px; height:22px; margin-top:-8px;
+  border-radius:50%;
+  background:var(--ink);
+  border:3px solid var(--bg-1);
+  box-shadow:0 2px 6px rgba(0,0,0,.6);
+}
+.rng::-moz-range-thumb{
+  width:18px; height:18px; border-radius:50%;
+  background:var(--ink); border:3px solid var(--bg-1);
+}
+
+/* 色相轨道 */
+.rng--hue::-webkit-slider-runnable-track{
+  background:linear-gradient(90deg,
+    hsl(0 82% 52%), hsl(45 82% 52%), hsl(90 82% 52%), hsl(140 82% 52%),
+    hsl(190 82% 52%), hsl(240 82% 52%), hsl(290 82% 52%), hsl(330 82% 52%), hsl(360 82% 52%));
+}
+.rng--hue::-moz-range-track{
+  background:linear-gradient(90deg,
+    hsl(0 82% 52%), hsl(45 82% 52%), hsl(90 82% 52%), hsl(140 82% 52%),
+    hsl(190 82% 52%), hsl(240 82% 52%), hsl(290 82% 52%), hsl(330 82% 52%), hsl(360 82% 52%));
+}
+.rng--hue::-moz-range-progress{ background:transparent; }
+
+.swatches{ display:flex; flex-wrap:wrap; gap:.5rem; margin-top:.9rem; }
+.sw{
+  width:38px; height:38px;
+  border-radius:50%;
+  border:2px solid transparent;
+  padding:0; cursor:pointer;
+  position:relative;
+  box-shadow:inset 0 0 0 1px rgba(0,0,0,.35), inset 0 -6px 10px -6px rgba(0,0,0,.6);
+}
+.sw[aria-pressed="true"]{ border-color:var(--ink); }
+.sw[aria-pressed="true"]::after{
+  content:""; position:absolute; left:50%; top:46%;
+  width:6px; height:11px;
+  border:solid #fff; border-width:0 2px 2px 0;
+  translate:-50% -50%; rotate:45deg;
+  filter:drop-shadow(0 0 1px rgba(0,0,0,.8));
+}
+
+.quick{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:.45rem; margin-top:.9rem; }
+.btn{
+  min-height:44px;
+  border:1px solid var(--hair-2);
+  border-radius:var(--r-md);
+  background:var(--bg-2);
+  color:var(--ink);
+  font-size:.875rem;
+  cursor:pointer;
+  transition:background-color .16s var(--ease), border-color .16s var(--ease), translate .08s var(--ease);
+}
+.btn:hover{ background:var(--bg-3); }
+.btn:active{ translate:0 1px; }
+.btn--go{ background:var(--liq-2); border-color:var(--liq-2); color:hsl(var(--hue) 90% 10%); font-weight:640; }
+.btn--go:hover{ filter:brightness(1.1); }
+
+.facts{ border-top:1px solid var(--hair); margin-top:.9rem; }
+.facts div{
+  display:grid; grid-template-columns:minmax(0,1fr) auto;
+  gap:1rem; padding:.45rem 0;
+  border-bottom:1px solid var(--hair);
+  font-size:.8125rem;
+}
+.facts dt{ color:var(--ink-3); }
+.facts dd{ font-family:var(--mono); font-variant-numeric:tabular-nums; }
+
+.note{ font-size:.75rem; color:var(--ink-3); line-height:1.65; text-wrap:pretty; }
+
+/* ==========================================================================
+   降低动效
+   ========================================================================== */
+@media (prefers-reduced-motion:reduce){
+  .wave{ animation:none; }
+  .liquid[data-slosh="true"]{ animation:none; }
+  .bub{ animation:none; opacity:.5; }
+  .liquid,.meniscus,.num--under,.caustic,.rim{ transition-duration:.01ms; }
+}
+
+/* ==========================================================================
+   响应式
+   ========================================================================== */
+@media (max-width:960px){
+  .stage{ grid-template-columns:minmax(0,1fr); gap:2rem; }
+  .orb{ --r:min(40vw, 240px); }
+}
+@media (max-width:420px){
+  .orb{ --r:min(42vw, 190px); }
+  .quick{ grid-template-columns:repeat(2,minmax(0,1fr)); }
+}
+</style>
+</head>
+<body>
+
+<div class="stage">
+
+  <!-- ==================== 球 ==================== -->
+  <div class="bench">
+    <div class="orb" id="orb" role="img" aria-labelledby="orbLabel">
+      <span class="caustic" aria-hidden="true"></span>
+      <span class="contact" aria-hidden="true"></span>
+
+      <div class="glass">
+        <div class="liquid" id="liquid" data-slosh="true">
+          <span class="wave wave--1" aria-hidden="true"></span>
+          <span class="wave wave--2" aria-hidden="true"></span>
+          <span class="wave wave--3" aria-hidden="true"></span>
+          <span class="liquid__body" aria-hidden="true"></span>
+        </div>
+
+        <div class="bubbles" id="bubbles" aria-hidden="true"></div>
+        <span class="meniscus" aria-hidden="true"></span>
+
+        <div class="readout" aria-hidden="true">
+          <span class="num num--above" id="numA">62<small>%</small></span>
+          <span class="num num--under" id="numB">62<small>%</small></span>
+        </div>
+      </div>
+
+      <div class="scale" id="scale" aria-hidden="true"><span class="cursor"></span></div>
+      <span class="rim" aria-hidden="true"></span>
+      <span class="shell" aria-hidden="true"></span>
+    </div>
+    <p class="sr" id="orbLabel">魔法球，当前液位 62%，液体色相 196 度。</p>
+  </div>
+
+  <!-- ==================== 控制 ==================== -->
+  <div class="panel">
+    <div class="panel__head">
+      <h1>魔法球</h1>
+      <p>一颗透明球，灌注了可控比例的液体。液位、色相与晃动幅度都可以改。</p>
+    </div>
+
+    <!-- 液位 -->
+    <section class="card">
+      <h2>液位 <b id="fillTxt">62 %</b></h2>
+      <input class="rng" type="range" id="fill" min="0" max="100" step="1" value="62"
+             aria-label="液位百分比" aria-describedby="fillTxt">
+      <div class="quick">
+        <button class="btn" type="button" data-fill="0">倒空</button>
+        <button class="btn" type="button" data-fill="50">半满</button>
+        <button class="btn btn--go" type="button" data-fill="100">注满</button>
+      </div>
+      <dl class="facts">
+        <div><dt>球体容积</dt><dd>1 000 ml</dd></div>
+        <div><dt>当前液量</dt><dd id="mlTxt">620 ml</dd></div>
+        <div><dt>剩余空间</dt><dd id="mlLeft">380 ml</dd></div>
+      </dl>
+    </section>
+
+    <!-- 颜色 -->
+    <section class="card">
+      <h2>液体色相 <b id="hueTxt">196°</b></h2>
+      <input class="rng rng--hue" type="range" id="hue" min="0" max="360" step="1" value="196"
+             aria-label="液体色相" aria-describedby="hueTxt">
+      <div class="swatches" id="swatches" role="group" aria-label="预设液体"></div>
+      <p class="note" style="margin-top:.85rem">
+        焦散光斑、边缘光与水下数字的颜色都由这一个色相推导，改一次全部跟着变。
+      </p>
+    </section>
+
+    <!-- 晃动 -->
+    <section class="card">
+      <h2>晃动 <b id="ampTxt">中</b></h2>
+      <input class="rng" type="range" id="amp" min="0" max="3" step="1" value="2"
+             aria-label="晃动幅度" aria-describedby="ampTxt">
+      <p class="note" style="margin-top:.85rem">
+        置 0 为完全静止。系统开启「减少动态效果」时，波纹与气泡会自动停下，
+        液面仍然准确显示当前液位。
+      </p>
+    </section>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  function $(id){ return document.getElementById(id); }
+
+  var VOLUME = 1000;                       // ml
+  var AMP_TXT = ['静止','弱','中','强'];
+  var AMP_VAL = [0, 0.55, 1, 1.8];
+
+  var PRESETS = [
+    { h:196, n:'霜蓝' },
+    { h:156, n:'苔绿' },
+    { h:44,  n:'琥珀' },
+    { h:14,  n:'朱砂' },
+    { h:286, n:'紫晶' },
+    { h:330, n:'莓红' }
+  ];
+
+  var root = document.documentElement;
+  var state = { fill:62, hue:196, amp:2 };
+
+  /* ---- 刻度 ---- */
+  (function buildScale(){
+    var host = $('scale');
+    for (var p = 0; p <= 100; p += 10){
+      var maj = (p % 25 === 0);
+      var t = document.createElement('span');
+      t.className = 'tick' + (maj ? ' tick--maj' : '');
+      // 沿球体左侧竖直排布，底部为 0，顶部为 100
+      t.style.bottom = 'calc(' + p + '% - .5px)';
+      host.appendChild(t);
+      if (maj){
+        var l = document.createElement('span');
+        l.className = 'tick__lbl';
+        l.textContent = p;
+        t.appendChild(l);
+      }
+    }
+  })();
+
+  /* ---- 气泡 ---- */
+  (function buildBubbles(){
+    var host = $('bubbles');
+    var seeds = [
+      { x:22, s:7,  d:6.2, dl:0,    bx:10 },
+      { x:34, s:4,  d:8.1, dl:-2.4, bx:-8 },
+      { x:47, s:9,  d:5.4, dl:-1.1, bx:6  },
+      { x:58, s:5,  d:7.6, dl:-3.6, bx:-11},
+      { x:69, s:6,  d:6.8, dl:-0.7, bx:9  },
+      { x:41, s:3,  d:9.4, dl:-4.8, bx:5  },
+      { x:77, s:4,  d:8.8, dl:-2.0, bx:-6 }
+    ];
+    seeds.forEach(function(b){
+      var el = document.createElement('span');
+      el.className = 'bub';
+      el.style.left = b.x + '%';
+      el.style.width = b.s + 'px';
+      el.style.height = b.s + 'px';
+      el.style.setProperty('--bd', b.d + 's');
+      el.style.setProperty('--bdelay', b.dl + 's');
+      el.style.setProperty('--bx', b.bx + 'px');
+      host.appendChild(el);
+    });
+  })();
+
+  /* ---- 预设色 ---- */
+  (function buildSwatches(){
+    var host = $('swatches');
+    PRESETS.forEach(function(p){
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'sw';
+      b.dataset.h = p.h;
+      b.setAttribute('aria-label', '液体颜色 ' + p.n);
+      b.setAttribute('aria-pressed', String(p.h === state.hue));
+      b.style.background = 'linear-gradient(168deg, hsl(' + p.h + ' 84% 64%), hsl(' + p.h + ' 86% 38%))';
+      b.addEventListener('click', function(){
+        state.hue = p.h;
+        $('hue').value = p.h;
+        render();
+      });
+      host.appendChild(b);
+    });
+  })();
+
+  /* ---- 渲染 ---- */
+  function render(){
+    root.style.setProperty('--fill', state.fill);
+    root.style.setProperty('--hue', state.hue);
+
+    var ml = Math.round(VOLUME * state.fill / 100);
+    $('fillTxt').textContent = state.fill + ' %';
+    $('hueTxt').textContent = state.hue + '°';
+    $('ampTxt').textContent = AMP_TXT[state.amp];
+    $('mlTxt').textContent = ml + ' ml';
+    $('mlLeft').textContent = (VOLUME - ml) + ' ml';
+
+    $('numA').innerHTML = state.fill + '<small>%</small>';
+    $('numB').innerHTML = state.fill + '<small>%</small>';
+
+    var liq = $('liquid');
+    liq.style.setProperty('--amp', AMP_VAL[state.amp]);
+    liq.dataset.slosh = String(state.amp > 0);
+
+    document.querySelectorAll('.sw').forEach(function(s){
+      s.setAttribute('aria-pressed', String(+s.dataset.h === state.hue));
+    });
+
+    // 滑块填充比例
+    $('fill').style.setProperty('--p', state.fill + '%');
+    $('amp').style.setProperty('--p', (state.amp / 3 * 100) + '%');
+
+    $('orbLabel').textContent =
+      '魔法球，当前液位 ' + state.fill + '%（约 ' + ml + ' 毫升），液体色相 ' + state.hue + ' 度。';
+  }
+
+  /* ---- 事件 ---- */
+  $('fill').addEventListener('input', function(){ state.fill = +this.value; render(); });
+  $('hue').addEventListener('input', function(){ state.hue = +this.value; render(); });
+  $('amp').addEventListener('input', function(){ state.amp = +this.value; render(); });
+
+  document.querySelectorAll('[data-fill]').forEach(function(b){
+    b.addEventListener('click', function(){
+      state.fill = +b.dataset.fill;
+      $('fill').value = state.fill;
+      render();
+    });
+  });
+
+  render();
+})();
+</script>
+
+</body>
+</html>

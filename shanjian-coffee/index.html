@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#f6f3eb" />
+    <meta name="description" content="山间来信，将咖啡产地的风味寄进日常。从六款当季咖啡中，找到属于你的那一杯。" />
+    <title>山间来信 Mountain Letters · 把山野，寄进日常</title>
+    <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
+    <link rel="stylesheet" href="styles.css" />
+    <script src="app.js" defer></script>
+  </head>
+  <body>
+    <svg class="icon-definitions" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M4 12h15m-6-6 6 6-6 6" /></symbol>
+      <symbol id="i-arrow-up" viewBox="0 0 24 24"><path d="m6 18 12-12M6 6h12v12" /></symbol>
+      <symbol id="i-bag" viewBox="0 0 24 24"><path d="M5 8h14l1 12H4L5 8Z"/><path d="M8 8V6a4 4 0 0 1 8 0v2"/></symbol>
+      <symbol id="i-close" viewBox="0 0 24 24"><path d="m6 6 12 12M6 18 18 6"/></symbol>
+      <symbol id="i-plus" viewBox="0 0 24 24"><path d="M5 12h14M12 5v14"/></symbol>
+      <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></symbol>
+      <symbol id="i-leaf" viewBox="0 0 24 24"><path d="M20 3C10 2 3 6 5 14c8 4 15-2 15-11ZM3 21l12-12"/></symbol>
+      <symbol id="i-cup" viewBox="0 0 24 24"><path d="M4 8h12v6a6 6 0 0 1-12 0V8Zm12 1h2a3 3 0 0 1 0 6h-2M3 22h14M7 2v2m5-2v2"/></symbol>
+      <symbol id="i-mail" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 6 9 7 9-7"/></symbol>
+      <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></symbol>
+    </svg>
+
+    <a class="skip-link" href="#collection">直接开始选豆</a>
+    <div class="announcement"><span><span class="little-dot"></span>新鲜烘焙，慢慢相遇。</span><a href="#subscription">订阅你的日常风味 <span aria-hidden="true">↗</span></a></div>
+    <header class="site-header">
+      <div class="header-inner shell">
+        <a class="brand" href="#home" aria-label="山间来信首页">
+          <svg class="brand-mark" viewBox="0 0 48 48" aria-hidden="true"><path d="M4 31 15 17l9 11 9-17 12 20M8 37h32M15 31c7-5 16-5 22 0"/></svg>
+          <span><strong>山间来信</strong><small>MOUNTAIN LETTERS</small></span>
+        </a>
+        <nav class="main-nav" id="main-nav" aria-label="主导航">
+          <a href="#collection">当季咖啡</a>
+          <button type="button" data-open-quiz>风味向导 <span class="nav-spark" aria-hidden="true">✳</span></button>
+          <a href="#story">关于山间</a>
+          <a href="#brew-notes">冲煮手记</a>
+        </nav>
+        <div class="header-actions">
+          <button type="button" class="order-button" id="my-subscription"><svg class="icon"><use href="#i-bag"/></svg><span>我的订阅</span><span class="order-indicator" hidden></span></button>
+          <button type="button" class="icon-button menu-button" id="menu-toggle" aria-label="展开导航" aria-controls="main-nav" aria-expanded="false"><svg class="icon"><use href="#i-menu"/></svg></button>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <section class="hero shell" id="home" aria-labelledby="hero-title">
+        <div class="hero-copy">
+          <p class="eyebrow"><span class="short-rule"></span>FROM THE MOUNTAINS, WITH LOVE</p>
+          <h1 id="hero-title">把山野，<br />寄进<span class="hand-underline">日常。</span></h1>
+          <p class="hero-description">一包咖啡，一封来自产地的信。<br />在熟悉的日子里，遇见一点新的风味。</p>
+          <a class="button button-dark" href="#collection">找到我的那杯咖啡 <svg class="icon"><use href="#i-arrow"/></svg></a>
+          <button type="button" class="text-button hero-quiz" data-open-quiz>第一次选豆？让风味带路 <svg class="icon small"><use href="#i-arrow-up"/></svg></button>
+          <div class="hero-footnote"><span><svg class="icon small"><use href="#i-leaf"/></svg>认真对待每一处风土</span><span class="footnote-separator"></span><span>也认真对待你的每一天</span></div>
+        </div>
+        <div class="hero-art"><img src="assets/coffee-letters.svg" width="720" height="620" alt="晨雾与花间咖啡的纸质包装插画，旁边放着一杯咖啡和一封手写便笺" fetchpriority="high"/><div class="hero-edition"><span>本季风味来信</span><span>VOL. 01 — SLOW MORNINGS</span></div></div>
+      </section>
+
+      <section class="flavor-strip shell" aria-label="快速按风味选豆">
+        <div class="flavor-intro"><span class="eyebrow">FOLLOW YOUR TASTE</span><p>今天，想喝点什么？</p></div>
+        <button type="button" class="flavor-shortcut" data-flavor="light"><span class="flavor-symbol fruit" aria-hidden="true">✳</span><span><strong>清爽一点</strong><small>花香 · 水果 · 明亮酸质</small></span><svg class="icon"><use href="#i-arrow-up"/></svg></button>
+        <button type="button" class="flavor-shortcut" data-flavor="medium"><span class="flavor-symbol balanced" aria-hidden="true">◒</span><span><strong>香甜一点</strong><small>焦糖 · 坚果 · 温柔平衡</small></span><svg class="icon"><use href="#i-arrow-up"/></svg></button>
+        <button type="button" class="flavor-shortcut" data-flavor="dark"><span class="flavor-symbol rich" aria-hidden="true">◈</span><span><strong>浓郁一点</strong><small>黑巧 · 奶油 · 醇厚余韵</small></span><svg class="icon"><use href="#i-arrow-up"/></svg></button>
+      </section>
+
+      <section class="collection shell section-space" id="collection" aria-labelledby="collection-title">
+        <div class="section-heading"><div><p class="eyebrow"><span class="section-number">01</span> THE SEASONAL COLLECTION</p><h2 id="collection-title">每一种风味，都有来处。</h2></div><p class="section-caption">从产地到杯中，<br />挑一封你想读的来信。</p></div>
+        <div class="collection-toolbar">
+          <div class="roast-filters" role="group" aria-label="按烘焙程度筛选"><button type="button" class="filter-button active" data-roast="all" aria-pressed="true">全部咖啡 <span>06</span></button><button type="button" class="filter-button" data-roast="light" aria-pressed="false">浅烘焙</button><button type="button" class="filter-button" data-roast="medium" aria-pressed="false">中烘焙</button><button type="button" class="filter-button" data-roast="dark" aria-pressed="false">深烘焙</button></div>
+          <div class="brew-filter"><svg class="icon small"><use href="#i-cup"/></svg><label for="brew-filter" class="sr-only">按冲煮方式筛选</label><select id="brew-filter"><option value="all">所有冲煮方式</option><option value="filter">手冲 / 滴滤</option><option value="espresso">意式 / 摩卡壶</option><option value="press">法压壶</option><option value="aero">爱乐压</option></select></div>
+        </div>
+        <div class="collection-meta"><p id="result-count" role="status" aria-live="polite">共 6 款咖啡 · 原豆 / 现磨可选</p><button type="button" class="reset-filter" id="reset-filter" hidden>清除筛选 <span aria-hidden="true">×</span></button><span class="collection-note">用你喜欢的方式，开始就好。</span></div>
+        <div class="product-grid" id="product-grid"></div>
+        <div class="empty-state" id="empty-state" hidden><span class="empty-flower" aria-hidden="true">✳</span><h3>这组风味，还在山间寻找。</h3><p>当前烘焙与冲煮方式暂时没有匹配的咖啡。<br />试试其他组合，或看看全部当季风味。</p><button type="button" class="button button-dark" id="empty-reset">看看全部咖啡 <svg class="icon"><use href="#i-arrow"/></svg></button></div>
+      </section>
+
+      <section class="subscription-section shell" id="subscription" aria-labelledby="subscription-title">
+        <div class="subscription-card">
+          <div class="subscription-art" aria-hidden="true"><svg viewBox="0 0 240 240"><g transform="rotate(-12 120 120)"><path d="M38 66h164v123H38z" fill="#e9e4cb"/><path d="m38 66 82 70 82-70M38 189l67-65m97 65-68-65" fill="none" stroke="#9aab87" stroke-width="1.5"/><path d="m52 50 161 21-14 81L38 130z" fill="#eee8d4"/><path d="m72 83 17-12 15 17 19-24 17 22" fill="none" stroke="#53654d" stroke-width="1.5"/><text x="117" y="112" text-anchor="middle" font-family="SimSun,serif" font-size="16" letter-spacing="4" fill="#40543e">山间来信</text><text x="114" y="129" text-anchor="middle" font-family="Arial" font-size="6" letter-spacing="1.4" fill="#68765b">GOOD THINGS, ON REPEAT.</text><circle cx="175" cy="75" r="23" fill="#b86b4c"/><path d="m164 74 8 7 14-15" fill="none" stroke="#f0e8d2" stroke-width="2"/></g><path d="m25 44 5-15m-12 7 19 2m167 169 10 8m-11 0 13-7" fill="none" stroke="#9eae8a" stroke-width="1.3"/></svg></div>
+          <div class="subscription-copy"><p class="eyebrow">A LITTLE RITUAL, DELIVERED.</p><h2 id="subscription-title">让好咖啡，成为日常。</h2><p>选一款喜欢的豆子，定一个舒服的节奏。<br />下一封风味来信，我们替你记着。</p><div class="subscription-perks"><span><svg class="icon small"><use href="#i-check"/></svg>按需研磨</span><span><svg class="icon small"><use href="#i-check"/></svg>灵活周期</span><span><svg class="icon small"><use href="#i-check"/></svg>订阅免运费</span></div></div>
+          <div class="subscription-action"><span class="subscription-from">每期低至 <strong>¥68</strong></span><button type="button" class="button button-paper" data-subscribe="chenwu">定制我的订阅 <svg class="icon"><use href="#i-arrow"/></svg></button><span class="quiet-note">给自己留一点值得期待的小事。</span></div>
+        </div>
+      </section>
+
+      <section class="story shell section-space" id="story" aria-labelledby="story-title">
+        <div class="story-art"><img src="assets/origin.svg" width="800" height="570" alt="云南咖啡产地的原创插画：层叠青山、咖啡树和穿过山谷的小路" loading="lazy"/><span class="image-caption">山野的风土，日常的温度。 / FIELD NOTES NO. 01</span></div>
+        <div class="story-copy"><p class="eyebrow"><span class="section-number">02</span> A NOTE FROM THE MOUNTAINS</p><h2 id="story-title">好咖啡的故事，<br />从一座山开始。</h2><p>风、雨、海拔和土壤，为每一颗咖啡果写下独特的风味。我们想做的，是让这些细微的差别，在你的杯子里被好好读到。</p><p>山间来信，选择用简单的语言说咖啡。像红苹果一样清爽，像焦糖一样香甜。跟着自己的味觉走，就是很好的开始。</p><button type="button" class="story-link text-button" data-details="chenwu">从云南的「晨雾」读起 <svg class="icon"><use href="#i-arrow-up"/></svg></button><span class="handwritten">一杯好咖啡，慢慢来。</span></div>
+      </section>
+
+      <section class="brew-notes shell" id="brew-notes" aria-labelledby="notes-title">
+        <div class="notes-heading"><p class="eyebrow"><span class="section-number">03</span> YOUR FIRST GOOD CUP</p><h2 id="notes-title">关于你的第一杯。</h2><p>一点小提示，<br />让每天的冲煮更轻松。</p><svg class="notes-cup" viewBox="0 0 110 90" aria-hidden="true"><path d="M15 26h60v25c0 22-60 22-60 0V26Zm60 4c34-8 33 30 0 23M8 76h77M32 5c-8 8 8 9 0 16M49 3c-8 8 8 9 0 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></div>
+        <div class="faq-list"><details><summary>原豆和研磨好的咖啡粉，该怎么选？<span aria-hidden="true">+</span></summary><p>家里有磨豆机，推荐选原豆，在冲煮前现磨更容易保留香气。手边只有冲煮器具，可以在订阅时选择手冲、意式或法压研磨，我们会按所选方式准备相应粗细的咖啡粉。</p></details><details><summary>浅烘、中烘、深烘，风味有什么不同？<span aria-hidden="true">+</span></summary><p>浅烘通常更容易喝到花香、水果和明亮酸质；中烘偏向焦糖、坚果与平衡甜感；深烘更浓郁，常带黑巧和烘烤风味。它们是不同的味道方向，选择你喜欢的就好。</p></details><details><summary>一包 250g，可以喝多久？<span aria-hidden="true">+</span></summary><p>以每杯使用 15g 咖啡豆计算，一包 250g 大约能做 16 杯。如果每天喝一杯，可以选择每两周配送；偶尔喝一杯，四周一次会更从容。</p></details><details><summary>咖啡豆怎样保存，香气更持久？<span aria-hidden="true">+</span></summary><p>开封后压出多余空气，封好袋口，放在阴凉、干燥、避光的地方。日常使用的一小包放在常温即可，取豆后及时密封，尽量在风味鲜活时喝完。</p></details><details><summary>订阅后，可以调整风味和配送周期吗？<span aria-hidden="true">+</span></summary><p>可以。点击页面右上角的「我的订阅」，随时调整咖啡、规格、研磨方式或配送周期；想慢下来时，也可以先暂停，准备好后再继续。</p></details></div>
+      </section>
+    </main>
+
+    <footer class="site-footer"><div class="shell footer-main"><div><a href="#home" class="footer-wordmark">山间来信<span aria-hidden="true">↗</span></a><p>把山野的风味，寄给认真生活的你。</p></div><div class="footer-links"><a href="#collection">当季咖啡</a><a href="#story">关于山间</a><a href="#brew-notes">冲煮手记</a><button type="button" data-open-orders>我的订阅</button></div><div class="footer-signoff"><span>MOUNTAIN LETTERS</span><p>GOOD COFFEE.<br />A SLOWER DAY.</p></div></div><div class="shell footer-bottom"><span>© 2026 山间来信 · Mountain Letters</span><span>用心选豆，好好生活。<span class="footer-flower" aria-hidden="true">✳</span></span></div></footer>
+
+    <dialog id="detail-dialog" class="product-dialog" aria-labelledby="detail-title"><button type="button" class="dialog-close icon-button" data-close aria-label="关闭咖啡详情"><svg class="icon"><use href="#i-close"/></svg></button><div id="detail-content"></div></dialog>
+    <dialog id="subscription-dialog" class="subscription-dialog" aria-labelledby="subscribe-title"><button type="button" class="dialog-close icon-button" data-close aria-label="关闭订阅窗口"><svg class="icon"><use href="#i-close"/></svg></button><div id="subscription-content"></div></dialog>
+    <dialog id="quiz-dialog" class="quiz-dialog" aria-labelledby="quiz-title"><button type="button" class="dialog-close icon-button" data-close aria-label="关闭风味向导"><svg class="icon"><use href="#i-close"/></svg></button><p class="eyebrow">A CUP THAT FEELS LIKE YOU</p><h2 id="quiz-title">跟着味觉，找到那一杯。</h2><p class="dialog-intro">两个小选择，就从你喜欢的味道开始。</p><form id="quiz-form"><fieldset><legend>01 / 你更期待哪一种风味？</legend><div class="quiz-choices"><label><input type="radio" name="taste" value="light" checked/><span><b aria-hidden="true">✳</b><strong>清爽花果</strong><small>像一口水果茶</small></span></label><label><input type="radio" name="taste" value="medium"/><span><b aria-hidden="true">◒</b><strong>香甜平衡</strong><small>像一块焦糖饼干</small></span></label><label><input type="radio" name="taste" value="dark"/><span><b aria-hidden="true">◈</b><strong>浓郁醇厚</strong><small>像一口黑巧克力</small></span></label></div></fieldset><label class="field-label" for="quiz-brew">02 / 平时用什么冲咖啡？</label><select class="form-select" id="quiz-brew" name="brew"><option value="all">还在探索，先看看所有推荐</option><option value="filter">手冲 / 滴滤</option><option value="espresso">意式 / 摩卡壶</option><option value="press">法压壶</option><option value="aero">爱乐压</option></select><button type="submit" class="button button-dark full-width">看看我的风味来信 <svg class="icon"><use href="#i-arrow"/></svg></button></form></dialog>
+    <dialog id="orders-dialog" class="orders-dialog" aria-labelledby="orders-title"><button type="button" class="dialog-close icon-button" data-close aria-label="关闭我的订阅"><svg class="icon"><use href="#i-close"/></svg></button><div id="orders-content"></div></dialog>
+    <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+  </body>
+</html>

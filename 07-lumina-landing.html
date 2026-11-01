@@ -1,0 +1,1019 @@
+<!DOCTYPE html>
+<!--
+DIRECTION CONTRACT
+THESIS         用产品的产物本身做页面结构：整页是一条会议时间轴，从 00:00 开场走到会后待办，
+               每个功能点挂在它真正发生的那一刻上。拒绝「Hero → 三张等大功能卡 → 评价 → CTA」的默认序列。
+OWN-WORLD      冷白纸（微绿向，不是米白）+ 深墨绿承重 + 单一琥珀信号色；
+               时间码、时长、席位数一律等宽表格数字；分节靠时间轴刻度而非卡片阴影。
+STORY          先看懂它把一段会议变成了什么，再顺着时间轴看它在哪一刻做了什么，
+               然后决定要哪一档，最后在「会议结束后 30 秒」这一节点开始试用。
+FIRST VIEWPORT 左侧一句话主张与主行动，右侧是这场会真正生成的纪要文档；
+               贯穿全页的时间轴自 Hero 左缘落下，随滚动填充。
+SIGNATURE      那条时间轴：不是装饰线，它的刻度就是章节锚点，进度随阅读位置推进，
+               每个功能都标着自己发生的时间码。
+-->
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Lumina 流明 · 把会议变成可执行的纪要</title>
+<style>
+/* ==========================================================================
+   Lumina 流明 · 营销落地页
+   ========================================================================== */
+
+:root{
+  --paper:#f4f6f5;
+  --paper-2:#ffffff;
+  --paper-3:#e8ecea;
+
+  --ink:#11201a;
+  --ink-2:#42544d;
+  --ink-3:#5d6f68;
+
+  --green:#17352b;
+  --green-2:#204538;
+  --green-3:#2d5a49;
+
+  --amber:#d08a28;
+  --amber-ink:#8f5a0c;
+  --amber-soft:#fbf1de;
+
+  --hair:#d7ddda;
+  --hair-2:#bcc6c2;
+
+  --r-sm:5px; --r-md:10px; --r-lg:16px; --r-xl:24px;
+
+  --font:"PingFang SC","Hiragino Sans GB","Microsoft YaHei",
+         ui-sans-serif,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  --mono:ui-monospace,"SF Mono","Cascadia Mono",Consolas,monospace;
+  --ease:cubic-bezier(.22,.61,.36,1);
+
+  --rail:56px;
+}
+
+*,*::before,*::after{ box-sizing:border-box; }
+html,body{ margin:0; padding:0; overflow-x:clip; }
+html{ scroll-behavior:smooth; color-scheme:light; }
+@media (prefers-reduced-motion:reduce){ html{ scroll-behavior:auto; } }
+
+body{
+  min-height:100dvh;
+  background:var(--paper);
+  color:var(--ink);
+  font-family:var(--font);
+  font-size:16px;
+  line-height:1.62;
+  -webkit-font-smoothing:antialiased;
+}
+
+h1,h2,h3,h4,p,ul,ol,dl,dd,dt,figure,blockquote{ margin:0; padding:0; }
+ul,ol{ list-style:none; }
+a{ color:inherit; }
+
+:focus-visible{ outline:2px solid var(--green); outline-offset:3px; border-radius:3px; }
+
+.mono{ font-family:var(--mono); font-variant-numeric:tabular-nums; letter-spacing:.02em; }
+.sr{
+  position:absolute; width:1px; height:1px; padding:0; margin:-1px;
+  overflow:hidden; clip-path:inset(50%); white-space:nowrap; border:0;
+}
+
+.shell{ max-width:1240px; margin-inline:auto; padding-inline:clamp(1rem,4vw,2.5rem); }
+
+/* ==========================================================================
+   导航
+   ========================================================================== */
+.nav{
+  position:sticky; top:0; z-index:40;
+  background:color-mix(in srgb, var(--paper) 88%, transparent);
+  backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--hair);
+}
+.nav__in{
+  display:flex; align-items:center; gap:1.5rem;
+  min-height:64px;
+}
+.mark{
+  display:inline-flex; align-items:center; gap:.6ch;
+  font-weight:680; font-size:1.0625rem; letter-spacing:-.02em;
+  text-decoration:none;
+}
+.mark__glyph{
+  width:22px; height:22px; border-radius:6px;
+  background:var(--green);
+  position:relative;
+}
+.mark__glyph::after{
+  content:""; position:absolute; left:5px; top:5px;
+  width:12px; height:12px; border-radius:3px;
+  background:var(--amber);
+}
+.mark small{ font-weight:400; color:var(--ink-3); font-size:.8125rem; margin-left:.2ch; }
+
+.nav__links{ display:flex; gap:.2rem; margin-left:auto; }
+.nav__links a{
+  min-height:44px; display:inline-flex; align-items:center;
+  padding:0 .9rem; border-radius:var(--r-sm);
+  font-size:.9375rem; color:var(--ink-2); text-decoration:none;
+  transition:background-color .18s var(--ease), color .18s var(--ease);
+}
+.nav__links a:hover{ background:var(--paper-3); color:var(--ink); }
+
+/* 滚动进度：与页面的时间轴同一条线 */
+.nav__prog{
+  position:absolute; left:0; bottom:-1px; height:2px;
+  background:var(--amber);
+  width:0;
+}
+
+/* ==========================================================================
+   按钮
+   ========================================================================== */
+.btn{
+  min-height:50px;
+  display:inline-flex; align-items:center; justify-content:center; gap:.55ch;
+  padding:0 1.4rem;
+  border:1px solid var(--hair-2);
+  border-radius:var(--r-md);
+  background:var(--paper-2);
+  color:var(--ink);
+  font:inherit; font-size:1rem; font-weight:560;
+  text-decoration:none; cursor:pointer;
+  transition:background-color .18s var(--ease), border-color .18s var(--ease),
+             color .18s var(--ease), translate .09s var(--ease);
+}
+.btn:hover{ background:var(--paper-3); }
+.btn:active{ translate:0 1px; }
+.btn--go{ background:var(--green); border-color:var(--green); color:#fff; font-weight:620; }
+.btn--go:hover{ background:var(--green-2); border-color:var(--green-2); }
+.btn--go:focus-visible{ outline-color:var(--amber-ink); }
+.btn--sm{ min-height:42px; padding:0 1rem; font-size:.9375rem; }
+.btn--onDark{ background:var(--amber); border-color:var(--amber); color:#2a1a02; font-weight:640; }
+.btn--onDark:hover{ background:#e29b3a; border-color:#e29b3a; }
+.btn--onDark:focus-visible{ outline-color:#fff; }
+.btn--ghostDark{ background:transparent; border-color:rgba(255,255,255,.34); color:#fff; }
+.btn--ghostDark:hover{ background:rgba(255,255,255,.1); }
+
+/* ==========================================================================
+   时间轴骨架
+   ========================================================================== */
+.timeline{
+  position:relative;
+  padding-left:var(--rail);
+}
+.timeline::before{
+  content:"";
+  position:absolute;
+  left:calc(var(--rail) / 2 - 1px);
+  top:0; bottom:0;
+  width:2px;
+  background:var(--hair);
+}
+.timeline__fill{
+  position:absolute;
+  left:calc(var(--rail) / 2 - 1px);
+  top:0;
+  width:2px;
+  height:0;
+  background:linear-gradient(180deg, var(--green), var(--amber));
+}
+
+.beat{
+  position:relative;
+  padding-block:clamp(3rem,7vw,6rem);
+}
+.beat::before{                       /* 刻度点 */
+  content:"";
+  position:absolute;
+  left:calc(var(--rail) / -2 - 5px);
+  top:clamp(3rem,7vw,6rem);
+  width:12px; height:12px;
+  border-radius:50%;
+  background:var(--paper);
+  border:2px solid var(--hair-2);
+}
+.beat[data-lit="true"]::before{ border-color:var(--amber); background:var(--amber); }
+.beat__time{
+  position:absolute;
+  left:calc(var(--rail) * -1);
+  top:calc(clamp(3rem,7vw,6rem) + 22px);
+  width:var(--rail);
+  text-align:center;
+  font-family:var(--mono);
+  font-size:.6875rem;
+  color:var(--ink-3);
+  letter-spacing:.04em;
+}
+
+/* 进入视口 */
+.rise{ opacity:0; transform:translateY(16px); }
+.rise[data-in="true"]{
+  opacity:1; transform:none;
+  transition:opacity .6s var(--ease), transform .6s var(--ease);
+}
+@media (prefers-reduced-motion:reduce){
+  .rise{ opacity:1; transform:none; }
+}
+
+/* ==========================================================================
+   Hero
+   ========================================================================== */
+.hero{
+  display:grid;
+  grid-template-columns:minmax(0,1.02fr) minmax(0,1fr);
+  gap:clamp(1.5rem,4vw,3.5rem);
+  align-items:start;
+  padding-block:clamp(2.5rem,6vw,5rem) clamp(3rem,7vw,6rem);
+}
+.hero h1{
+  font-size:clamp(2.15rem,5.6vw,4rem);
+  line-height:1.06;
+  font-weight:700;
+  letter-spacing:-.035em;
+  text-wrap:balance;
+}
+.hero h1 b{ color:var(--green); font-weight:700; }
+.hero__lede{
+  margin-top:1.15rem;
+  font-size:clamp(1.0625rem,1.7vw,1.25rem);
+  color:var(--ink-2);
+  max-width:40ch;
+  text-wrap:pretty;
+}
+.hero__acts{ display:flex; flex-wrap:wrap; gap:.7rem; margin-top:1.9rem; }
+.hero__foot{
+  margin-top:1.5rem;
+  font-size:.875rem;
+  color:var(--ink-3);
+  display:flex; flex-wrap:wrap; gap:.4rem 1.4rem;
+}
+.hero__foot span{ display:inline-flex; align-items:center; gap:.45ch; }
+.hero__foot span::before{
+  content:""; width:5px; height:5px; border-radius:50%; background:var(--amber);
+}
+
+/* ---- 纪要文档（产品产物本身） ---- */
+.minutes{
+  background:var(--paper-2);
+  border:1px solid var(--hair);
+  border-radius:var(--r-lg);
+  overflow:hidden;
+  box-shadow:0 1px 0 var(--hair), 0 28px 50px -34px rgba(17,32,26,.55);
+}
+.minutes__head{
+  padding:1rem 1.15rem;
+  border-bottom:1px solid var(--hair);
+  display:flex; align-items:baseline; justify-content:space-between; gap:1ch;
+  background:var(--paper-2);
+}
+.minutes__head h2{ font-size:.9375rem; font-weight:640; letter-spacing:-.01em; }
+.minutes__head span{ font-size:.75rem; color:var(--ink-3); }
+.minutes__body{ padding:1.15rem; }
+
+.turn{
+  display:grid;
+  grid-template-columns:3.6rem minmax(0,1fr);
+  gap:.9rem;
+  padding:.55rem 0;
+}
+.turn dt{
+  font-family:var(--mono); font-size:.75rem; color:var(--ink-3);
+  padding-top:.2rem;
+}
+.turn dd b{ display:block; font-size:.8125rem; font-weight:640; color:var(--green); }
+.turn dd p{ font-size:.9375rem; color:var(--ink-2); text-wrap:pretty; }
+.turn dd mark{
+  background:var(--amber-soft);
+  box-shadow:0 1px 0 var(--amber);
+  color:var(--ink);
+  padding:0 .12em;
+}
+
+.extract{
+  margin-top:1rem;
+  border-top:1px solid var(--hair);
+  padding-top:1rem;
+}
+.extract h3{
+  font-size:.75rem; font-weight:640; color:var(--amber-ink);
+  letter-spacing:.02em; margin-bottom:.55rem;
+}
+.todo{ display:grid; gap:.45rem; }
+.todo li{
+  display:grid;
+  grid-template-columns:18px minmax(0,1fr) auto;
+  gap:.6rem; align-items:start;
+  font-size:.875rem;
+}
+.todo li::before{
+  content:""; width:16px; height:16px; margin-top:3px;
+  border:1.5px solid var(--hair-2); border-radius:4px;
+}
+.todo li em{
+  font-style:normal; font-family:var(--mono); font-size:.75rem; color:var(--ink-3);
+  white-space:nowrap;
+}
+.minutes__note{
+  padding:.7rem 1.15rem;
+  background:var(--paper-3);
+  font-size:.75rem;
+  color:var(--ink-3);
+  border-top:1px solid var(--hair);
+}
+
+/* ==========================================================================
+   功能：按重量分级，不是三张等大卡
+   ========================================================================== */
+.sechead{ max-width:52ch; margin-bottom:clamp(1.5rem,3vw,2.5rem); }
+.sechead h2{
+  font-size:clamp(1.65rem,3.4vw,2.5rem);
+  line-height:1.14; font-weight:680; letter-spacing:-.028em;
+  text-wrap:balance;
+}
+.sechead p{ margin-top:.7rem; color:var(--ink-2); font-size:1.0625rem; text-wrap:pretty; }
+
+/* 主功能：宽幅横条 */
+.feat-lead{
+  display:grid;
+  grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);
+  gap:clamp(1.25rem,3vw,3rem);
+  align-items:center;
+  padding:clamp(1.4rem,3vw,2.4rem);
+  background:var(--green);
+  color:#fff;
+  border-radius:var(--r-xl);
+}
+.feat-lead h3{ font-size:clamp(1.3rem,2.4vw,1.85rem); font-weight:660; letter-spacing:-.022em; }
+.feat-lead p{ margin-top:.6rem; color:rgba(255,255,255,.82); text-wrap:pretty; }
+.speakers{ display:grid; gap:.55rem; }
+.spk{
+  display:grid;
+  grid-template-columns:auto minmax(0,1fr) auto;
+  gap:.8rem; align-items:center;
+  padding:.6rem .8rem;
+  background:rgba(255,255,255,.07);
+  border:1px solid rgba(255,255,255,.14);
+  border-radius:var(--r-md);
+}
+.spk__dot{ width:26px; height:26px; border-radius:50%; display:grid; place-items:center;
+  font-size:.75rem; font-weight:700; color:var(--green); background:#fff; }
+.spk__bar{ height:6px; border-radius:99px; background:rgba(255,255,255,.18); overflow:hidden; }
+.spk__bar i{ display:block; height:100%; background:var(--amber); border-radius:99px; }
+.spk__pct{ font-family:var(--mono); font-size:.8125rem; color:rgba(255,255,255,.86); }
+.spk__name{ font-size:.875rem; }
+
+/* 次级功能：两栏不等宽 */
+.feat-pair{
+  display:grid;
+  grid-template-columns:minmax(0,1.24fr) minmax(0,1fr);
+  gap:1rem;
+  margin-top:1rem;
+}
+.feat{
+  background:var(--paper-2);
+  border:1px solid var(--hair);
+  border-radius:var(--r-lg);
+  padding:clamp(1.15rem,2.4vw,1.75rem);
+}
+.feat h3{ font-size:1.1875rem; font-weight:640; letter-spacing:-.018em; }
+.feat p{ margin-top:.5rem; color:var(--ink-2); font-size:.9375rem; text-wrap:pretty; }
+.feat__code{ margin-top:1rem; }
+
+.langs{ display:flex; flex-wrap:wrap; gap:.4rem; margin-top:1rem; }
+.langs span{
+  padding:.3rem .65rem;
+  border:1px solid var(--hair-2);
+  border-radius:99px;
+  font-size:.8125rem;
+  color:var(--ink-2);
+}
+.langs span:first-child{ border-color:var(--green); color:var(--green); font-weight:600; }
+
+.diffbox{
+  margin-top:1rem;
+  border:1px solid var(--hair);
+  border-radius:var(--r-md);
+  overflow:hidden;
+  font-family:var(--mono);
+  font-size:.8125rem;
+}
+.diffbox div{ padding:.5rem .7rem; border-bottom:1px solid var(--hair); }
+.diffbox div:last-child{ border-bottom:0; }
+.diffbox .del{ background:#fbeeec; color:#8f2f22; text-decoration:line-through; }
+.diffbox .add{ background:#eef5f0; color:#1d5a41; }
+
+/* 第四个功能：整幅横条，与前面节奏不同 */
+.feat-band{
+  margin-top:1rem;
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(210px,1fr));
+  gap:1px;
+  background:var(--hair);
+  border:1px solid var(--hair);
+  border-radius:var(--r-lg);
+  overflow:hidden;
+}
+.feat-band div{ background:var(--paper-2); padding:1.15rem 1.2rem; }
+.feat-band h4{ font-size:.9375rem; font-weight:640; }
+.feat-band p{ font-size:.875rem; color:var(--ink-2); margin-top:.35rem; text-wrap:pretty; }
+.feat-band .mono{ font-size:.75rem; color:var(--ink-3); display:block; margin-bottom:.5rem; }
+
+/* ==========================================================================
+   定价：中间一档是不同的物件，不是同一张卡换个颜色
+   ========================================================================== */
+.plans{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:1rem;
+  align-items:stretch;
+}
+.plan{
+  display:flex; flex-direction:column;
+  background:var(--paper-2);
+  border:1px solid var(--hair);
+  border-radius:var(--r-lg);
+  padding:clamp(1.2rem,2.4vw,1.7rem);
+}
+.plan__name{ font-size:1.0625rem; font-weight:660; }
+.plan__for{ font-size:.8125rem; color:var(--ink-3); margin-top:.15rem; min-height:2.6em; }
+.plan__price{
+  margin:1.1rem 0 .2rem;
+  display:flex; align-items:baseline; gap:.35ch;
+  font-family:var(--mono); font-variant-numeric:tabular-nums;
+}
+.plan__price b{ font-size:2.3rem; font-weight:700; letter-spacing:-.03em; }
+.plan__price span{ font-size:.875rem; color:var(--ink-3); }
+.plan__meter{ font-size:.8125rem; color:var(--ink-3); min-height:1.6em; }
+.plan ul{ margin:1.2rem 0 1.4rem; display:grid; gap:.55rem; }
+.plan li{
+  display:grid; grid-template-columns:16px minmax(0,1fr); gap:.6rem;
+  font-size:.9375rem; color:var(--ink-2); align-items:start;
+}
+.plan li::before{
+  content:""; width:9px; height:9px; margin-top:8px; border-radius:2px;
+  background:var(--green);
+}
+.plan li[data-off="true"]{ color:var(--ink-3); }
+.plan li[data-off="true"]::before{ background:var(--hair-2); }
+.plan .btn{ margin-top:auto; width:100%; }
+
+.plan--pick{
+  background:var(--green);
+  border-color:var(--green);
+  color:#fff;
+  margin-block:-.85rem;
+  box-shadow:0 30px 54px -32px rgba(17,53,43,.85);
+}
+.plan--pick .plan__for,
+.plan--pick .plan__meter{ color:rgba(255,255,255,.72); }
+.plan--pick li{ color:rgba(255,255,255,.9); }
+.plan--pick li::before{ background:var(--amber); }
+.plan__tag{
+  display:inline-block;
+  margin-bottom:.6rem;
+  padding:.2rem .6rem;
+  border-radius:99px;
+  background:var(--amber);
+  color:#2a1a02;
+  font-size:.75rem; font-weight:660;
+}
+.plans__note{ margin-top:1.4rem; font-size:.8125rem; color:var(--ink-3); }
+
+/* ==========================================================================
+   评价：一大两小，不是三张等大引用卡
+   ========================================================================== */
+.voices{
+  display:grid;
+  grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);
+  gap:1rem;
+}
+.voice-lead{
+  padding:clamp(1.4rem,3vw,2.2rem);
+  background:var(--paper-2);
+  border:1px solid var(--hair);
+  border-radius:var(--r-lg);
+  display:flex; flex-direction:column; justify-content:space-between;
+}
+.voice-lead blockquote{
+  font-size:clamp(1.15rem,2.2vw,1.6rem);
+  line-height:1.4;
+  letter-spacing:-.018em;
+  font-weight:560;
+  text-wrap:pretty;
+}
+.voice-side{ display:grid; gap:1rem; }
+.voice{
+  padding:1.15rem 1.2rem;
+  background:var(--paper-2);
+  border:1px solid var(--hair);
+  border-radius:var(--r-lg);
+}
+.voice blockquote{ font-size:.9375rem; color:var(--ink-2); text-wrap:pretty; }
+.cite{
+  display:flex; align-items:center; gap:.7rem;
+  margin-top:1.1rem;
+  padding-top:.9rem;
+  border-top:1px solid var(--hair);
+  font-size:.8125rem;
+}
+.cite__i{
+  width:32px; height:32px; border-radius:50%;
+  display:grid; place-items:center;
+  background:var(--paper-3); color:var(--ink-2);
+  font-weight:700; font-size:.8125rem;
+}
+.cite b{ display:block; font-weight:620; }
+.cite span{ color:var(--ink-3); }
+.voices__note{ margin-top:1rem; font-size:.75rem; color:var(--ink-3); }
+
+/* ==========================================================================
+   CTA
+   ========================================================================== */
+.cta{
+  background:var(--green);
+  color:#fff;
+  border-radius:var(--r-xl);
+  padding:clamp(1.8rem,4.5vw,3.5rem);
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  gap:clamp(1.25rem,3vw,2.5rem);
+  align-items:center;
+}
+.cta h2{
+  font-size:clamp(1.5rem,3.2vw,2.4rem);
+  line-height:1.14; font-weight:680; letter-spacing:-.028em;
+  text-wrap:balance;
+}
+.cta p{ margin-top:.7rem; color:rgba(255,255,255,.8); max-width:46ch; text-wrap:pretty; }
+.cta__acts{ display:flex; flex-direction:column; gap:.6rem; min-width:14rem; }
+.cta__fine{ font-size:.8125rem; color:rgba(255,255,255,.62); text-align:center; }
+
+/* ==========================================================================
+   页脚
+   ========================================================================== */
+.foot{
+  border-top:1px solid var(--hair);
+  margin-top:clamp(3rem,7vw,6rem);
+  padding-block:clamp(2rem,4vw,3rem) 2rem;
+}
+.foot__top{
+  display:flex; flex-wrap:wrap; gap:1.5rem 2.5rem;
+  align-items:flex-start; justify-content:space-between;
+}
+.foot__word{
+  font-size:clamp(2rem,6vw,3.6rem);
+  font-weight:700; letter-spacing:-.045em;
+  color:var(--hair-2);
+  line-height:1;
+}
+.foot__links{
+  display:flex; flex-wrap:wrap; gap:.2rem 1.6rem;
+}
+.foot__links a{
+  font-size:.9375rem; color:var(--ink-2); text-decoration:none;
+  min-height:40px; display:inline-flex; align-items:center;
+}
+.foot__links a:hover{ color:var(--ink); text-decoration:underline; text-underline-offset:3px; }
+.foot__bottom{
+  margin-top:2rem; padding-top:1.2rem;
+  border-top:1px solid var(--hair);
+  display:flex; flex-wrap:wrap; gap:.5rem 1.5rem;
+  justify-content:space-between;
+  font-size:.8125rem; color:var(--ink-3);
+}
+
+/* ==========================================================================
+   响应式
+   ========================================================================== */
+@media (max-width:980px){
+  .hero{ grid-template-columns:minmax(0,1fr); }
+  .feat-lead,.feat-pair,.voices,.cta{ grid-template-columns:minmax(0,1fr); }
+  .plans{ grid-template-columns:minmax(0,1fr); }
+  .plan--pick{ margin-block:0; }
+  .cta__acts{ min-width:0; }
+}
+@media (max-width:640px){
+  :root{ --rail:34px; }
+  .beat__time{ font-size:.625rem; }
+  .nav__links{ gap:0; }
+  .nav__links a{ padding:0 .55rem; font-size:.875rem; }
+  .nav__links a:nth-child(3){ display:none; }
+  .hero__acts .btn{ flex:1 1 100%; }
+  .turn{ grid-template-columns:3rem minmax(0,1fr); gap:.6rem; }
+}
+</style>
+</head>
+<body>
+
+<!-- ==================== 导航 ==================== -->
+<header class="nav">
+  <div class="shell nav__in">
+    <a class="mark" href="#top">
+      <span class="mark__glyph" aria-hidden="true"></span>
+      Lumina <small>流明</small>
+    </a>
+    <nav class="nav__links" aria-label="主导航">
+      <a href="#how">工作方式</a>
+      <a href="#price">定价</a>
+      <a href="#voices">用户</a>
+      <a class="btn btn--go btn--sm" href="#cta" style="margin-left:.6rem">免费试用</a>
+    </nav>
+  </div>
+  <div class="nav__prog" id="prog" aria-hidden="true"></div>
+</header>
+
+<main id="top">
+  <div class="shell">
+
+    <!-- ==================== Hero ==================== -->
+    <section class="hero">
+      <div>
+        <h1>会开完了，<b>纪要也就写完了。</b></h1>
+        <p class="hero__lede">
+          Lumina 在会议进行时同步转写、区分发言人，并把口头的结论整理成
+          带负责人和截止时间的待办。散会时你拿到的是一份可以直接派出去的纪要，
+          不是一段两小时的录音。
+        </p>
+        <div class="hero__acts">
+          <a class="btn btn--go" href="#cta">免费用 14 天</a>
+          <a class="btn" href="#how">看看它怎么工作</a>
+        </div>
+        <p class="hero__foot">
+          <span>不需要信用卡</span>
+          <span>支持腾讯会议 / Zoom / 飞书</span>
+          <span>会后自动归档到你的知识库</span>
+        </p>
+      </div>
+
+      <!-- 产品的产物：一份真的纪要文档 -->
+      <figure class="minutes rise">
+        <div class="minutes__head">
+          <h2>产品周会 · 纪要</h2>
+          <span class="mono">时长 42:17 · 4 位发言人</span>
+        </div>
+
+        <div class="minutes__body">
+          <dl>
+            <div class="turn">
+              <dt>08:12</dt>
+              <dd>
+                <b>发言人 A · 产品</b>
+                <p>结算页的跳出主要集中在填发票那一屏，我建议<mark>把发票做成可跳过</mark>，先让订单落地。</p>
+              </dd>
+            </div>
+            <div class="turn">
+              <dt>09:40</dt>
+              <dd>
+                <b>发言人 B · 研发</b>
+                <p>可以做，但要改订单状态机。<mark>我这周三之前给出改动范围</mark>。</p>
+              </dd>
+            </div>
+            <div class="turn">
+              <dt>12:36</dt>
+              <dd>
+                <b>发言人 C · 财务</b>
+                <p>跳过可以，但补开发票的入口必须留在订单详情里，否则对账会出问题。</p>
+              </dd>
+            </div>
+          </dl>
+
+          <div class="extract">
+            <h3>自动抽取的待办</h3>
+            <ul class="todo">
+              <li><span>发票步骤改为可跳过，补开入口保留在订单详情</span><em>A · 本周</em></li>
+              <li><span>评估订单状态机改动范围</span><em>B · 周三前</em></li>
+              <li><span>确认跳过发票后的对账口径</span><em>C · 下周一</em></li>
+            </ul>
+          </div>
+        </div>
+
+        <figcaption class="minutes__note">
+          示例纪要，内容为演示用途，非真实会议记录。
+        </figcaption>
+      </figure>
+    </section>
+
+    <!-- ==================== 时间轴主体 ==================== -->
+    <div class="timeline" id="timeline">
+      <div class="timeline__fill" id="fill" aria-hidden="true"></div>
+
+      <!-- ---------- 功能 ---------- -->
+      <section class="beat" id="how">
+        <span class="beat__time" aria-hidden="true">00:00</span>
+
+        <div class="sechead rise">
+          <h2>它在会议的每个时刻都在做事</h2>
+          <p>不是散会后丢一份逐字稿给你，而是从第一句话开始就在整理结构。</p>
+        </div>
+
+        <div class="feat-lead rise">
+          <div>
+            <h3>说话的人是谁，它分得清</h3>
+            <p>
+              声纹聚类在会议开始约三十秒后稳定，之后每一句都会挂到正确的人身上。
+              你也可以点一下把「发言人 A」改成真实姓名，之后全篇同步更新。
+            </p>
+          </div>
+          <ul class="speakers">
+            <li class="spk">
+              <span class="spk__dot" aria-hidden="true">A</span>
+              <span><span class="spk__name">发言人 A · 产品</span><span class="spk__bar"><i style="width:42%"></i></span></span>
+              <span class="spk__pct">42%</span>
+            </li>
+            <li class="spk">
+              <span class="spk__dot" aria-hidden="true">B</span>
+              <span><span class="spk__name">发言人 B · 研发</span><span class="spk__bar"><i style="width:29%"></i></span></span>
+              <span class="spk__pct">29%</span>
+            </li>
+            <li class="spk">
+              <span class="spk__dot" aria-hidden="true">C</span>
+              <span><span class="spk__name">发言人 C · 财务</span><span class="spk__bar"><i style="width:19%"></i></span></span>
+              <span class="spk__pct">19%</span>
+            </li>
+            <li class="spk">
+              <span class="spk__dot" aria-hidden="true">D</span>
+              <span><span class="spk__name">发言人 D · 设计</span><span class="spk__bar"><i style="width:10%"></i></span></span>
+              <span class="spk__pct">10%</span>
+            </li>
+          </ul>
+        </div>
+
+        <div class="feat-pair">
+          <div class="feat rise">
+            <h3>中英夹杂不会把它搞崩</h3>
+            <p>
+              同一句里混着中文、英文和产品术语时，仍然按整句语义转写，
+              不会把「先把 onboarding 这块 hold 住」拆成三段。
+            </p>
+            <div class="langs">
+              <span>中文（普通话）</span><span>English</span><span>粤语</span>
+              <span>日本語</span><span>中英混说</span>
+            </div>
+          </div>
+
+          <div class="feat rise">
+            <h3>改了就是改了</h3>
+            <p>你在纪要里的每一次人工修正都会被记住，同类表达下次直接按你的写法出。</p>
+            <div class="diffbox">
+              <div class="del">把 onboarding 这块后住</div>
+              <div class="add">把 onboarding 这块 hold 住</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="feat-band rise">
+          <div>
+            <span class="mono">会中</span>
+            <h4>实时字幕</h4>
+            <p>晚到的人可以直接从字幕里翻前面聊过什么，不用打断会议。</p>
+          </div>
+          <div>
+            <span class="mono">散会时</span>
+            <h4>结论与待办</h4>
+            <p>把口头结论落成带负责人和时间的条目，未指派的会被单独标出来。</p>
+          </div>
+          <div>
+            <span class="mono">会后</span>
+            <h4>推送与归档</h4>
+            <p>纪要发到指定群，待办同步到你在用的任务系统，原始音频进归档。</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ---------- 定价 ---------- -->
+      <section class="beat" id="price">
+        <span class="beat__time" aria-hidden="true">12:40</span>
+
+        <div class="sechead rise">
+          <h2>按人计费，按会议时长封顶</h2>
+          <p>没有隐藏的分钟包，超出的部分只会提示你，不会自动扣费。</p>
+        </div>
+
+        <div class="plans rise">
+
+          <article class="plan">
+            <h3 class="plan__name">个人</h3>
+            <p class="plan__for">自己开会、自己整理的人。</p>
+            <p class="plan__price"><b>0</b><span>／月</span></p>
+            <p class="plan__meter">每月 10 场会，单场不超过 60 分钟</p>
+            <ul>
+              <li>实时转写与发言人区分</li>
+              <li>自动待办抽取</li>
+              <li>纪要导出为 Markdown</li>
+              <li data-off="true">团队共享空间</li>
+              <li data-off="true">任务系统同步</li>
+            </ul>
+            <a class="btn" href="#cta">直接开始</a>
+          </article>
+
+          <article class="plan plan--pick">
+            <span class="plan__tag">多数团队选这档</span>
+            <h3 class="plan__name">团队</h3>
+            <p class="plan__for">需要把纪要发给别人、并追踪待办落地的团队。</p>
+            <p class="plan__price"><b>68</b><span>／人·月</span></p>
+            <p class="plan__meter">不限场次，单场不超过 4 小时</p>
+            <ul>
+              <li>个人版全部能力</li>
+              <li>团队共享空间与权限</li>
+              <li>待办同步到任务系统</li>
+              <li>术语表与人工修正记忆</li>
+              <li>纪要模板自定义</li>
+            </ul>
+            <a class="btn btn--onDark" href="#cta">免费试用 14 天</a>
+          </article>
+
+          <article class="plan">
+            <h3 class="plan__name">企业</h3>
+            <p class="plan__for">对数据存放位置和审计有硬性要求的组织。</p>
+            <p class="plan__price"><b>面议</b></p>
+            <p class="plan__meter">按席位与部署方式定价</p>
+            <ul>
+              <li>团队版全部能力</li>
+              <li>私有化或专属区域部署</li>
+              <li>SSO 与目录同步</li>
+              <li>审计日志与数据留存策略</li>
+              <li>专属实施与支持</li>
+            </ul>
+            <a class="btn" href="#cta">联系我们</a>
+          </article>
+
+        </div>
+
+        <p class="plans__note">
+          价格为示例，上线前请替换为真实报价。年付折扣、教育与非营利折扣另行说明。
+        </p>
+      </section>
+
+      <!-- ---------- 评价 ---------- -->
+      <section class="beat" id="voices">
+        <span class="beat__time" aria-hidden="true">28:05</span>
+
+        <div class="sechead rise">
+          <h2>用它的人怎么说</h2>
+        </div>
+
+        <div class="voices rise">
+          <figure class="voice-lead">
+            <blockquote>
+              以前散会后要花四十分钟整理，还经常漏掉「谁答应了什么」。
+              现在会一结束，待办已经带着人名躺在那里，我只需要删掉两条不该记的。
+            </blockquote>
+            <figcaption class="cite">
+              <span class="cite__i" aria-hidden="true">项</span>
+              <span><b>项目经理</b><span>约 30 人的软件团队</span></span>
+            </figcaption>
+          </figure>
+
+          <div class="voice-side">
+            <figure class="voice">
+              <blockquote>
+                最有用的是术语记忆。我们内部一堆自造词，改过一次之后它就再没写错过。
+              </blockquote>
+              <figcaption class="cite">
+                <span class="cite__i" aria-hidden="true">研</span>
+                <span><b>研发负责人</b><span>硬件与固件方向</span></span>
+              </figcaption>
+            </figure>
+
+            <figure class="voice">
+              <blockquote>
+                跨时区会议我经常赶不上开头，直接翻字幕比听回放快太多。
+              </blockquote>
+              <figcaption class="cite">
+                <span class="cite__i" aria-hidden="true">运</span>
+                <span><b>运营</b><span>跨三个时区协作</span></span>
+              </figcaption>
+            </figure>
+          </div>
+        </div>
+
+        <p class="voices__note">
+          以上为占位评价，用于展示版式。正式上线前需替换为经授权的真实客户原话与身份信息。
+        </p>
+      </section>
+
+      <!-- ---------- CTA ---------- -->
+      <section class="beat" id="cta">
+        <span class="beat__time" aria-hidden="true">42:17</span>
+
+        <div class="cta rise">
+          <div>
+            <h2>下一场会，让它自己写完</h2>
+            <p>
+              连上你现在用的会议软件就能开始，不需要改变任何开会习惯。
+              十四天内随时可以导出全部数据并注销。
+            </p>
+          </div>
+          <div class="cta__acts">
+            <a class="btn btn--onDark" href="#">免费试用 14 天</a>
+            <a class="btn btn--ghostDark" href="#">预约一次演示</a>
+            <span class="cta__fine">不需要信用卡</span>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </div>
+
+  <!-- ==================== 页脚 ==================== -->
+  <footer class="foot">
+    <div class="shell">
+      <div class="foot__top">
+        <span class="foot__word">Lumina</span>
+        <nav class="foot__links" aria-label="页脚导航">
+          <a href="#how">工作方式</a>
+          <a href="#price">定价</a>
+          <a href="#voices">用户</a>
+          <a href="#">帮助中心</a>
+          <a href="#">状态</a>
+          <a href="#">安全与合规</a>
+          <a href="#">隐私政策</a>
+          <a href="#">服务条款</a>
+        </nav>
+      </div>
+      <div class="foot__bottom">
+        <span>Lumina 流明 · 演示页面，非真实产品</span>
+        <span>联系：hello@example.com</span>
+      </div>
+    </div>
+  </footer>
+</main>
+
+<script>
+(function () {
+  'use strict';
+
+  var reduce = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+  /* ---- 章节进入：一次性揭示，不是每块都淡入 ---- */
+  if ('IntersectionObserver' in window){
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        if (e.isIntersecting){
+          e.target.dataset.in = 'true';
+          io.unobserve(e.target);
+        }
+      });
+    }, { rootMargin: '0px 0px -12% 0px', threshold: 0.08 });
+
+    Array.prototype.forEach.call(document.querySelectorAll('.rise'), function (n) {
+      io.observe(n);
+    });
+  } else {
+    Array.prototype.forEach.call(document.querySelectorAll('.rise'), function (n) {
+      n.dataset.in = 'true';
+    });
+  }
+
+  /* ---- 时间轴填充 + 顶部进度：每帧只读一次滚动位置 ---- */
+  var timeline = document.getElementById('timeline');
+  var fill = document.getElementById('fill');
+  var prog = document.getElementById('prog');
+  var beats = Array.prototype.slice.call(document.querySelectorAll('.beat'));
+
+  var metrics = null, ticking = false;
+
+  function measure(){
+    var r = timeline.getBoundingClientRect();
+    var top = r.top + window.scrollY;
+    metrics = {
+      top: top,
+      height: timeline.offsetHeight,
+      beats: beats.map(function(b){
+        var br = b.getBoundingClientRect();
+        return { node: b, y: br.top + window.scrollY };
+      }),
+      doc: document.documentElement.scrollHeight - window.innerHeight
+    };
+  }
+
+  function paint(){
+    ticking = false;
+    if (!metrics) return;
+    var y = window.scrollY + window.innerHeight * 0.55;
+
+    var h = Math.max(0, Math.min(metrics.height, y - metrics.top));
+    fill.style.height = h + 'px';
+
+    metrics.beats.forEach(function(b){
+      b.node.dataset.lit = String(y >= b.y);
+    });
+
+    var p = metrics.doc > 0 ? (window.scrollY / metrics.doc) : 0;
+    prog.style.width = (Math.max(0, Math.min(1, p)) * 100).toFixed(2) + '%';
+  }
+
+  function onScroll(){
+    if (!ticking){ ticking = true; requestAnimationFrame(paint); }
+  }
+
+  window.addEventListener('scroll', onScroll, { passive:true });
+  window.addEventListener('resize', function(){ measure(); paint(); });
+  window.addEventListener('load', function(){ measure(); paint(); });
+  measure(); paint();
+})();
+</script>
+
+</body>
+</html>

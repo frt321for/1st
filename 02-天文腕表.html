@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>天穹制表 · Astronomer 天文大师</title>
+<style>
+:root{
+  --gold:#d4b06a; --gold-hi:#f0d9a8; --gold-dk:#8a6f3c;
+  --lume:#9fe8c8;
+  --dial-1:#123227; --dial-2:#0b241b; --dial-3:#071a13;
+  --steel-1:#e8eaec; --steel-2:#9aa1a6; --steel-3:#565d62;
+  --bg-1:#111413; --bg-2:#0a0c0b;
+  --red:#c8452f;
+  --txt:#c9cdc7; --txt-dim:#7c827c;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  min-height:100vh;
+  background:
+    radial-gradient(1100px 640px at 38% 6%, rgba(212,176,106,.07), transparent 60%),
+    radial-gradient(1400px 900px at 50% 30%, var(--bg-1) 0%, var(--bg-2) 70%, #060706 100%);
+  color:var(--txt);
+  font-family:"PingFang SC","Microsoft YaHei","Helvetica Neue",sans-serif;
+  display:flex;flex-direction:column;align-items:center;
+  padding:clamp(16px,3vmin,40px) 20px 48px;
+}
+::selection{background:rgba(212,176,106,.3)}
+
+/* ============ 页头 ============ */
+.masthead{width:min(1280px,100%);display:flex;align-items:baseline;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:clamp(18px,4vmin,44px)}
+.masthead .brand{font-size:clamp(18px,2.4vmin,26px);letter-spacing:.42em;color:var(--gold-hi);font-weight:600}
+.masthead .brand i{font-style:normal;color:var(--txt-dim);font-size:.55em;letter-spacing:.5em;margin-left:.9em}
+.masthead .ref{font-size:11px;letter-spacing:.28em;color:var(--txt-dim)}
+.masthead .ref b{color:var(--gold);font-weight:500}
+
+/* ============ 主舞台 ============ */
+.stage{width:min(1280px,100%);display:grid;grid-template-columns:minmax(0,1.25fr) minmax(300px,.9fr);gap:clamp(20px,4vmin,56px);align-items:start}
+@media (max-width:960px){.stage{grid-template-columns:1fr}}
+
+/* ---------- 腕表 ---------- */
+.watchwrap{display:flex;flex-direction:column;align-items:center;gap:8px}
+.watch{
+  --size:min(92vw, 72vh, 640px);
+  width:var(--size);height:var(--size);
+  position:relative;filter:drop-shadow(0 34px 46px rgba(0,0,0,.55));
+}
+/* 表耳 */
+.lug{position:absolute;width:8.5%;height:13%;background:linear-gradient(180deg,var(--steel-1),var(--steel-2) 45%,var(--steel-3));border-radius:30% 30% 46% 46%;z-index:1}
+.lug.tl{top:.6%;left:19%;transform:rotate(-36deg)}
+.lug.tr{top:.6%;right:19%;transform:rotate(36deg)}
+.lug.bl{bottom:.6%;left:19%;transform:rotate(36deg) scaleX(-1)}
+.lug.br{bottom:.6%;right:19%;transform:rotate(-36deg) scaleX(-1)}
+/* 表壳圈 */
+.case{
+  position:absolute;inset:3.2%;border-radius:50%;z-index:2;
+  background:
+    conic-gradient(from 20deg,
+      #cfd3d6 0deg, #7d848a 40deg, #eef1f3 80deg, #83898f 120deg,
+      #d9dcdf 170deg, #6f767c 210deg, #e6e9ec 260deg, #7c8288 310deg, #cfd3d6 360deg);
+  box-shadow:
+    inset 0 0 0 2px rgba(255,255,255,.16),
+    inset 0 0 14px rgba(0,0,0,.55),
+    0 0 0 1px rgba(0,0,0,.55);
+}
+/* 表圈倒角 */
+.bezel{
+  position:absolute;inset:2.4%;border-radius:50%;z-index:3;
+  background:conic-gradient(from 200deg,#3f4448,#14181b 60deg,#454a4f 130deg,#101417 200deg,#41464b 280deg,#14181b 360deg);
+  box-shadow:inset 0 0 10px rgba(0,0,0,.8), 0 1px 0 rgba(255,255,255,.1);
+}
+/* 表盘 */
+.dial{
+  position:absolute;inset:6.8%;border-radius:50%;z-index:4;overflow:hidden;
+  background:
+    radial-gradient(115% 115% at 32% 18%, rgba(255,255,255,.14), transparent 46%),
+    repeating-conic-gradient(from 0deg, rgba(255,255,255,.045) 0deg .5deg, transparent .5deg 3deg),
+    radial-gradient(90% 90% at 50% 42%, var(--dial-1) 0%, var(--dial-2) 55%, var(--dial-3) 100%);
+  box-shadow:inset 0 0 24px rgba(0,0,0,.72), inset 0 2px 3px rgba(255,255,255,.07);
+}
+/* 玻璃反光：缓慢扫过（reduced-motion 时静止） */
+.glass{
+  position:absolute;inset:0;border-radius:50%;z-index:30;pointer-events:none;overflow:hidden;
+  mix-blend-mode:screen;
+}
+.glass::before{
+  content:"";position:absolute;inset:-30%;
+  background:linear-gradient(118deg, transparent 36%, rgba(255,255,255,.09) 46%, rgba(255,255,255,.16) 50%, rgba(255,255,255,.09) 54%, transparent 64%);
+  animation:sheen 11s ease-in-out infinite alternate;
+}
+@keyframes sheen{from{transform:translateX(-9%) rotate(0.001deg)}to{transform:translateX(9%)}}
+/* 分钟轨道 */
+.track{position:absolute;inset:5.5%;border-radius:50%;
+  background:repeating-conic-gradient(from -0.22deg, rgba(233,229,213,.85) 0deg .44deg, transparent .44deg 6deg);
+  -webkit-mask:radial-gradient(closest-side, transparent 95.2%, #000 95.6%, #000 99%, transparent 99.4%);
+          mask:radial-gradient(closest-side, transparent 95.2%, #000 95.6%, #000 99%, transparent 99.4%);
+}
+/* 时标：以自身高度（=半径）为基准定位在外圈 */
+.index{position:absolute;left:50%;top:50%;width:2.6%;height:50%;transform-origin:50% 0}
+.index i{
+  position:absolute;top:76%;left:0;width:100%;height:12.5%;display:block;
+  background:linear-gradient(180deg,var(--gold-hi),var(--gold) 45%,var(--gold-dk));
+  border-radius:2px;
+  box-shadow:0 1px 2px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.55);
+}
+.index.cardinal i{height:16%;width:130%;left:-15%}
+/* 品牌 / 型号铭牌 */
+.marks{position:absolute;inset:0;z-index:6;pointer-events:none}
+.marks .brand{
+  position:absolute;left:50%;top:23.5%;transform:translateX(-50%);text-align:center;color:#e9e2cd;
+  font-size:calc(var(--size)*.029);letter-spacing:.34em;font-weight:600;text-indent:.34em;white-space:nowrap;
+}
+.marks .brand small{display:block;margin-top:.55em;font-size:.52em;letter-spacing:.4em;color:#b9c4b4;font-weight:400}
+.marks .models{
+  position:absolute;left:50%;bottom:29%;transform:translateX(-50%);
+  font-size:calc(var(--size)*.016);letter-spacing:.22em;color:#93a493;white-space:nowrap;text-indent:.22em;
+}
+/* ---------- 日期窗 ---------- */
+.datewin{
+  position:absolute;left:70.5%;top:46.5%;transform:translate(-50%,-50%);z-index:7;
+  min-width:8.6%;padding:.8% 1.1%;text-align:center;
+  background:linear-gradient(180deg,#f4f1e6,#ddd8c6);
+  border-radius:14%;color:#191b18;
+  font-family:Georgia,"Times New Roman",serif;font-weight:700;
+  font-size:calc(var(--size)*.03);line-height:1.12;
+  box-shadow:inset 0 1px 2px rgba(255,255,255,.9), inset 0 -1px 2px rgba(0,0,0,.25), 0 0 0 1.2px var(--gold-dk), 0 1px 4px rgba(0,0,0,.5);
+}
+.datewin b{display:block;font-weight:700;letter-spacing:.02em}
+
+/* ---------- 24小时昼夜环 ---------- */
+.dayring{position:absolute;inset:9.5%;z-index:5;pointer-events:none}
+.dayring .dn-label{
+  position:absolute;left:50%;top:-3%;transform:translateX(-50%);
+  font-size:calc(var(--size)*.016);letter-spacing:.26em;color:#8fa38f;text-indent:.26em;
+}
+
+/* ---------- 子表盘通用 ---------- */
+.sub{position:absolute;border-radius:50%;z-index:7;
+  background:
+    radial-gradient(90% 90% at 40% 28%, rgba(255,255,255,.12), transparent 50%),
+    repeating-conic-gradient(from 0deg, rgba(255,255,255,.05) 0deg 1deg, transparent 1deg 4deg),
+    radial-gradient(circle at 50% 45%, #0d2b21 0%, #08211a 62%, #051812 100%);
+  box-shadow:
+    inset 0 2px 6px rgba(0,0,0,.75),
+    inset 0 -1px 2px rgba(255,255,255,.06),
+    0 0 0 1.4px rgba(212,176,106,.5),
+    0 2px 5px rgba(0,0,0,.45);
+}
+.sub.moon{width:20%;aspect-ratio:1;left:50%;bottom:7%;transform:translateX(-50%)}
+.sub.chrono{width:20%;aspect-ratio:1;left:8%;top:50%;transform:translateY(-50%)}
+.sub .cap{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:9%;aspect-ratio:1;border-radius:50%;background:radial-gradient(circle at 35% 30%,var(--gold-hi),var(--gold-dk));box-shadow:0 1px 2px rgba(0,0,0,.7)}
+.sub .s-label{position:absolute;left:50%;bottom:-15%;transform:translateX(-50%);font-size:calc(var(--size)*.0125);letter-spacing:.18em;color:#93a893;white-space:nowrap;text-indent:.18em}
+
+/* ---------- 指针 ---------- */
+.hand{position:absolute;left:50%;bottom:50%;transform-origin:50% 100%;z-index:20;will-change:transform}
+.hand .blade{position:absolute;left:50%;transform:translateX(-50%)}
+.hand.hour{width:4.6%;height:31%}
+.hand.hour .blade{
+  bottom:0;width:100%;height:100%;
+  background:linear-gradient(90deg,#f2e2b6,var(--gold) 55%,#7c6438);
+  clip-path:polygon(50% 0, 92% 22%, 74% 100%, 26% 100%, 8% 22%);
+  box-shadow:0 2px 5px rgba(0,0,0,.55);
+}
+.hand.min{width:3.4%;height:45%;z-index:21}
+.hand.min .blade{
+  bottom:0;width:100%;height:100%;
+  background:linear-gradient(90deg,#f2e2b6,var(--gold) 55%,#7c6438);
+  clip-path:polygon(50% 0, 94% 18%, 70% 100%, 30% 100%, 6% 18%);
+  box-shadow:0 2px 5px rgba(0,0,0,.55);
+}
+.hand.sec{width:1.5%;height:52%;z-index:22}
+.hand.sec .blade{
+  bottom:0;width:100%;height:112%;
+  background:linear-gradient(180deg,#9fd8ff 0%, #4d8fd0 18%, #274a77 60%, #1a2f4d 100%);
+}
+.hand.sec .blade::before{ /* 计数针尖（小巧柳叶） */
+  content:"";position:absolute;top:0;left:50%;transform:translateX(-50%);
+  width:240%;aspect-ratio:1/2.2;border-radius:50% 50% 42% 42%;
+  background:linear-gradient(180deg,#a8ddff,#3f7cba 70%,#2a4a70);
+}
+.hand.sec .blade::after{ /* 配重（细长杆锤，不再是大圆球） */
+  content:"";position:absolute;bottom:7%;left:50%;transform:translateX(-50%);
+  width:240%;height:13%;border-radius:40%;
+  background:linear-gradient(90deg,#2a4a70,#6f9fd0 50%,#1c3350);
+}
+.hand .capmain{
+  position:absolute;left:50%;top:0;transform:translate(-50%,-50%);
+  width:5.2%;aspect-ratio:1;border-radius:50%;z-index:23;
+  background:radial-gradient(circle at 34% 30%, #f6e7c0, var(--gold) 55%, #6d5626);
+  box-shadow:0 2px 5px rgba(0,0,0,.7), inset 0 1px 1px rgba(255,255,255,.6);
+}
+
+/* ---------- 表冠与计时按钮（真实可点） ---------- */
+.crown,.pusher{
+  position:absolute;z-index:5;border:none;cursor:pointer;
+  -webkit-tap-highlight-color:transparent;
+}
+.crown{
+  right:-1.2%;top:50%;transform:translateY(-50%);
+  width:4.2%;height:6.6%;
+  background:
+    repeating-linear-gradient(90deg, rgba(0,0,0,.28) 0 2px, transparent 2px 5px),
+    linear-gradient(180deg,#d9dcdf,#8d949a 55%,#5a6065);
+  border-radius:26% 44% 44% 26%;
+  box-shadow:0 2px 6px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.5);
+}
+.crown:hover{filter:brightness(1.12)}
+.pusher{
+  width:3.6%;height:6.2%;
+  background:linear-gradient(180deg,#d4d8db,#878e94 55%,#54595e);
+  border-radius:18% 40% 40% 18%;
+  box-shadow:0 2px 5px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.45);
+  transition:transform .08s ease;
+}
+.pusher.a{right:-.8%;top:19.5%;transform:rotate(-30deg)}
+.pusher.b{right:-.8%;bottom:19.5%;transform:rotate(30deg)}
+.pusher.a:active{transform:rotate(-30deg) translateX(-12%)}
+.pusher.b:active{transform:rotate(30deg) translateX(-12%)}
+.pusher:focus-visible,.crown:focus-visible{outline:2px solid var(--gold-hi);outline-offset:3px}
+.pusher[aria-disabled="true"]{filter:saturate(.4) brightness(.72);cursor:default}
+
+/* ---------- 地面倒影 ---------- */
+.reflection{
+  width:var(--size);height:calc(var(--size)*.22);margin-top:-2%;
+  border-radius:50%;
+  background:radial-gradient(50% 50% at 50% 0%, rgba(212,176,106,.10), transparent 70%);
+  filter:blur(6px);pointer-events:none;
+}
+
+/* ---------- 副盘信息面板 ---------- */
+.panel{display:flex;flex-direction:column;gap:clamp(12px,2vmin,20px);min-width:0}
+.card{
+  background:linear-gradient(160deg, rgba(255,255,255,.045), rgba(255,255,255,.015));
+  border:1px solid rgba(255,255,255,.09);
+  border-radius:14px;padding:clamp(14px,2.2vmin,22px) clamp(16px,2.4vmin,24px);
+  backdrop-filter:blur(8px);
+  box-shadow:0 14px 34px rgba(0,0,0,.35);
+}
+.card h2{
+  font-size:11px;letter-spacing:.34em;color:var(--gold);font-weight:600;margin-bottom:12px;
+  display:flex;align-items:center;gap:10px;
+}
+.card h2::after{content:"";flex:1;height:1px;background:linear-gradient(90deg,rgba(212,176,106,.45),transparent)}
+.card h2 small{font-weight:400;letter-spacing:.2em;color:var(--txt-dim);font-size:9px}
+
+/* 月相卡 */
+.moonrow{display:flex;gap:18px;align-items:center}
+.moonfig{flex:0 0 96px;height:96px;border-radius:50%;position:relative;overflow:hidden;
+  background:radial-gradient(circle at 38% 32%, #1d3a5e, #0d1c33 62%, #060d1c);
+  box-shadow:inset 0 0 18px rgba(0,0,0,.8), 0 0 0 1px rgba(212,176,106,.35), 0 0 22px rgba(30,60,110,.35)}
+.moonfig .stars{position:absolute;inset:0}
+.moonfig .stars i{position:absolute;width:2px;height:2px;border-radius:50%;background:#cfe3ff;opacity:.8}
+.moonfig svg{position:absolute;inset:0;width:100%;height:100%}
+.moonmeta{min-width:0}
+.moonmeta .phase-name{font-size:20px;color:#efe6cf;font-weight:600;letter-spacing:.08em}
+.moonmeta .nums{margin-top:8px;display:grid;grid-template-columns:1fr 1fr;gap:6px 14px;font-size:12px;color:var(--txt-dim)}
+.moonmeta .nums b{color:var(--txt);font-weight:600;font-variant-numeric:tabular-nums}
+.moonmeta .nums b em{font-style:normal;color:var(--gold);font-size:.9em;margin-left:2px}
+
+/* 日出日落卡 */
+.citytabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.citytabs button{
+  appearance:none;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.03);
+  color:var(--txt);font:inherit;font-size:12px;letter-spacing:.12em;
+  padding:7px 14px;border-radius:999px;cursor:pointer;transition:.18s;
+}
+.citytabs button:hover{border-color:rgba(212,176,106,.6);color:#fff}
+.citytabs button[aria-checked="true"]{
+  background:linear-gradient(180deg,rgba(212,176,106,.28),rgba(212,176,106,.12));
+  border-color:var(--gold);color:var(--gold-hi);
+  box-shadow:0 0 14px rgba(212,176,106,.18);
+}
+.citytabs button:focus-visible{outline:2px solid var(--gold-hi);outline-offset:2px}
+.sungrid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.sungrid .cell{background:rgba(0,0,0,.25);border:1px solid rgba(255,255,255,.07);border-radius:10px;padding:10px 12px}
+.sungrid .cell span{display:block;font-size:10px;letter-spacing:.22em;color:var(--txt-dim);margin-bottom:5px}
+.sungrid .cell b{font-size:clamp(15px,1.9vmin,19px);font-weight:600;color:#efe6cf;font-variant-numeric:tabular-nums}
+.sungrid .cell b em{font-style:normal;font-size:.6em;color:var(--txt-dim);margin-left:2px}
+.sunnote{margin-top:10px;font-size:11px;color:var(--txt-dim);letter-spacing:.04em;line-height:1.7}
+.sunnote b{color:#9ec6a8;font-weight:500}
+
+/* 计时卡 */
+.chrono-read{
+  font-family:"SF Mono",Consolas,"Courier New",monospace;
+  font-size:clamp(26px,3.6vmin,38px);color:#f3ecd8;letter-spacing:.04em;
+  font-variant-numeric:tabular-nums;
+  display:flex;align-items:baseline;gap:10px;
+}
+.chrono-read .cs{font-size:.5em;color:var(--gold)}
+.chrono-read .state{font-size:11px;letter-spacing:.3em;color:var(--txt-dim);font-family:inherit;margin-left:auto}
+.chrono-read .state.run{color:#8fe3b0}
+.chrono-read .state.pause{color:#e6b45c}
+.laps{margin-top:12px;max-height:172px;overflow:auto;scrollbar-width:thin}
+.laps-empty{font-size:11px;color:var(--txt-dim);letter-spacing:.1em;padding:10px 2px}
+.laps table{width:100%;border-collapse:collapse;font-size:12px;font-variant-numeric:tabular-nums}
+.laps th{position:sticky;top:0;background:#121513;color:var(--txt-dim);font-weight:400;letter-spacing:.16em;text-align:right;padding:5px 8px;border-bottom:1px solid rgba(255,255,255,.08);font-size:10px}
+.laps th:first-child{text-align:left}
+.laps td{padding:5px 8px;text-align:right;border-bottom:1px solid rgba(255,255,255,.05);color:var(--txt)}
+.laps td:first-child{text-align:left;color:var(--txt-dim)}
+.laps tr.fast td{color:#8fe3b0}
+.laps tr.slow td{color:#e08b76}
+
+/* 说明卡 */
+.specs{font-size:12px;line-height:2.05;color:var(--txt-dim);letter-spacing:.03em}
+.specs li{list-style:none;display:flex;gap:10px;align-items:baseline}
+.specs li::before{content:"◆";font-size:7px;color:var(--gold);transform:translateY(-1px)}
+.specs b{color:var(--txt);font-weight:500}
+
+/* 页脚 */
+.foot{margin-top:clamp(20px,4vmin,40px);font-size:11px;color:#5d635d;letter-spacing:.22em;text-align:center;line-height:2}
+
+/* ---------- reduced motion：跳秒 + 静止装饰 ---------- */
+@media (prefers-reduced-motion: reduce){
+  .glass::before{animation:none}
+  *{scroll-behavior:auto}
+}
+.visually-hidden{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+@media (max-width:960px){
+  .watch{--size:min(92vw, 58vh, 560px)}
+}
+</style>
+</head>
+<body>
+
+<header class="masthead">
+  <div class="brand">CELESTIA<i>天穹制表</i></div>
+  <div class="ref">REF. <b>AST-1969</b> · ASTRONOMER 天文大师 · 天文台认证机芯 · 限量 1969 枚</div>
+</header>
+
+<main class="stage">
+
+  <!-- ============ 腕表 ============ -->
+  <section class="watchwrap" aria-label="天文腕表主表盘">
+    <div class="watch" id="watch" role="img" aria-label="腕表">
+      <div class="lug tl"></div><div class="lug tr"></div><div class="lug bl"></div><div class="lug br"></div>
+      <button class="pusher a" id="pusherA" aria-label="计时：启动、停止或继续" title="启动 / 停止 / 继续"></button>
+      <button class="pusher b" id="pusherB" aria-label="计时：计圈，暂停时归零" title="计圈 / 归零"></button>
+      <button class="crown" id="crown" aria-label="表冠（装饰）" title="表冠"></button>
+
+      <div class="case"></div>
+      <div class="bezel"></div>
+      <div class="dial">
+        <div class="track"></div>
+        <div id="indices"></div>
+
+        <!-- 24h 昼夜环 -->
+        <svg class="dayring" viewBox="-100 -100 200 200" aria-hidden="true">
+          <circle r="96" fill="none" stroke="rgba(255,255,255,.06)" stroke-width="3.4"></circle>
+          <g transform="rotate(-90)">
+            <path id="dayArc" fill="none" stroke="url(#dnGrad)" stroke-width="4.4" stroke-linecap="round" pathLength="360"></path>
+            <circle id="sunDot" r="2.6" fill="#f2d488"></circle>
+            <circle id="moonDot" r="2" fill="#9fb6d8"></circle>
+          </g>
+          <defs>
+            <linearGradient id="dnGrad" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0" stop-color="#e8c877"/><stop offset="1" stop-color="#b07f3e"/>
+            </linearGradient>
+          </defs>
+        </svg>
+
+        <!-- 计时子盘（9点） -->
+        <div class="sub chrono" role="img" aria-label="计时码表分针小盘">
+          <svg viewBox="-100 -100 200 200" style="position:absolute;inset:0;width:100%;height:100%">
+            <g id="chronTicks"></g>
+            <line id="chMinHand" x1="0" y1="14" x2="0" y2="-72" stroke="#e9e2cd" stroke-width="5" stroke-linecap="round" transform="rotate(0)"/>
+            <line id="chHrHand" x1="0" y1="10" x2="0" y2="-46" stroke="#c8a869" stroke-width="4" stroke-linecap="round" transform="rotate(0)"/>
+          </svg>
+          <span class="cap"></span>
+          <span class="s-label">计时分</span>
+        </div>
+
+        <!-- 月相子盘（6点） -->
+        <div class="sub moon" role="img" aria-label="月相小表盘">
+          <svg viewBox="-100 -100 200 200" style="position:absolute;inset:0;width:100%;height:100%">
+            <defs>
+              <radialGradient id="moonFace" cx="38%" cy="34%" r="80%">
+                <stop offset="0" stop-color="#fdf6e0"/><stop offset=".7" stop-color="#e8d9a8"/><stop offset="1" stop-color="#b39a5e"/>
+              </radialGradient>
+              <clipPath id="moonClip"><circle cx="0" cy="0" r="62"/></clipPath>
+            </defs>
+            <g clip-path="url(#moonClip)">
+              <rect x="-100" y="-100" width="200" height="200" fill="#081322"></rect>
+              <g id="moonStars" fill="#cfe3ff"></g>
+              <path id="moonLit" fill="url(#moonFace)" d=""></path>
+              <circle cx="0" cy="0" r="60" fill="none" stroke="rgba(0,0,0,.4)" stroke-width="1.5"></circle>
+            </g>
+            <circle r="62" fill="none" stroke="rgba(212,176,106,.85)" stroke-width="2.6"></circle>
+            <circle r="56" fill="none" stroke="rgba(212,176,106,.28)" stroke-width="1"></circle>
+          </svg>
+          <span class="cap"></span>
+          <span class="s-label">月相</span>
+        </div>
+
+        <!-- 日期窗 -->
+        <div class="datewin" aria-label="日期窗"><b id="dateNum">--</b></div>
+
+        <!-- 指针 -->
+        <div class="hand hour" id="hHour"><i class="blade"></i></div>
+        <div class="hand min" id="hMin"><i class="blade"></i></div>
+        <div class="hand sec" id="hSec"><i class="blade"></i></div>
+        <div class="hand" style="height:0"><span class="capmain"></span></div>
+
+        <div class="marks">
+          <div class="brand">CELESTIA<small>天穹 · 自动天文机芯</small></div>
+          <div class="models">ASTRONOMER · 天文大师</div>
+        </div>
+      </div>
+      <div class="glass"></div>
+    </div>
+    <div class="reflection" aria-hidden="true"></div>
+    <p class="visually-hidden" id="clockAnnounce" aria-live="polite"></p>
+  </section>
+
+  <!-- ============ 副盘 ============ -->
+  <aside class="panel">
+
+    <section class="card" aria-label="月相详情">
+      <h2>月相 PHASE <small>新月历元法 · 误差 &lt; 1 天</small></h2>
+      <div class="moonrow">
+        <div class="moonfig" role="img" aria-label="月相示意">
+          <div class="stars"><i style="top:18%;left:22%"></i><i style="top:30%;left:78%"></i><i style="top:70%;left:16%"></i><i style="top:78%;left:70%"></i><i style="top:52%;left:88%"></i></div>
+          <svg viewBox="-50 -50 100 100"><path id="panelMoon" fill="#efe3bd"></path></svg>
+        </div>
+        <div class="moonmeta">
+          <div class="phase-name" id="phaseName">—</div>
+          <div class="nums">
+            <span>月龄 <b id="moonAge">—<em>天</em></b></span>
+            <span>照亮 <b id="moonLitPct">—<em>%</em></b></span>
+            <span>农历参照 <b id="lunarDay">—</b></span>
+            <span>朔望月 <b>29.53<em>天</em></b></span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card" aria-label="日出日落">
+      <h2>日出日落 SUNRISE <small>NOAA 算法 · 现场计算</small></h2>
+      <div class="citytabs" role="radiogroup" aria-label="切换城市" id="cityTabs"></div>
+      <div class="sungrid">
+        <div class="cell"><span>日出</span><b id="sunRise">—</b></div>
+        <div class="cell"><span>日落</span><b id="sunSet">—</b></div>
+        <div class="cell"><span>昼长</span><b id="dayLen">—</b></div>
+      </div>
+      <p class="sunnote" id="sunNote"></p>
+    </section>
+
+    <section class="card" aria-label="计时码表">
+      <h2>计时 CHRONOGRAPH <small>任意顺序按键均安全</small></h2>
+      <div class="chrono-read">
+        <span id="chMain">00:00:00</span><span class="cs" id="chCentis">.00</span>
+        <span class="state" id="chState">待机</span>
+      </div>
+      <div class="laps" id="lapsBox"><p class="laps-empty" id="lapsEmpty">尚无计圈记录 —— 转动 2 点位按钮开始计时</p><table hidden><thead><tr><th>圈</th><th>单圈</th><th>累计</th></tr></thead><tbody id="lapsBody"></tbody></table></div>
+    </section>
+
+    <section class="card" aria-label="机芯说明">
+      <h2>机芯说明 MOVEMENT</h2>
+      <ul class="specs">
+        <li><b>零漂移走时</b>：指针角度每帧由系统时钟重新求得，而非累加步进，长期运行分毫不差，切回标签页即刻校准。</li>
+        <li><b>平滑扫秒</b>：requestAnimationFrame 驱动 8 拍/秒以上的视觉连续；开启系统"减少动态"后自动改为跳秒。</li>
+        <li><b>月相</b>：以 2000-01-06 18:14 UTC 新月为历元，按朔望月 29.530588853 天推算。</li>
+        <li><b>日出日落</b>：太阳赤纬 + 时角 + 均时差现场求解，按下表城市标准时（不含夏令时）显示。</li>
+      </ul>
+    </section>
+
+  </aside>
+</main>
+
+<footer class="foot">
+  天穹制表 · ASTRONOMER —— 表冠与按钮可点击 · 2 点位 启动/停止/继续 · 4 点位 计圈/归零
+</footer>
+
+<script>
+"use strict";
+/* ==================================================================
+   天穹 · Astronomer —— 原生实现，无任何库
+   核心原则：所有指针角度是“关于 Date 的函数”，每帧重算。
+   因此：无累积误差；标签页休眠回来后第一帧即为正确时间。
+   ================================================================== */
+const RM = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const $ = id => document.getElementById(id);
+
+/* ---------- 静态刻度 ---------- */
+(function buildDial(){
+  const holder = $("indices");
+  for(let i=0;i<12;i++){
+    const d=document.createElement("div");
+    d.className="index"+(i%3===0?" cardinal":"");
+    d.style.transform=`translateX(-50%) rotate(${i*30}deg)`;
+    d.innerHTML="<i></i>";
+    holder.appendChild(d);
+  }
+  const ct=$("chronTicks");let s="";
+  for(let i=0;i<60;i++){
+    const big=i%5===0;
+    s+=`<line x1="0" y1="${big?-88:-93}" x2="0" y2="${big?-76:-86}" stroke="${big?'#d9d2ba':'#7d8a7d'}" stroke-width="${big?4:2}" transform="rotate(${i*6})"/>`;
+  }
+  ct.innerHTML=s;
+  const ms=$("moonStars");let t="";
+  for(let i=0;i<14;i++){
+    const a=Math.random()*Math.PI*2, rr=46+Math.random()*12;
+    t+=`<circle cx="${(Math.cos(a)*rr).toFixed(1)}" cy="${(Math.sin(a)*rr).toFixed(1)}" r="${(0.7+Math.random()*0.9).toFixed(2)}" opacity="${(0.4+Math.random()*0.6).toFixed(2)}"/>`;
+  }
+  ms.innerHTML=t;
+})();
+
+/* ---------- 月相：新月历元法 ---------- */
+const SYNODIC=29.530588853;                       // 朔望月（天）
+const NEW_MOON_EPOCH=Date.UTC(2000,0,6,18,14,0);  // 2000-01-06 18:14 UTC 新月
+function moonPhase(date){
+  const days=(date.getTime()-NEW_MOON_EPOCH)/86400000;
+  const p=(days/SYNODIC)%1; return p<0?p+1:p;     // 0 新月 → .5 满月 → 1
+}
+/* 亮面 path：外圆弧 + 朦胧界（椭圆）双弧拼合，phase 连续无跳变 */
+function moonPath(p,r){
+  if(p<1e-4||p>1-1e-4)return "";
+  if(Math.abs(p-.5)<1e-4)return `M0,${-r} A${r},${r} 0 1 1 0,${r} A${r},${r} 0 1 1 0,${-r}Z`;
+  const rx=(Math.abs(Math.cos(2*Math.PI*p))*r).toFixed(2), R=r.toFixed(2);
+  if(p<.25) return `M0,${-R} A${R},${R} 0 0 1 0,${R} A${rx},${R} 0 0 0 0,${-R}Z`;   // 娥眉月（盈）
+  if(p<.5)  return `M0,${-R} A${R},${R} 0 0 1 0,${R} A${rx},${R} 0 0 1 0,${-R}Z`;   // 盈凸
+  if(p<.75) return `M0,${-R} A${R},${R} 0 0 0 0,${R} A${rx},${R} 0 0 0 0,${-R}Z`;   // 亏凸
+  return           `M0,${-R} A${R},${R} 0 0 0 0,${R} A${rx},${R} 0 0 1 0,${-R}Z`;   // 残月（亏）
+}
+const PHASE_NAMES=["新月","娥眉月","上弦月","盈凸月","满月","亏凸月","下弦月","残月"];
+const PHASE_NAMES_SUB=["朔","娥眉","上弦","盈凸","望","亏凸","下弦","残月"];
+function phaseName(p){return PHASE_NAMES[Math.floor(p*8+.5)%8]}
+function updateMoon(now){
+  const p=moonPhase(now);
+  const lit=Math.round((1-Math.cos(2*Math.PI*p))*50);
+  const age=(p*SYNODIC);
+  const d=moonPath(p,60);
+  $("moonLit").setAttribute("d",d||"");
+  $("panelMoon").setAttribute("d",moonPath(p,44)||"");
+  $("phaseName").textContent=phaseName(p);
+  $("moonAge").innerHTML=age.toFixed(1)+"<em>天</em>";
+  $("moonLitPct").innerHTML=lit+"<em>%</em>";
+  $("lunarDay").textContent=Math.floor(age)+1+" 日";
+  document.querySelector(".sub.moon").setAttribute("aria-label",`月相：${phaseName(p)}，月龄 ${age.toFixed(1)} 天，照亮 ${lit}%`);
+  return p;
+}
+
+/* ---------- 日出日落：NOAA 简化算法 ---------- */
+const CITIES=[
+  {name:"北京",lat:39.9042,lon:116.4074,tz:8},
+  {name:"东京",lat:35.6762,lon:139.6503,tz:9},
+  {name:"伦敦",lat:51.5074,lon:-0.1278,tz:0},
+  {name:"纽约",lat:40.7128,lon:-74.0060,tz:-5},
+];
+const DEG=Math.PI/180;
+/* 返回 {rise,set,noon}：当地钟面时刻（分钟数，可为负/超24表示未升未落） */
+function sunTimes(y,m,d,lat,lon,tz){
+  const rad=DEG;
+  const days=(Date.UTC(y,m-1,d,12)-Date.UTC(2000,0,1,12))/86400000; // 自 2000-01-01 正午起
+  const Jstar=days-lon/360;
+  const M=(357.5291+0.98560028*Jstar)%360;
+  const C=1.9148*Math.sin(M*rad)+0.02*Math.sin(2*M*rad)+0.0003*Math.sin(3*M*rad);
+  const L=(M+C+180+102.9372)%360;
+  const Jtransit=Jstar+0.0053*Math.sin(M*rad)-0.0069*Math.sin(2*L*rad);
+  const delta=Math.asin(Math.sin(L*rad)*Math.sin(23.4397*rad));
+  /* 时角余弦：太阳中心在地平线下 0.833°（含折射与视半径） */
+  const cosW=(Math.sin(-0.833*rad)-Math.sin(lat*rad)*Math.sin(delta))/(Math.cos(lat*rad)*Math.cos(delta));
+  if(cosW>1) return {polar:"night"};
+  if(cosW<-1) return {polar:"day"};
+  const W=Math.acos(cosW)/rad;
+  const toLocal=j=>{
+    const ms=Date.UTC(2000,0,1,12)+(j - ( -tz/24))*86400000; // 回 UTC，再平移到当地钟面
+    const dt=new Date(ms);
+    return dt.getUTCHours()*60+dt.getUTCMinutes()+dt.getUTCSeconds()/60;
+  };
+  return {rise:toLocal(Jtransit-W/360),set:toLocal(Jtransit+W/360),noon:toLocal(Jtransit)};
+}
+let cityIdx=0;
+let cityKeysBound=false;
+function buildCityTabs(){
+  const box=$("cityTabs");
+  box.innerHTML="";                                 /* 重建前清空，防止按钮无限增殖 */
+  CITIES.forEach((c,i)=>{
+    const b=document.createElement("button");
+    b.type="button";b.textContent=c.name;b.setAttribute("role","radio");
+    b.setAttribute("aria-checked",i===cityIdx?"true":"false");
+    b.addEventListener("click",()=>{cityIdx=i;buildCityTabs();renderSun();});
+    box.appendChild(b);
+  });
+  if(!cityKeysBound){                               /* 方向键只绑一次 */
+    cityKeysBound=true;
+    box.addEventListener("keydown",e=>{
+      if(e.key!=="ArrowLeft"&&e.key!=="ArrowRight"&&e.key!=="ArrowUp"&&e.key!=="ArrowDown")return;
+      e.preventDefault();
+      const dir=(e.key==="ArrowRight"||e.key==="ArrowDown")?1:-1;
+      cityIdx=(cityIdx+dir+CITIES.length)%CITIES.length;
+      buildCityTabs();renderSun();
+      box.children[cityIdx].focus();
+    });
+  }
+}
+function fmtMin(min){
+  if(min==null||isNaN(min))return "—";
+  min=((min%1440)+1440)%1440;
+  const h=Math.floor(min/60),m=Math.floor(min%60);
+  return `${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}`;
+}
+function renderSun(){
+  const c=CITIES[cityIdx],now=new Date();
+  const t=sunTimes(now.getFullYear(),now.getMonth()+1,now.getDate(),c.lat,c.lon,c.tz);
+  $("sunRise").textContent=t.polar==="day"?"极昼":t.polar==="night"?"极夜":fmtMin(t.rise);
+  $("sunSet").textContent=t.polar==="day"?"—":t.polar==="night"?"—":fmtMin(t.set);
+  if(t.polar){$("dayLen").textContent=t.polar==="day"?"24:00":"0:00";}
+  else{
+    const len=t.set-t.rise;
+    $("dayLen").innerHTML=`${Math.floor(len/60)}<em>时</em>${Math.round(len%60)}<em>分</em>`;
+  }
+  // 24h 环昼弧：以当地钟面 0 点为 0°（顶部），顺时针
+  const arc=$("dayArc");
+  if(t.polar){
+    arc.setAttribute("d","");
+    $("sunNote").innerHTML=`<b>${c.name}</b>（北纬 ${c.lat.toFixed(1)}°）今日为<b>${t.polar==="day"?"极昼":"极夜"}</b>。时区按标准时 UTC${c.tz>=0?"+":""}${c.tz} 显示，不含夏令时。`;
+  }else{
+    const a0=t.rise/1440*360, a1=t.set/1440*360, span=a1-a0;
+    const large=span>180?1:0;
+    arc.setAttribute("d",describeArc(a0,span,large,96));
+    $("sunNote").innerHTML=`<b>${c.name}</b>（北纬 ${c.lat.toFixed(1)}°，${c.lon>=0?'东经':'西经'} ${Math.abs(c.lon).toFixed(1)}°）· 太阳正午 <b style="color:#efe6cf">${fmtMin(t.noon)}</b> · 按标准时 UTC${c.tz>=0?"+":""}${c.tz}。金色弧段为白昼，表盘 24 小时环上的光点即太阳方位。`;
+  }
+}
+function describeArc(startDeg,spanDeg,largeFlag,r){
+  const a=startDeg*DEG,b=(startDeg+spanDeg)*DEG;
+  const x0=(Math.cos(a)*r).toFixed(2),y0=(Math.sin(a)*r).toFixed(2);
+  const x1=(Math.cos(b)*r).toFixed(2),y1=(Math.sin(b)*r).toFixed(2);
+  return `M${x0},${y0} A${r},${r} 0 ${largeFlag} 1 ${x1},${y1}`;
+}
+
+/* ---------- 计时码表（状态机） ---------- */
+const CH={IDLE:0,RUN:1,PAUSE:2};
+let chState=CH.IDLE, chBase=0, chStart=0, laps=[];
+function chElapsed(){return chState===CH.RUN?chBase+(performance.now()-chStart):chBase}
+function setPushers(){
+  const A=$("pusherA"),B=$("pusherB");
+  A.setAttribute("aria-label",chState===CH.RUN?"停止计时":chState===CH.PAUSE?"继续计时":"启动计时");
+  B.setAttribute("aria-disabled",chState===CH.IDLE?"true":"false");
+  const st=$("chState");
+  st.textContent=chState===CH.RUN?"运行中":chState===CH.PAUSE?"已暂停":"待机";
+  st.className="state"+(chState===CH.RUN?" run":chState===CH.PAUSE?" pause":"");
+}
+$("pusherA").addEventListener("click",()=>{      // 启动 / 停止 / 继续
+  if(chState===CH.IDLE){chStart=performance.now();chState=CH.RUN}
+  else if(chState===CH.RUN){chBase=chBase+(performance.now()-chStart);chState=CH.PAUSE}
+  else{chStart=performance.now();chState=CH.RUN}
+  setPushers();
+});
+$("pusherB").addEventListener("click",()=>{      // 计圈 / 归零
+  if(chState===CH.IDLE)return;
+  if(chState===CH.RUN){
+    const total=chElapsed(),prev=laps.length?laps[laps.length-1].total:0;
+    laps.push({total,single:total-prev});
+    renderLaps();
+  }else{ // PAUSE → 归零
+    chBase=0;chState=CH.IDLE;laps=[];renderLaps();
+  }
+  setPushers();
+});
+function renderLaps(){
+  const tb=$("lapsBody"), empty=$("lapsEmpty"), tbl=tb.closest("table");
+  if(!laps.length){tb.innerHTML="";empty.hidden=false;tbl.hidden=true;return}
+  empty.hidden=true;tbl.hidden=false;
+  let minI=-1,maxI=-1,minV=Infinity,maxV=-1;
+  laps.forEach((l,i)=>{if(l.single<minV){minV=l.single;minI=i}if(l.single>maxV){maxV=l.single;maxI=i}});
+  tb.innerHTML=laps.map((l,i)=>`<tr class="${i===minI&&laps.length>1?'fast':i===maxI&&laps.length>1?'slow':''}"><td>L${String(laps.length-i).padStart(2,"0")}</td><td>${fmtChrono(l.single)}</td><td>${fmtChrono(l.total)}</td></tr>`).join("");
+}
+function fmtChrono(ms){
+  const s=Math.floor(ms/1000)%60, m=Math.floor(ms/60000)%60, h=Math.floor(ms/3600000);
+  return `${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`;
+}
+function fmtChronoCs(ms){return "."+String(Math.floor(ms/10)%100).padStart(2,"0")}
+
+/* ---------- 主循环 ---------- */
+const hHour=$("hHour"),hMin=$("hMin"),hSec=$("hSec");
+const chMinHand=$("chMinHand"),chHrHand=$("chHrHand");
+let lastDay=-1,lastMinute=-1,moonP=updateMoon(new Date());
+buildCityTabs();renderSun();setPushers();
+
+function frame(){
+  const now=new Date();
+  const ms=now.getMilliseconds();
+  const sRaw=now.getSeconds();
+  const s=RM?sRaw:sRaw+ms/1000;               // reduced-motion：跳秒
+  const m=now.getMinutes()+s/60;
+  const h=(now.getHours()%12)+m/60;
+  hSec.style.transform=`translateX(-50%) rotate(${s*6}deg)`;
+  hMin.style.transform=`translateX(-50%) rotate(${m*6}deg)`;
+  hHour.style.transform=`translateX(-50%) rotate(${h*30}deg)`;
+
+  /* 计时码表读数与子盘针 */
+  if(chState!==CH.IDLE||chBase>0){
+    const el=chElapsed();
+    $("chMain").textContent=fmtChrono(el);
+    $("chCentis").textContent=RM?".00":fmtChronoCs(el);
+    const mins=el/60000;
+    chMinHand.setAttribute("transform",`rotate(${(mins%60)*6})`);
+    chHrHand.setAttribute("transform",`rotate(${(mins/60%12)*30})`);
+  }
+
+  /* 24h 环上的太阳/月亮点：以当地 0 点为 0°（12 点方向，顺时针） */
+  const localMin=(now.getHours()*60+now.getMinutes()+now.getSeconds()/60);
+  const ang=localMin/1440*360*DEG, R=96;
+  const c=CITIES[cityIdx];
+  $("sunDot").setAttribute("cx",(Math.cos(ang)*R).toFixed(2));
+  $("sunDot").setAttribute("cy",(Math.sin(ang)*R).toFixed(2));
+  const mAng=((localMin/1440*360)+180)*DEG;
+  $("moonDot").setAttribute("cx",(Math.cos(mAng)*R).toFixed(2));
+  $("moonDot").setAttribute("cy",(Math.sin(mAng)*R).toFixed(2));
+
+  /* 每分钟维护一次的慢变量 */
+  const minuteNow=now.getHours()*60+now.getMinutes();
+  if(minuteNow!==lastMinute){
+    lastMinute=minuteNow;
+    $("dateNum").textContent=now.getDate();
+    const w="日一二三四五六"[now.getDay()];
+    moonP=updateMoon(now);
+    $("watch").setAttribute("aria-label",
+      `天穹腕表：现在 ${now.getHours()} 点 ${now.getMinutes()} 分，${now.getMonth()+1} 月 ${now.getDate()} 日 星期${w}，${phaseName(moonP)}`);
+    $("clockAnnounce").textContent=`${now.getHours()}点${now.getMinutes()}分`;
+    renderSun();
+  }
+  const dayNow=now.getDate();
+  if(dayNow!==lastDay){lastDay=dayNow;renderSun()}  // 跨日（含大小月/闰年由 Date 保证）
+
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+
+/* 表冠：轻触有一个小彩蛋——时间以语音标签重述 */
+$("crown").addEventListener("click",()=>{
+  const now=new Date();
+  $("clockAnnounce").textContent=`现在是 ${now.getHours()} 点 ${now.getMinutes()} 分`;
+});
+</script>
+</body>
+</html>

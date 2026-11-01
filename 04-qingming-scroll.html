@@ -1,0 +1,1224 @@
+<!DOCTYPE html>
+<!--
+DIRECTION CONTRACT
+THESIS         用界画的方式重画，而不是把一张画放进网页里滚动：
+               全卷由 SVG 线描 + 设色构成，桥是叠梁拱、船是尖底漕船、屋顶分歇山与悬山，
+               动的只有该动的东西——水、船、橹、旗、炊烟、走路的人。
+               拒绝「一张大图横向平移 + 视差光斑」的伪长卷。
+OWN-WORLD      绢本设色：暖褐绢底 + 墨线三阶 + 赭石、花青、石绿、藤黄五色；
+               全卷共用一条地平基线，远景靠淡墨与雾退远，不靠模糊；
+               卷首卷尾有题签与朱印，绢纹叠在最上层。
+STORY          自右向左（网页里自左向右）：先是郊野疏林与进城的驮队，
+               再到汴河与虹桥上那场即将撞桥的骚动，然后是最密的街市，最后收在城门楼。
+FIRST VIEWPORT 卷首的郊野与远山先出现，控制条与章节标尺压在底部；
+               自动卷动默认开启，随时可以拖、可以停。
+SIGNATURE      虹桥一段：一艘漕船正要过桥，桅杆放到一半，船工在喊，
+               桥上的人全部转身趴在栏杆上看——这是全卷唯一有「事件」的地方。
+-->
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>清明上河图 · 动态长卷</title>
+<style>
+/* ==========================================================================
+   清明上河图 · 动态长卷
+   ========================================================================== */
+
+:root{
+  --silk:#dccdaa;
+  --silk-2:#e6dabd;
+  --silk-3:#cbb992;
+
+  --ink-9:#2e2519;
+  --ink-7:#4a3d2c;
+  --ink-5:#6b5b44;
+  --ink-3:#8f7f66;
+
+  --ochre:#a8703f;      /* 赭石 */
+  --ochre-2:#c79055;
+  --azurite:#4a6b7c;    /* 花青 */
+  --azurite-2:#6d8d9c;
+  --malachite:#6e8a6a;  /* 石绿 */
+  --gamboge:#c9a03c;    /* 藤黄 */
+  --vermilion:#9e3b2c;  /* 朱 */
+
+  --ui-bg:#1c1814;
+  --ui-1:#262119;
+  --ui-2:#332c22;
+  --ui-fg:#ece2cd;
+  --ui-fg-2:#b3a68e;
+  --ui-hair:rgba(236,226,205,.16);
+
+  --font:"Songti SC","STSong","SimSun","Noto Serif SC",serif;
+  --sans:"PingFang SC","Microsoft YaHei",ui-sans-serif,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --mono:ui-monospace,"SF Mono","Cascadia Mono",Consolas,monospace;
+  --ease:cubic-bezier(.22,.61,.36,1);
+}
+
+*,*::before,*::after{ box-sizing:border-box; }
+html,body{ margin:0; padding:0; height:100%; overflow:hidden; }
+html{ color-scheme:dark; }
+
+body{
+  background:var(--ui-bg);
+  color:var(--ui-fg);
+  font-family:var(--font);
+  -webkit-font-smoothing:antialiased;
+}
+
+h1,h2,p{ margin:0; padding:0; }
+button{ font:inherit; }
+
+:focus-visible{ outline:2px solid var(--gamboge); outline-offset:2px; border-radius:3px; }
+
+.sr{
+  position:absolute; width:1px; height:1px; padding:0; margin:-1px;
+  overflow:hidden; clip-path:inset(50%); white-space:nowrap; border:0;
+}
+
+/* ==========================================================================
+   卷轴
+   ========================================================================== */
+.frame{
+  position:fixed;
+  inset:clamp(8px,1.6vw,22px) clamp(8px,1.6vw,22px) clamp(76px,10vh,104px);
+  border-radius:3px;
+  background:linear-gradient(180deg,#6b5940,#4e402c 14%,#5a4a33 86%,#3b3021);
+  padding:clamp(6px,1vw,12px);
+  box-shadow:0 30px 70px -30px rgba(0,0,0,.9), 0 0 0 1px rgba(255,255,255,.06);
+  display:flex;
+}
+
+.viewport{
+  position:relative;
+  flex:1 1 auto;
+  overflow-x:auto;
+  overflow-y:hidden;
+  overscroll-behavior-x:contain;
+  background:var(--silk);
+  cursor:grab;
+  scrollbar-width:none;
+}
+.viewport::-webkit-scrollbar{ display:none; }
+.viewport[data-drag="true"]{ cursor:grabbing; }
+
+.scrollinner{ height:100%; width:max-content; }
+#scroll{ display:block; height:100%; width:auto; aspect-ratio:6400 / 1000; }
+
+/* 绢纹 */
+.silktex{
+  position:absolute; inset:0;
+  pointer-events:none;
+  mix-blend-mode:multiply;
+  opacity:.5;
+  background-image:
+    repeating-linear-gradient(90deg, rgba(120,96,60,.14) 0 1px, transparent 1px 3px),
+    repeating-linear-gradient(0deg,  rgba(120,96,60,.10) 0 1px, transparent 1px 3px);
+}
+/* 四边微暗，模拟绢的氧化 */
+.vignette{
+  position:absolute; inset:0;
+  pointer-events:none;
+  background:
+    linear-gradient(90deg, rgba(90,70,42,.28), transparent 6%, transparent 94%, rgba(90,70,42,.28)),
+    linear-gradient(180deg, rgba(90,70,42,.22), transparent 8%, transparent 92%, rgba(90,70,42,.24));
+}
+
+/* ==========================================================================
+   控制条
+   ========================================================================== */
+.bar{
+  position:fixed;
+  left:clamp(8px,1.6vw,22px);
+  right:clamp(8px,1.6vw,22px);
+  bottom:clamp(8px,1.6vw,18px);
+  height:clamp(60px,8vh,76px);
+  background:var(--ui-1);
+  border:1px solid var(--ui-hair);
+  border-radius:10px;
+  display:flex; align-items:center; gap:clamp(.5rem,1.4vw,1.1rem);
+  padding:0 clamp(.6rem,1.6vw,1.1rem);
+  z-index:20;
+}
+
+.title{
+  font-size:clamp(.95rem,1.5vw,1.15rem);
+  font-weight:600;
+  letter-spacing:.14em;
+  white-space:nowrap;
+}
+.title small{
+  display:block;
+  font-family:var(--sans);
+  font-size:.625rem;
+  letter-spacing:.2em;
+  color:var(--ui-fg-2);
+  font-weight:400;
+  margin-top:.15rem;
+}
+
+.btn{
+  min-height:40px; min-width:40px;
+  padding:0 .8rem;
+  border:1px solid var(--ui-hair);
+  border-radius:7px;
+  background:var(--ui-2);
+  color:var(--ui-fg);
+  font-family:var(--sans);
+  font-size:.8125rem;
+  cursor:pointer;
+  display:inline-flex; align-items:center; justify-content:center; gap:.4ch;
+  white-space:nowrap;
+  transition:background-color .16s var(--ease), border-color .16s var(--ease);
+}
+.btn:hover{ background:#3d3529; }
+.btn--on{ background:var(--gamboge); border-color:var(--gamboge); color:#241c08; font-weight:600; }
+.btn svg{ width:13px; height:13px; }
+
+/* 章节标尺 */
+.marks{
+  flex:1 1 auto;
+  min-width:0;
+  position:relative;
+  height:40px;
+  display:flex; align-items:center;
+}
+.marks__rail{
+  position:absolute; left:0; right:0; top:50%;
+  height:2px; translate:0 -50%;
+  background:var(--ui-2);
+  border-radius:99px;
+  overflow:hidden;
+}
+.marks__rail i{
+  position:absolute; inset:0 auto 0 0;
+  width:var(--p,0%);
+  background:var(--gamboge);
+}
+.marks__seg{
+  position:absolute; top:50%; translate:0 -50%;
+  background:none; border:0;
+  padding:.4rem .5rem;
+  color:var(--ui-fg-2);
+  font-family:var(--sans);
+  font-size:.6875rem;
+  letter-spacing:.1em;
+  cursor:pointer;
+  white-space:nowrap;
+}
+.marks__seg::before{
+  content:"";
+  position:absolute; left:50%; top:50%; translate:-50% -50%;
+  width:7px; height:7px; border-radius:50%;
+  background:var(--ui-2);
+  box-shadow:0 0 0 2px var(--ui-1);
+}
+.marks__seg span{ position:relative; top:-16px; }
+.marks__seg:hover{ color:var(--ui-fg); }
+.marks__seg[aria-current="true"]{ color:var(--gamboge); }
+.marks__seg[aria-current="true"]::before{ background:var(--gamboge); }
+
+.speed{ display:flex; align-items:center; gap:.5rem; }
+.speed label{ font-family:var(--sans); font-size:.6875rem; color:var(--ui-fg-2); letter-spacing:.1em; }
+.speed input{ width:clamp(60px,8vw,110px); accent-color:var(--gamboge); }
+
+.pos{
+  font-family:var(--mono);
+  font-size:.6875rem;
+  color:var(--ui-fg-2);
+  min-width:5.5em;
+  text-align:right;
+}
+
+/* ==========================================================================
+   SVG 内的样式与动画
+   ========================================================================== */
+#scroll .ln{ fill:none; stroke:var(--ink-9); stroke-width:1.6; stroke-linejoin:round; stroke-linecap:round; }
+#scroll .ln2{ fill:none; stroke:var(--ink-7); stroke-width:1.2; stroke-linejoin:round; stroke-linecap:round; }
+#scroll .ln3{ fill:none; stroke:var(--ink-5); stroke-width:.9; stroke-linejoin:round; stroke-linecap:round; }
+#scroll .far{ fill:none; stroke:var(--ink-3); stroke-width:.8; opacity:.7; }
+#scroll text{ font-family:var(--font); }
+
+/* 动画 */
+@keyframes sail   { from{ transform:translateX(0); } to{ transform:translateX(var(--dist,-1400px)); } }
+@keyframes oar    { from{ transform:rotate(-13deg); } to{ transform:rotate(15deg); } }
+@keyframes flap   { 0%,100%{ transform:skewY(0) scaleX(1); } 50%{ transform:skewY(-5deg) scaleX(.94); } }
+@keyframes smoke  { from{ transform:translate(0,0) scale(.7); opacity:0; }
+                    18%{ opacity:.5; }
+                    to  { transform:translate(-26px,-90px) scale(2.3); opacity:0; } }
+@keyframes ripple { from{ transform:translateX(0); } to{ transform:translateX(-160px); } }
+@keyframes walkL  { from{ transform:rotate(-19deg); } to{ transform:rotate(19deg); } }
+@keyframes walkR  { from{ transform:rotate(19deg); }  to{ transform:rotate(-19deg); } }
+@keyframes stroll { from{ transform:translateX(0); } to{ transform:translateX(var(--dist,-600px)); } }
+@keyframes sway   { 0%,100%{ transform:rotate(-1.6deg); } 50%{ transform:rotate(1.6deg); } }
+@keyframes mist   { from{ transform:translateX(0); }  to{ transform:translateX(-520px); } }
+@keyframes bob    { 0%,100%{ transform:translateY(0) rotate(-.5deg); } 50%{ transform:translateY(-3px) rotate(.5deg); } }
+
+.a-sail   { animation:sail var(--dur,90s) linear infinite; }
+.a-oar    { animation:oar var(--dur,1.6s) ease-in-out infinite alternate; transform-box:fill-box; transform-origin:var(--org,10% 50%); }
+.a-flap   { animation:flap var(--dur,3.4s) ease-in-out infinite; transform-box:fill-box; transform-origin:top center; }
+.a-smoke  { animation:smoke var(--dur,7s) ease-out infinite; transform-box:fill-box; transform-origin:bottom center; }
+.a-ripple { animation:ripple var(--dur,14s) linear infinite; }
+.a-legL   { animation:walkL var(--dur,.62s) ease-in-out infinite alternate; transform-box:fill-box; transform-origin:top center; }
+.a-legR   { animation:walkR var(--dur,.62s) ease-in-out infinite alternate; transform-box:fill-box; transform-origin:top center; }
+.a-stroll { animation:stroll var(--dur,120s) linear infinite; }
+.a-sway   { animation:sway var(--dur,6s) ease-in-out infinite; transform-box:fill-box; transform-origin:bottom center; }
+.a-mist   { animation:mist var(--dur,90s) linear infinite; }
+.a-bob    { animation:bob var(--dur,4.6s) ease-in-out infinite; transform-box:fill-box; transform-origin:center; }
+
+/* 暂停时冻结全部卷内动画 */
+.viewport[data-anim="off"] #scroll *{ animation-play-state:paused !important; }
+
+@media (prefers-reduced-motion:reduce){
+  #scroll *{ animation:none !important; }
+}
+
+/* ==========================================================================
+   响应式
+   ========================================================================== */
+@media (max-width:820px){
+  .title small{ display:none; }
+  .speed{ display:none; }
+  .pos{ display:none; }
+  .marks__seg span{ display:none; }
+}
+</style>
+</head>
+<body>
+
+<div class="frame">
+  <div class="viewport" id="vp" data-anim="on" tabindex="0"
+       role="img"
+       aria-label="动态《清明上河图》长卷：自右向左依次为郊野疏林与进城驮队、汴河与虹桥上的漕船骚动、密集街市、以及城门楼。可拖动或使用左右方向键浏览。">
+    <div class="scrollinner">
+      <svg id="scroll" viewBox="0 0 6400 1000" preserveAspectRatio="xMinYMid meet"></svg>
+    </div>
+    <span class="silktex" aria-hidden="true"></span>
+    <span class="vignette" aria-hidden="true"></span>
+  </div>
+</div>
+
+<div class="bar">
+  <p class="title">清明上河圖<small>DONG · QINGMING SHANGHE</small></p>
+
+  <button class="btn btn--on" type="button" id="playBtn" aria-pressed="true">
+    <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true" id="playIcon">
+      <path d="M4 2h3.2v12H4zM8.8 2H12v12H8.8z"/>
+    </svg>
+    <span id="playTxt">卷动中</span>
+  </button>
+
+  <div class="marks" id="marks">
+    <span class="marks__rail" aria-hidden="true"><i id="railFill"></i></span>
+  </div>
+
+  <div class="speed">
+    <label for="spd">速度</label>
+    <input type="range" id="spd" min="0" max="4" step="1" value="2" aria-label="卷动速度">
+  </div>
+
+  <span class="pos mono" id="pos">0%</span>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  var NS = 'http://www.w3.org/2000/svg';
+  var svg = document.getElementById('scroll');
+  var W = 6400, H = 1000, GY = 782;              // 画幅与地平基线
+
+  function E(tag, attrs, parent){
+    var n = document.createElementNS(NS, tag);
+    if (attrs) for (var k in attrs) n.setAttribute(k, attrs[k]);
+    if (parent) parent.appendChild(n);
+    return n;
+  }
+  function G(attrs, parent){ return E('g', attrs, parent); }
+
+  /* 确定性随机：每次打开构图一致 */
+  var _s = 20260823;
+  function R(){ _s = (_s * 1664525 + 1013904223) >>> 0; return _s / 4294967296; }
+  function ri(a,b){ return a + Math.floor(R() * (b - a + 1)); }
+  function rf(a,b){ return a + R() * (b - a); }
+  function pick(arr){ return arr[Math.floor(R() * arr.length)]; }
+
+  /* ======================================================================
+     0. 定义：渐变
+     ====================================================================== */
+  var defs = E('defs', null, svg);
+  (function grads(){
+    var sky = E('linearGradient', { id:'sky', x1:'0', y1:'0', x2:'0', y2:'1' }, defs);
+    E('stop', { offset:'0%',  'stop-color':'#cbb58c' }, sky);
+    E('stop', { offset:'46%', 'stop-color':'#dccdaa' }, sky);
+    E('stop', { offset:'100%','stop-color':'#e4d8ba' }, sky);
+
+    var water = E('linearGradient', { id:'water', x1:'0', y1:'0', x2:'0', y2:'1' }, defs);
+    E('stop', { offset:'0%',  'stop-color':'#a8b6ae' }, water);
+    E('stop', { offset:'38%', 'stop-color':'#8fa3a4' }, water);
+    E('stop', { offset:'100%','stop-color':'#6f8790' }, water);
+
+    var roof = E('linearGradient', { id:'roof', x1:'0', y1:'0', x2:'0', y2:'1' }, defs);
+    E('stop', { offset:'0%',  'stop-color':'#5d6a63' }, roof);
+    E('stop', { offset:'100%','stop-color':'#3f4a45' }, roof);
+
+    var roofT = E('linearGradient', { id:'roofT', x1:'0', y1:'0', x2:'0', y2:'1' }, defs);
+    E('stop', { offset:'0%',  'stop-color':'#b8925f' }, roofT);
+    E('stop', { offset:'100%','stop-color':'#8a6a3e' }, roofT);
+
+    var wall = E('linearGradient', { id:'wall', x1:'0', y1:'0', x2:'0', y2:'1' }, defs);
+    E('stop', { offset:'0%',  'stop-color':'#d9c8a4' }, wall);
+    E('stop', { offset:'100%','stop-color':'#bda87f' }, wall);
+  })();
+
+  /* ======================================================================
+     图层顺序
+     ====================================================================== */
+  var lSky   = G({}, svg);
+  var lFar   = G({}, svg);      // 远山
+  var lMist  = G({}, svg);      // 雾
+  var lWater = G({}, svg);
+  var lBoats = G({}, svg);
+  var lGround= G({}, svg);
+  var lBuild = G({}, svg);      // 建筑
+  var lTree  = G({}, svg);
+  var lCrowd = G({}, svg);
+  var lFore  = G({}, svg);      // 前景树与题跋
+
+  /* ---- 天与地 ---- */
+  E('rect', { x:0, y:0, width:W, height:H, fill:'url(#sky)' }, lSky);
+
+  /* ======================================================================
+     1. 远山
+     ====================================================================== */
+  (function farHills(){
+    function ridge(x0, x1, top, op){
+      var d = 'M' + x0 + ' 470';
+      var x = x0;
+      while (x < x1){
+        var w = ri(160, 380);
+        var h = ri(top, top + 90);
+        d += ' Q' + (x + w/2) + ' ' + h + ' ' + (x + w) + ' ' + ri(430, 470);
+        x += w;
+      }
+      d += ' L' + x1 + ' 470 Z';
+      E('path', { d:d, fill:'#b6a684', opacity:op }, lFar);
+    }
+    ridge(-100, 2400, 300, .5);
+    ridge(1800, 4200, 330, .38);
+    ridge(3600, 6500, 316, .44);
+  })();
+
+  /* ======================================================================
+     2. 雾带
+     ====================================================================== */
+  (function mist(){
+    [{ y:430, o:.5, d:120 }, { y:470, o:.34, d:180 }, { y:392, o:.28, d:230 }].forEach(function(m){
+      var g = G({ class:'a-mist', style:'--dur:' + m.d + 's' }, lMist);
+      for (var x = -600; x < W + 800; x += 520){
+        E('ellipse', { cx:x, cy:m.y + rf(-16,16), rx:rf(200,330), ry:rf(16,30),
+          fill:'#e9dfc6', opacity:m.o }, g);
+      }
+    });
+  })();
+
+  /* ======================================================================
+     3. 汴河
+     ====================================================================== */
+  var RIV = { x0:1420, x1:3720, top:640, bot:1000 };
+
+  (function river(){
+    var d = 'M' + RIV.x0 + ' ' + H +
+            ' L' + RIV.x0 + ' 760' +
+            ' C' + (RIV.x0+260) + ' 700, ' + (RIV.x0+520) + ' 662, ' + (RIV.x0+860) + ' 652' +
+            ' L' + (RIV.x1-820) + ' 646' +
+            ' C' + (RIV.x1-420) + ' 650, ' + (RIV.x1-160) + ' 700, ' + RIV.x1 + ' 776' +
+            ' L' + RIV.x1 + ' ' + H + ' Z';
+    E('path', { d:d, fill:'url(#water)' }, lWater);
+    E('path', { d:d, class:'ln2', opacity:'.5' }, lWater);
+
+    // 水纹：多条横向短线，整组循环平移
+    for (var row = 0; row < 9; row++){
+      var y = 690 + row * 34;
+      var g = G({ class:'a-ripple', style:'--dur:' + (13 + row * 2.4) + 's' }, lWater);
+      for (var x = RIV.x0 - 200; x < RIV.x1 + 240; x += 62){
+        var w = rf(20, 46);
+        E('path', {
+          d:'M' + x + ' ' + (y + rf(-6,6)) + ' q' + (w/2) + ' -5 ' + w + ' 0',
+          class:'ln3',
+          opacity: (0.5 - row * 0.028).toFixed(2)
+        }, g);
+      }
+    }
+  })();
+
+  /* ======================================================================
+     4. 构件：屋顶 / 房屋 / 树 / 人
+     ====================================================================== */
+
+  // 悬山顶
+  function roofGable(g, x, y, w, h, fill){
+    E('path', {
+      d:'M' + (x - w*0.10) + ' ' + y +
+        ' L' + (x + w*0.5) + ' ' + (y - h) +
+        ' L' + (x + w*1.10) + ' ' + y + ' Z',
+      fill:fill || 'url(#roof)', class:'', stroke:'#2e2519', 'stroke-width':'1.6',
+      'stroke-linejoin':'round'
+    }, g);
+    // 瓦垄
+    for (var i = 1; i < 9; i++){
+      var t = i / 9;
+      E('path', {
+        d:'M' + (x + w*0.5) + ' ' + (y - h) + ' L' + (x - w*0.10 + w*1.2*t) + ' ' + y,
+        class:'ln3', opacity:'.34'
+      }, g);
+    }
+  }
+
+  // 歇山顶（带起翘）
+  function roofHip(g, x, y, w, h, fill){
+    var d =
+      'M' + (x - w*0.14) + ' ' + y +
+      ' q' + (w*0.06) + ' ' + (-h*0.16) + ' ' + (w*0.16) + ' ' + (-h*0.30) +
+      ' L' + (x + w*0.36) + ' ' + (y - h) +
+      ' L' + (x + w*0.64) + ' ' + (y - h) +
+      ' L' + (x + w*0.98) + ' ' + (y - h*0.30) +
+      ' q' + (w*0.10) + ' ' + (h*0.14) + ' ' + (w*0.16) + ' ' + (h*0.30) + ' Z';
+    E('path', { d:d, fill:fill || 'url(#roof)', stroke:'#2e2519',
+      'stroke-width':'1.7', 'stroke-linejoin':'round' }, g);
+    // 正脊
+    E('path', { d:'M' + (x + w*0.34) + ' ' + (y - h - 3) + ' L' + (x + w*0.66) + ' ' + (y - h - 3),
+      class:'ln', 'stroke-width':'3' }, g);
+    for (var i = 1; i < 7; i++){
+      var t = i / 7;
+      E('path', { d:'M' + (x + w*(0.36 + 0.28*t)) + ' ' + (y - h) +
+        ' L' + (x - w*0.14 + w*1.28*t) + ' ' + y, class:'ln3', opacity:'.3' }, g);
+    }
+  }
+
+  // 一间铺面
+  function shop(x, w, opts){
+    opts = opts || {};
+    var h = opts.h || ri(96, 132);
+    var g = G({}, lBuild);
+    var base = GY;
+
+    // 墙体
+    E('rect', { x:x, y:base - h, width:w, height:h, fill:'url(#wall)',
+      stroke:'#2e2519', 'stroke-width':'1.5' }, g);
+    // 柱
+    E('path', { d:'M' + (x+4) + ' ' + (base-h) + ' V' + base, class:'ln2' }, g);
+    E('path', { d:'M' + (x+w-4) + ' ' + (base-h) + ' V' + base, class:'ln2' }, g);
+    // 门与格窗
+    var dw = w * 0.34;
+    E('rect', { x:x + w*0.10, y:base - h*0.74, width:dw, height:h*0.74,
+      fill:'#7d6a4c', stroke:'#2e2519', 'stroke-width':'1.3' }, g);
+    var winX = x + w*0.52, winW = w*0.36;
+    E('rect', { x:winX, y:base - h*0.66, width:winW, height:h*0.40,
+      fill:'#c3b085', stroke:'#2e2519', 'stroke-width':'1.3' }, g);
+    for (var i = 1; i < 4; i++){
+      E('path', { d:'M' + (winX + winW*i/4) + ' ' + (base - h*0.66) +
+        ' V' + (base - h*0.26), class:'ln3' }, g);
+    }
+    E('path', { d:'M' + winX + ' ' + (base - h*0.46) + ' H' + (winX+winW), class:'ln3' }, g);
+
+    // 屋顶
+    if (opts.hip) roofHip(g, x, base - h, w, ri(46, 62), opts.roofFill);
+    else roofGable(g, x, base - h, w, ri(40, 56), opts.roofFill);
+
+    // 幌子 / 市招
+    if (opts.sign){
+      var sx = x + w*0.72, sy = base - h - 6;
+      E('path', { d:'M' + sx + ' ' + sy + ' V' + (sy - 54), class:'ln', 'stroke-width':'2.2' }, g);
+      var flag = G({ class:'a-flap', style:'--dur:' + rf(2.8, 4.6).toFixed(1) + 's' }, g);
+      E('rect', { x:sx - 1, y:sy - 54, width:20, height:54, fill:'#c9b48a',
+        stroke:'#2e2519', 'stroke-width':'1.2' }, flag);
+      var t = E('text', { x:sx + 9, y:sy - 38, 'font-size':'15', fill:'#5a1f16',
+        'text-anchor':'middle', 'writing-mode':'tb' }, flag);
+      t.textContent = opts.sign;
+    }
+
+    // 檐下遮阳与摊位
+    if (opts.awning){
+      E('path', { d:'M' + (x - 6) + ' ' + (base - h*0.86) + ' L' + (x + w*0.62) + ' ' + (base - h*0.62) +
+        ' L' + (x + w*0.62) + ' ' + (base - h*0.56) + ' L' + (x - 6) + ' ' + (base - h*0.80) + ' Z',
+        fill:'#cbb287', stroke:'#2e2519', 'stroke-width':'1.2' }, g);
+    }
+
+    // 炊烟
+    if (opts.smoke){
+      var g2 = G({}, g);
+      for (var s = 0; s < 3; s++){
+        E('ellipse', {
+          cx:x + w*0.28, cy:base - h - 44, rx:11, ry:8,
+          fill:'#e3d9c0', opacity:'.5',
+          class:'a-smoke', style:'--dur:' + (6 + s*1.7) + 's; animation-delay:' + (-s*2.1) + 's'
+        }, g2);
+      }
+    }
+    return g;
+  }
+
+  // 树
+  function tree(x, y, type, scale){
+    scale = scale || 1;
+    var g = G({ transform:'translate(' + x + ' ' + y + ') scale(' + scale + ')' }, lTree);
+    var sw = G({ class:'a-sway', style:'--dur:' + rf(5, 9).toFixed(1) + 's' }, g);
+
+    // 干
+    E('path', { d:'M0 0 C-3 -30 4 -56 1 -84', class:'ln', 'stroke-width':'4' }, sw);
+
+    if (type === 'willow'){
+      E('path', { d:'M1 -84 c-16 -6 -30 -2 -40 8', class:'ln2' }, sw);
+      E('path', { d:'M1 -84 c16 -8 32 -4 42 6', class:'ln2' }, sw);
+      for (var i = 0; i < 16; i++){
+        var bx = rf(-52, 54), by = rf(-92, -66);
+        E('path', {
+          d:'M' + bx + ' ' + by + ' q' + rf(-8,8) + ' 26 ' + rf(-6,6) + ' 56',
+          stroke:'#7d9464', fill:'none', 'stroke-width':1.4, opacity:rf(.55,.95).toFixed(2)
+        }, sw);
+      }
+    } else if (type === 'bare'){
+      for (var b = 0; b < 7; b++){
+        var a = -140 + b * 22 + rf(-8,8);
+        var len = rf(28, 52);
+        var rad = a * Math.PI / 180;
+        E('path', {
+          d:'M0 ' + rf(-80,-52) + ' l' + (Math.cos(rad)*len).toFixed(1) + ' ' + (Math.sin(rad)*len).toFixed(1),
+          class:'ln2'
+        }, sw);
+      }
+    } else {  // 阔叶
+      for (var c = 0; c < 7; c++){
+        E('ellipse', {
+          cx:rf(-38,38), cy:rf(-104,-72), rx:rf(20,34), ry:rf(14,22),
+          fill:'#6e8a6a', opacity:rf(.55,.85).toFixed(2)
+        }, sw);
+      }
+      E('ellipse', { cx:0, cy:-92, rx:44, ry:26, fill:'none',
+        stroke:'#3f5a3f', 'stroke-width':1.2, opacity:'.6' }, sw);
+    }
+    return g;
+  }
+
+  // 人（约 34 单位高，与画中比例接近）
+  var ROBE = ['#8f6b47','#6f7f6a','#95573f','#4f6472','#7a6a52','#a3814f','#5c5347'];
+  function person(parent, x, y, opts){
+    opts = opts || {};
+    var s = opts.s || 1;
+    var g = G({ transform:'translate(' + x + ' ' + y + ') scale(' + s + ')' }, parent);
+    var col = opts.color || pick(ROBE);
+    var dur = opts.dur || rf(.5, .8).toFixed(2);
+
+    // 腿
+    if (opts.walk !== false){
+      E('path', { d:'M0 -12 L-3 0', stroke:col, 'stroke-width':3, 'stroke-linecap':'round',
+        class:'a-legL', style:'--dur:' + dur + 's' }, g);
+      E('path', { d:'M0 -12 L3 0', stroke:col, 'stroke-width':3, 'stroke-linecap':'round',
+        class:'a-legR', style:'--dur:' + dur + 's' }, g);
+    } else {
+      E('path', { d:'M0 -12 L-3 0', stroke:col, 'stroke-width':3, 'stroke-linecap':'round' }, g);
+      E('path', { d:'M0 -12 L3 0', stroke:col, 'stroke-width':3, 'stroke-linecap':'round' }, g);
+    }
+    // 身
+    E('path', { d:'M0 -26 L0 -11', stroke:col, 'stroke-width':6.5, 'stroke-linecap':'round' }, g);
+    // 臂
+    if (opts.arms === 'up'){
+      E('path', { d:'M0 -23 l-7 -9', stroke:col, 'stroke-width':2.6, 'stroke-linecap':'round' }, g);
+      E('path', { d:'M0 -23 l7 -10', stroke:col, 'stroke-width':2.6, 'stroke-linecap':'round' }, g);
+    } else if (opts.arms === 'lean'){
+      E('path', { d:'M0 -23 l9 4', stroke:col, 'stroke-width':2.6, 'stroke-linecap':'round' }, g);
+      E('path', { d:'M0 -23 l6 6', stroke:col, 'stroke-width':2.6, 'stroke-linecap':'round' }, g);
+    } else {
+      E('path', { d:'M0 -23 l-5 8', stroke:col, 'stroke-width':2.6, 'stroke-linecap':'round' }, g);
+      E('path', { d:'M0 -23 l5 7', stroke:col, 'stroke-width':2.6, 'stroke-linecap':'round' }, g);
+    }
+    // 头与幞头
+    E('circle', { cx:0, cy:-31, r:4.4, fill:'#d9bb92', stroke:'#2e2519', 'stroke-width':1 }, g);
+    E('path', { d:'M-5 -34 q5 -5 10 0', stroke:'#33291d', 'stroke-width':3,
+      fill:'none', 'stroke-linecap':'round' }, g);
+    // 挑担
+    if (opts.carry){
+      E('path', { d:'M-14 -25 L14 -25', class:'ln2' }, g);
+      E('path', { d:'M-14 -25 v7 m-4 0 h8', class:'ln3' }, g);
+      E('path', { d:'M14 -25 v7 m-4 0 h8', class:'ln3' }, g);
+    }
+    return g;
+  }
+
+  // 一队走动的人
+  function crowd(parent, x0, x1, y, n, opts){
+    opts = opts || {};
+    for (var i = 0; i < n; i++){
+      var x = rf(x0, x1);
+      var s = rf(0.82, 1.06) * (opts.s || 1);
+      person(parent, x, y + rf(-4, 4), { s:s, carry:R() < 0.18, color:pick(ROBE) });
+    }
+  }
+
+  /* ======================================================================
+     5. 船
+     ====================================================================== */
+  function boat(x, y, opts){
+    opts = opts || {};
+    var s = opts.s || 1;
+    var outer = G({}, lBoats);
+    var mover = opts.dist
+      ? G({ class:'a-sail', style:'--dur:' + opts.dur + 's; --dist:' + opts.dist + 'px' }, outer)
+      : outer;
+    var g = G({ transform:'translate(' + x + ' ' + y + ') scale(' + s + ')',
+                class:'a-bob', style:'--dur:' + rf(4,6.4).toFixed(1) + 's' }, mover);
+
+    var L = opts.len || 210;
+
+    // 船体（尖底漕船）
+    E('path', {
+      d:'M' + (-L/2) + ' 0 q' + (L*0.06) + ' 22 ' + (L*0.22) + ' 26 L' + (L*0.30) + ' 26 ' +
+        'q' + (L*0.16) + ' -3 ' + (L*0.20) + ' -26 Z',
+      fill:'#8a6a44', stroke:'#2e2519', 'stroke-width':2, 'stroke-linejoin':'round'
+    }, g);
+    E('path', { d:'M' + (-L/2) + ' 0 H' + (L*0.50), class:'ln' }, g);
+    // 船板
+    for (var i = 1; i < 7; i++){
+      var px = -L/2 + L*i/7;
+      E('path', { d:'M' + px + ' 2 v' + (16 - Math.abs(i-3.5)*2.6), class:'ln3', opacity:'.5' }, g);
+    }
+
+    if (opts.type === 'cargo'){
+      // 拱形船篷
+      for (var c = 0; c < 3; c++){
+        var cx = -L*0.26 + c * L*0.24;
+        E('path', {
+          d:'M' + (cx - L*0.11) + ' 0 q' + (L*0.11) + ' -' + (L*0.16) + ' ' + (L*0.22) + ' 0 Z',
+          fill:'#b8a175', stroke:'#2e2519', 'stroke-width':1.6
+        }, g);
+        for (var r = 1; r < 5; r++){
+          E('path', { d:'M' + (cx - L*0.11 + L*0.055*r) + ' ' + (-L*0.10 + Math.abs(r-2)*L*0.018) +
+            ' l0 ' + (L*0.10 - Math.abs(r-2)*L*0.018), class:'ln3', opacity:'.45' }, g);
+        }
+      }
+      // 桅（可放倒）
+      var mastAngle = opts.mast === 'down' ? -58 : 0;
+      var mg = G({ transform:'rotate(' + mastAngle + ' ' + (L*0.10) + ' -2)' }, g);
+      E('path', { d:'M' + (L*0.10) + ' -2 V-' + (L*0.62), class:'ln', 'stroke-width':3.4 }, mg);
+      E('path', { d:'M' + (L*0.10 - 16) + ' -' + (L*0.52) + ' H' + (L*0.10 + 16), class:'ln2' }, mg);
+      if (opts.mast !== 'down'){
+        E('path', { d:'M' + (L*0.10) + ' -' + (L*0.58) + ' q26 ' + (L*0.16) + ' 2 ' + (L*0.36),
+          class:'ln3' }, mg);
+      }
+      // 舵与橹
+      E('path', { d:'M' + (-L*0.48) + ' 4 l-22 16', class:'ln', 'stroke-width':2.6 }, g);
+    } else {
+      // 客船小篷
+      E('path', {
+        d:'M' + (-L*0.16) + ' 0 q' + (L*0.16) + ' -' + (L*0.20) + ' ' + (L*0.32) + ' 0 Z',
+        fill:'#c0a97d', stroke:'#2e2519', 'stroke-width':1.6
+      }, g);
+    }
+
+    // 摇橹的人
+    var crewN = opts.crew || 3;
+    for (var k = 0; k < crewN; k++){
+      var px2 = -L*0.34 + k * (L*0.62 / Math.max(1, crewN - 1));
+      person(g, px2, -1, { s:0.66, walk:false, arms:(k % 2 ? 'lean' : 'up'), color:pick(ROBE) });
+      var og = G({ class:'a-oar', style:'--dur:' + rf(1.2,1.9).toFixed(1) + 's; --org:8% 40%' }, g);
+      E('path', { d:'M' + px2 + ' -14 l' + rf(-40,-26).toFixed(0) + ' 22', class:'ln2' }, og);
+    }
+    return outer;
+  }
+
+  /* ======================================================================
+     6. 卷首：郊野
+     ====================================================================== */
+  (function countryside(){
+    // 田埂
+    E('path', { d:'M0 ' + GY + ' H1460', class:'ln2', opacity:'.7' }, lGround);
+    E('path', { d:'M0 ' + (GY+46) + ' C 300 ' + (GY+30) + ', 700 ' + (GY+60) + ', 1180 ' + (GY+34),
+      class:'ln3' }, lGround);
+    for (var f = 0; f < 26; f++){
+      var fx = rf(40, 1340);
+      E('path', { d:'M' + fx + ' ' + (GY + rf(6, 96)) + ' l' + rf(30,90).toFixed(0) + ' ' + rf(-6,6).toFixed(0),
+        class:'ln3', opacity:'.4' }, lGround);
+    }
+
+    // 茅舍两处
+    [[190, 128], [560, 112]].forEach(function(v){
+      var g = G({}, lBuild);
+      var x = v[0], w = v[1], h = 72;
+      E('rect', { x:x, y:GY - h, width:w, height:h, fill:'#cdb98f',
+        stroke:'#2e2519', 'stroke-width':1.5 }, g);
+      E('path', {
+        d:'M' + (x - 16) + ' ' + (GY - h) + ' L' + (x + w/2) + ' ' + (GY - h - 46) +
+          ' L' + (x + w + 16) + ' ' + (GY - h) + ' Z',
+        fill:'#a8905f', stroke:'#2e2519', 'stroke-width':1.6
+      }, g);
+      for (var i = 0; i < 10; i++){
+        E('path', { d:'M' + (x + w/2) + ' ' + (GY-h-46) + ' L' + (x - 16 + (w+32)*i/9) + ' ' + (GY-h),
+          class:'ln3', opacity:'.35' }, g);
+      }
+      E('rect', { x:x + w*0.36, y:GY - h*0.62, width:w*0.28, height:h*0.62,
+        fill:'#7d6a4c', stroke:'#2e2519', 'stroke-width':1.2 }, g);
+      for (var s = 0; s < 2; s++){
+        E('ellipse', { cx:x + w*0.3, cy:GY - h - 50, rx:10, ry:7, fill:'#e3d9c0', opacity:'.45',
+          class:'a-smoke', style:'--dur:' + (7 + s*2) + 's; animation-delay:' + (-s*3) + 's' }, g);
+      }
+    });
+
+    // 疏林
+    [90, 300, 420, 690, 830, 1010, 1180, 1320].forEach(function(x, i){
+      tree(x, GY + rf(-4, 26), i % 3 === 0 ? 'bare' : (i % 3 === 1 ? 'leaf' : 'willow'), rf(.8, 1.15));
+    });
+
+    // 进城的驮队：驴 + 脚夫，整队缓慢右移
+    var team = G({ class:'a-stroll', style:'--dur:240s; --dist:520px' }, lCrowd);
+    for (var d = 0; d < 5; d++){
+      var dx = 300 + d * 88;
+      var dg = G({ transform:'translate(' + dx + ' ' + (GY + 8) + ')' }, team);
+      // 驴
+      E('path', { d:'M-22 -18 q10 -10 22 -9 l14 1 q9 1 10 9 l-2 8 M-22 -18 l-6 6 l7 3',
+        class:'ln', fill:'#8a7351' }, dg);
+      E('rect', { x:-16, y:-30, width:26, height:13, rx:3, fill:'#9c7f52',
+        stroke:'#2e2519', 'stroke-width':1.2 }, dg);
+      ['-18','-4','8','20'].forEach(function(lx, li){
+        E('path', { d:'M' + lx + ' -10 l0 10', stroke:'#6d5a3c', 'stroke-width':2.4,
+          'stroke-linecap':'round',
+          class: li % 2 ? 'a-legR' : 'a-legL', style:'--dur:.72s' }, dg);
+      });
+      person(team, dx + 40, GY + 8, { s:.9, carry:true });
+    }
+
+    // 卷首题签
+    var t1 = E('text', { x:56, y:150, 'font-size':'44', fill:'#4a3d2c',
+      'letter-spacing':'10', 'writing-mode':'tb' }, lFore);
+    t1.textContent = '清明上河';
+    E('rect', { x:44, y:300, width:44, height:44, fill:'#9e3b2c', rx:3, opacity:'.9' }, lFore);
+    var t2 = E('text', { x:66, y:332, 'font-size':'26', fill:'#f2e4d4', 'text-anchor':'middle' }, lFore);
+    t2.textContent = '墨';
+  })();
+
+  /* ======================================================================
+     7. 汴河段：两岸、虹桥、船
+     ====================================================================== */
+  var BRX = 2460;    // 虹桥中心
+
+  (function riverSection(){
+    // 左岸建筑（河的上游一侧）
+    [[1500,150],[1670,132],[1820,146]].forEach(function(v, i){
+      shop(v[0], v[1], { sign: i === 0 ? '脚店' : null, awning:true, smoke: i === 2 });
+    });
+    // 右岸建筑
+    [[3060,148],[3230,164],[3420,140],[3580,150]].forEach(function(v, i){
+      shop(v[0], v[1], { sign: i === 1 ? '孫羊店' : (i === 3 ? '正店' : null),
+                         hip: i === 1, awning:true, smoke: i === 0,
+                         roofFill: i === 1 ? 'url(#roofT)' : null });
+    });
+
+    // 岸线上的柳
+    [1470, 1610, 1760, 1930, 3120, 3300, 3500, 3660].forEach(function(x){
+      tree(x, GY + rf(-6, 18), 'willow', rf(.9, 1.2));
+    });
+
+    /* ---- 虹桥：叠梁拱 ---- */
+    var g = G({}, lBuild);
+    var span = 470, rise = 150, y0 = 700;
+
+    // 拱：五道叠梁
+    for (var k = 0; k < 5; k++){
+      var off = k * 9;
+      E('path', {
+        d:'M' + (BRX - span/2 - 26 + off*0.4) + ' ' + (y0 + off) +
+          ' Q' + BRX + ' ' + (y0 - rise + off) + ' ' + (BRX + span/2 + 26 - off*0.4) + ' ' + (y0 + off),
+        class:'ln', 'stroke-width': k === 0 ? 4 : 2.4, opacity: k === 0 ? 1 : (0.85 - k*0.12)
+      }, g);
+    }
+    // 横向连接木
+    for (var m = -5; m <= 5; m++){
+      var t = m / 5;
+      var mx = BRX + t * span * 0.5;
+      var my = y0 - rise * (1 - t*t) + 4;
+      E('path', { d:'M' + mx + ' ' + my + ' v40', class:'ln2', opacity:'.8' }, g);
+    }
+
+    // 桥面
+    E('path', {
+      d:'M' + (BRX - span/2 - 60) + ' ' + (y0 + 8) +
+        ' Q' + BRX + ' ' + (y0 - rise - 12) + ' ' + (BRX + span/2 + 60) + ' ' + (y0 + 8) +
+        ' L' + (BRX + span/2 + 60) + ' ' + (y0 + 24) +
+        ' Q' + BRX + ' ' + (y0 - rise + 6) + ' ' + (BRX - span/2 - 60) + ' ' + (y0 + 24) + ' Z',
+      fill:'#a98c5c', stroke:'#2e2519', 'stroke-width':2
+    }, g);
+
+    // 栏杆
+    for (var r = -11; r <= 11; r++){
+      var tr = r / 11;
+      var rx = BRX + tr * (span/2 + 54);
+      var ry = y0 + 8 - rise * (1 - tr*tr) - 6;
+      E('path', { d:'M' + rx + ' ' + ry + ' v-26', class:'ln2' }, g);
+    }
+    E('path', {
+      d:'M' + (BRX - span/2 - 60) + ' ' + (y0 - 20) +
+        ' Q' + BRX + ' ' + (y0 - rise - 42) + ' ' + (BRX + span/2 + 60) + ' ' + (y0 - 20),
+      class:'ln', 'stroke-width':3
+    }, g);
+
+    // 桥两端的表柱与灯
+    [-1, 1].forEach(function(sgn){
+      var px = BRX + sgn * (span/2 + 76);
+      E('path', { d:'M' + px + ' ' + (y0 + 26) + ' v-86', class:'ln', 'stroke-width':4 }, g);
+      E('path', { d:'M' + (px-12) + ' ' + (y0 - 60) + ' h24 l-4 -14 h-16 Z',
+        fill:'#c9a03c', stroke:'#2e2519', 'stroke-width':1.4 }, g);
+    });
+
+    /* ---- 桥上的人：全部朝河面聚拢 ---- */
+    var bridgeCrowd = G({}, lCrowd);
+    for (var p = 0; p < 34; p++){
+      var tp = rf(-1, 1);
+      var bx = BRX + tp * (span/2 + 48);
+      var by = y0 + 6 - rise * (1 - tp*tp) - 2;
+      var near = Math.abs(bx - BRX) < 150;
+      person(bridgeCrowd, bx, by, {
+        s: rf(.72, .92),
+        walk: !near,
+        arms: near ? (R() < .5 ? 'lean' : 'up') : null,
+        color: pick(ROBE)
+      });
+    }
+    // 桥头两个摊子
+    [[BRX - span/2 - 120, '茶'], [BRX + span/2 + 116, '饼']].forEach(function(v){
+      var sg = G({}, lBuild);
+      E('path', { d:'M' + (v[0]-40) + ' ' + (GY-52) + ' h80 l-8 -20 h-64 Z',
+        fill:'#cbb287', stroke:'#2e2519', 'stroke-width':1.4 }, sg);
+      E('path', { d:'M' + (v[0]-36) + ' ' + (GY-52) + ' v40 M' + (v[0]+36) + ' ' + (GY-52) + ' v40',
+        class:'ln2' }, sg);
+      E('rect', { x:v[0]-34, y:GY-16, width:68, height:8, fill:'#9c8358',
+        stroke:'#2e2519', 'stroke-width':1.2 }, sg);
+      var tt = E('text', { x:v[0], y:GY-58, 'font-size':'18', fill:'#5a1f16', 'text-anchor':'middle' }, sg);
+      tt.textContent = v[1];
+      person(lCrowd, v[0] - 8, GY + 4, { s:.86, walk:false });
+    });
+
+    /* ---- 主戏：一艘漕船正要过桥，桅杆放到一半 ---- */
+    boat(BRX - 40, 760, { s:1.06, type:'cargo', len:250, crew:5, mast:'down' });
+    // 岸上向船喊话的人
+    person(lCrowd, BRX - 320, GY + 6, { s:1, walk:false, arms:'up', color:'#95573f' });
+    person(lCrowd, BRX - 286, GY + 10, { s:.92, walk:false, arms:'up' });
+
+    /* ---- 其它船：缓慢移动 ---- */
+    boat(1620, 838, { s:.9,  type:'cargo', len:210, crew:4, dist:640,  dur:190 });
+    boat(2960, 812, { s:.84, type:'cargo', len:200, crew:3, dist:-560, dur:210 });
+    boat(2180, 900, { s:.7,  type:'skiff', len:130, crew:2, dist:520,  dur:160 });
+    boat(3320, 884, { s:.66, type:'skiff', len:120, crew:2, dist:-480, dur:175 });
+    boat(1900, 700, { s:.56, type:'cargo', len:160, crew:2, dist:420,  dur:260 });
+
+    /* ---- 纤夫 ---- */
+    var haul = G({ class:'a-stroll', style:'--dur:200s; --dist:420px' }, lCrowd);
+    for (var hh = 0; hh < 6; hh++){
+      person(haul, 1500 + hh * 46, GY + 22, { s:.82, arms:'lean', color:'#7a6a52' });
+    }
+    E('path', { d:'M1490 ' + (GY+2) + ' L1780 ' + (GY-18), class:'ln3', opacity:'.7' }, lCrowd);
+  })();
+
+  /* ======================================================================
+     8. 街市段
+     ====================================================================== */
+  (function market(){
+    E('path', { d:'M3720 ' + GY + ' H6400', class:'ln2', opacity:'.7' }, lGround);
+
+    var x = 3760;
+    var signs = ['久住王員外家','劉家上色沉檀','趙太丞家','正店','腳店','香饮子','王家紙馬','decor'];
+    var si = 0;
+    while (x < 5380){
+      var w = ri(122, 196);
+      var isBig = (si % 3 === 1);
+      shop(x, w, {
+        h: isBig ? ri(140, 176) : ri(96, 128),
+        hip: isBig,
+        sign: (si % 2 === 0 && signs[si % signs.length] !== 'decor') ? signs[si % signs.length] : null,
+        awning: R() < .7,
+        smoke: R() < .3,
+        roofFill: isBig ? 'url(#roofT)' : null
+      });
+
+      // 彩楼欢门（大店门前的木构装饰）
+      if (isBig && R() < .8){
+        var g = G({}, lBuild);
+        var gx = x + w*0.5, gy = GY - 176;
+        E('path', { d:'M' + (gx-70) + ' ' + GY + ' V' + gy + ' H' + (gx+70) + ' V' + GY, class:'ln', 'stroke-width':3 }, g);
+        E('path', { d:'M' + (gx-80) + ' ' + gy + ' h160 l-14 -18 h-132 Z',
+          fill:'#b8925f', stroke:'#2e2519', 'stroke-width':1.5 }, g);
+        for (var q = -2; q <= 2; q++){
+          E('path', { d:'M' + (gx + q*28) + ' ' + gy + ' v26', class:'ln3' }, g);
+          E('circle', { cx:gx + q*28, cy:gy + 30, r:5, fill:'#c9a03c',
+            stroke:'#2e2519', 'stroke-width':1 }, g);
+        }
+      }
+
+      x += w + ri(16, 46);
+      si++;
+    }
+
+    // 街上的人群
+    crowd(lCrowd, 3760, 5400, GY + 12, 74);
+
+    // 行走的两队
+    var q1 = G({ class:'a-stroll', style:'--dur:150s; --dist:-360px' }, lCrowd);
+    crowd(q1, 4200, 4700, GY + 30, 16);
+    var q2 = G({ class:'a-stroll', style:'--dur:190s; --dist:400px' }, lCrowd);
+    crowd(q2, 4600, 5200, GY - 6, 14, { s:.86 });
+
+    // 轿子
+    (function sedan(){
+      var sx = 4380, g = G({ class:'a-stroll', style:'--dur:170s; --dist:-300px' }, lCrowd);
+      var s = G({ transform:'translate(' + sx + ' ' + (GY + 6) + ')' }, g);
+      E('rect', { x:-34, y:-58, width:68, height:44, rx:4, fill:'#7b5f42',
+        stroke:'#2e2519', 'stroke-width':1.6 }, s);
+      E('path', { d:'M-40 -58 h80 l-10 -14 h-60 Z', fill:'#9e3b2c',
+        stroke:'#2e2519', 'stroke-width':1.4 }, s);
+      E('rect', { x:-20, y:-50, width:26, height:26, fill:'#c3b085',
+        stroke:'#2e2519', 'stroke-width':1.2 }, s);
+      E('path', { d:'M-72 -40 H72', class:'ln', 'stroke-width':3 }, s);
+      person(s, -60, 0, { s:.95, arms:'lean' });
+      person(s, 60, 0,  { s:.95, arms:'lean' });
+    })();
+
+    // 骆驼队（自城门出）
+    (function camels(){
+      var g = G({ class:'a-stroll', style:'--dur:260s; --dist:-540px' }, lCrowd);
+      for (var i = 0; i < 4; i++){
+        var cx = 5460 + i * 104;
+        var c = G({ transform:'translate(' + cx + ' ' + (GY + 8) + ')' }, g);
+        E('path', {
+          d:'M-34 -26 q6 -14 16 -14 q6 -12 14 0 q8 -14 16 -2 l8 4 q8 2 8 12 l-2 12 M-34 -26 l-10 -14 q-6 -8 2 -12 l8 4',
+          fill:'#b09266', class:'ln'
+        }, c);
+        ['-26','-10','10','26'].forEach(function(lx, li){
+          E('path', { d:'M' + lx + ' -12 v12', stroke:'#8b7047', 'stroke-width':2.8,
+            'stroke-linecap':'round', class: li % 2 ? 'a-legR' : 'a-legL', style:'--dur:.86s' }, c);
+        });
+        E('rect', { x:-16, y:-42, width:28, height:12, rx:2, fill:'#8f6b47',
+          stroke:'#2e2519', 'stroke-width':1.1 }, c);
+      }
+      person(g, 5420, GY + 8, { s:.95, carry:false });
+    })();
+
+    // 街树
+    [3820, 4080, 4460, 4820, 5180].forEach(function(tx){
+      tree(tx, GY + rf(-4, 16), 'leaf', rf(.85, 1.05));
+    });
+  })();
+
+  /* ======================================================================
+     9. 城门楼
+     ====================================================================== */
+  (function gate(){
+    var gx = 5620, gw = 460;
+    var g = G({}, lBuild);
+
+    // 城墙
+    E('rect', { x:gx - 60, y:GY - 236, width:gw + 120, height:236,
+      fill:'#c2ab84', stroke:'#2e2519', 'stroke-width':2 }, g);
+    for (var b = 0; b < 14; b++){
+      E('path', { d:'M' + (gx - 60 + (gw+120)*b/14) + ' ' + (GY-236) + ' V' + GY,
+        class:'ln3', opacity:'.28' }, g);
+    }
+    for (var r = 1; r < 5; r++){
+      E('path', { d:'M' + (gx-60) + ' ' + (GY - 236 + 236*r/5) + ' H' + (gx + gw + 60),
+        class:'ln3', opacity:'.3' }, g);
+    }
+    // 城门洞
+    E('path', {
+      d:'M' + (gx + gw*0.32) + ' ' + GY + ' V' + (GY - 118) +
+        ' q' + (gw*0.18) + ' -' + (gw*0.20) + ' ' + (gw*0.36) + ' 0 V' + GY + ' Z',
+      fill:'#3a3126', stroke:'#2e2519', 'stroke-width':2
+    }, g);
+    // 门洞里透出的人
+    person(lCrowd, gx + gw*0.44, GY + 4, { s:.8, color:'#5c5347' });
+    person(lCrowd, gx + gw*0.56, GY + 8, { s:.86, color:'#6f7f6a' });
+
+    // 城台
+    E('rect', { x:gx - 92, y:GY - 268, width:gw + 184, height:34,
+      fill:'#b09a74', stroke:'#2e2519', 'stroke-width':1.8 }, g);
+
+    // 城楼主体
+    var tx = gx + 40, tw = gw - 80, th = 132;
+    E('rect', { x:tx, y:GY - 268 - th, width:tw, height:th,
+      fill:'url(#wall)', stroke:'#2e2519', 'stroke-width':1.8 }, g);
+    for (var c = 0; c <= 6; c++){
+      E('path', { d:'M' + (tx + tw*c/6) + ' ' + (GY-268-th) + ' V' + (GY-268), class:'ln2' }, g);
+    }
+    for (var wI = 0; wI < 6; wI++){
+      E('rect', { x:tx + tw*(wI+0.16)/6, y:GY-268-th*0.72, width:tw*0.68/6, height:th*0.42,
+        fill:'#c3b085', stroke:'#2e2519', 'stroke-width':1.2 }, g);
+    }
+
+    // 重檐
+    roofHip(g, tx - 26, GY - 268 - th, tw + 52, 76, 'url(#roofT)');
+    roofHip(g, tx - 6,  GY - 268 - th - 76, tw + 12, 62, 'url(#roofT)');
+
+    // 鸱吻
+    [-1, 1].forEach(function(s){
+      var ex = tx + tw/2 + s * (tw*0.30);
+      E('path', { d:'M' + ex + ' ' + (GY-268-th-138) + ' q' + (s*14) + ' -18 ' + (s*2) + ' -26 q' + (s*-10) + ' 10 ' + (s*-2) + ' 26 Z',
+        fill:'#8a6a3e', stroke:'#2e2519', 'stroke-width':1.4 }, g);
+    });
+
+    // 旗
+    var fx = tx + tw/2;
+    E('path', { d:'M' + fx + ' ' + (GY-268-th-164) + ' v-70', class:'ln', 'stroke-width':3 }, g);
+    var flag = G({ class:'a-flap', style:'--dur:3.2s' }, g);
+    E('path', { d:'M' + fx + ' ' + (GY-268-th-232) + ' l58 12 l-58 14 Z',
+      fill:'#9e3b2c', stroke:'#2e2519', 'stroke-width':1.4 }, flag);
+
+    // 城内延伸的屋脊
+    for (var k2 = 0; k2 < 5; k2++){
+      var kx = gx + gw + 90 + k2 * 96;
+      E('path', { d:'M' + kx + ' ' + (GY - 60 - k2*10) + ' l48 -30 l48 30',
+        class:'ln2', opacity: (0.7 - k2*0.1).toFixed(2) }, g);
+    }
+  })();
+
+  /* ======================================================================
+     10. 前景柳与卷尾
+     ====================================================================== */
+  (function foreground(){
+    [1380, 3760, 5560].forEach(function(x){
+      var t = tree(x, GY + 96, 'willow', 1.5);
+      lFore.appendChild(t);
+    });
+
+    var t = E('text', { x:6300, y:150, 'font-size':'30', fill:'#4a3d2c',
+      'letter-spacing':'8', 'writing-mode':'tb' }, lFore);
+    t.textContent = '丙午重摹';
+    E('rect', { x:6288, y:300, width:38, height:38, fill:'#9e3b2c', rx:3, opacity:'.9' }, lFore);
+    var t2 = E('text', { x:6307, y:328, 'font-size':'22', fill:'#f2e4d4', 'text-anchor':'middle' }, lFore);
+    t2.textContent = '閒';
+  })();
+
+  /* ======================================================================
+     11. 交互：自动卷动 / 拖拽 / 键盘 / 章节
+     ====================================================================== */
+  var vp = document.getElementById('vp');
+  var SPEEDS = [0, 12, 26, 48, 90];              // px / 秒
+  var state = { playing:true, speed:2, last:null };
+
+  var CHAPTERS = [
+    { p:0.02, n:'郊野' },
+    { p:0.26, n:'汴河' },
+    { p:0.385,n:'虹桥' },
+    { p:0.62, n:'街市' },
+    { p:0.90, n:'城門' }
+  ];
+
+  (function buildMarks(){
+    var host = document.getElementById('marks');
+    CHAPTERS.forEach(function(c){
+      var b = document.createElement('button');
+      b.className = 'marks__seg';
+      b.type = 'button';
+      b.style.left = 'calc(' + (c.p * 100) + '% - 1rem)';
+      b.setAttribute('aria-label', '跳到' + c.n);
+      var s = document.createElement('span');
+      s.textContent = c.n;
+      b.appendChild(s);
+      b.addEventListener('click', function(){
+        var max = vp.scrollWidth - vp.clientWidth;
+        vp.scrollTo({ left: c.p * max,
+          behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+      });
+      host.appendChild(b);
+    });
+  })();
+
+  function setPlaying(on){
+    state.playing = on;
+    var b = document.getElementById('playBtn');
+    b.classList.toggle('btn--on', on);
+    b.setAttribute('aria-pressed', String(on));
+    document.getElementById('playTxt').textContent = on ? '卷动中' : '已暂停';
+    document.getElementById('playIcon').innerHTML = on
+      ? '<path d="M4 2h3.2v12H4zM8.8 2H12v12H8.8z"/>'
+      : '<path d="M3 2l11 6-11 6z"/>';
+    vp.dataset.anim = on ? 'on' : 'off';
+  }
+
+  document.getElementById('playBtn').addEventListener('click', function(){
+    setPlaying(!state.playing);
+  });
+  document.getElementById('spd').addEventListener('input', function(){
+    state.speed = +this.value;
+    if (state.speed === 0) setPlaying(false);
+  });
+
+  /* 拖拽 */
+  var drag = null;
+  vp.addEventListener('pointerdown', function(e){
+    drag = { x:e.clientX, left:vp.scrollLeft };
+    vp.dataset.drag = 'true';
+    vp.setPointerCapture(e.pointerId);
+    setPlaying(false);
+  });
+  vp.addEventListener('pointermove', function(e){
+    if (!drag) return;
+    vp.scrollLeft = drag.left - (e.clientX - drag.x);
+  });
+  ['pointerup','pointercancel'].forEach(function(ev){
+    vp.addEventListener(ev, function(){ drag = null; vp.dataset.drag = 'false'; });
+  });
+
+  /* 滚轮转横向 */
+  vp.addEventListener('wheel', function(e){
+    if (Math.abs(e.deltaY) > Math.abs(e.deltaX)){
+      e.preventDefault();
+      vp.scrollLeft += e.deltaY;
+      setPlaying(false);
+    }
+  }, { passive:false });
+
+  /* 键盘 */
+  vp.addEventListener('keydown', function(e){
+    var step = e.shiftKey ? 800 : 180;
+    if (e.key === 'ArrowRight'){ e.preventDefault(); vp.scrollLeft += step; setPlaying(false); }
+    else if (e.key === 'ArrowLeft'){ e.preventDefault(); vp.scrollLeft -= step; setPlaying(false); }
+    else if (e.key === 'Home'){ e.preventDefault(); vp.scrollLeft = 0; }
+    else if (e.key === 'End'){ e.preventDefault(); vp.scrollLeft = vp.scrollWidth; }
+    else if (e.key === ' '){ e.preventDefault(); setPlaying(!state.playing); }
+  });
+
+  /* 自动卷动 */
+  function tick(now){
+    if (state.last === null) state.last = now;
+    var dt = (now - state.last) / 1000;
+    state.last = now;
+
+    var max = vp.scrollWidth - vp.clientWidth;
+    if (state.playing && SPEEDS[state.speed] > 0 && max > 0){
+      var next = vp.scrollLeft + SPEEDS[state.speed] * dt;
+      if (next >= max){ next = 0; }
+      vp.scrollLeft = next;
+    }
+
+    var p = max > 0 ? vp.scrollLeft / max : 0;
+    document.getElementById('railFill').style.width = (p * 100).toFixed(2) + '%';
+    document.getElementById('pos').textContent = Math.round(p * 100) + '%';
+
+    var cur = CHAPTERS[0];
+    CHAPTERS.forEach(function(c){ if (p >= c.p - 0.02) cur = c; });
+    document.querySelectorAll('.marks__seg').forEach(function(b, i){
+      b.setAttribute('aria-current', String(CHAPTERS[i] === cur));
+    });
+
+    requestAnimationFrame(tick);
+  }
+
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches){
+    setPlaying(false);
+    document.getElementById('spd').value = 0;
+    state.speed = 0;
+  }
+  requestAnimationFrame(tick);
+})();
+</script>
+
+</body>
+</html>

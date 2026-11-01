@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>404 · 航线未进入已知星图 — Nova Voyage 新航</title>
+<style>
+:root{
+  --space:#050814;--ink:#e8ecf8;--dim:#8b93b8;--faint:#565e80;
+  --nova:#7fa8ff;--aur:#8ffff0;--amber:#ffcf8a;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%}
+body{
+  background:radial-gradient(1200px 700px at 50% 118%, #0d1c3a 0%, var(--space) 60%, #030510 100%);
+  color:var(--ink);font-family:"PingFang SC","Microsoft YaHei","Helvetica Neue",sans-serif;
+  overflow:hidden;user-select:none;
+}
+#stars{position:fixed;inset:0;width:100%;height:100%;display:block}
+.stage{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:0 22px;z-index:2}
+
+/* ---------- HUD ---------- */
+.hud{position:fixed;z-index:5;pointer-events:none;font-family:Consolas,monospace;font-size:10px;letter-spacing:.28em;color:var(--faint)}
+.hud.tl{top:20px;left:24px}.hud.tr{top:20px;right:24px;text-align:right}
+.hud.bl{bottom:18px;left:24px}.hud.br{bottom:18px;right:24px;text-align:right}
+.hud b{color:var(--nova);font-weight:500}
+.hud .live{color:var(--aur)}
+.corner{position:fixed;width:26px;height:26px;border:1px solid rgba(127,168,255,.35);z-index:5;pointer-events:none}
+.corner.c1{top:14px;left:14px;border-right:none;border-bottom:none}
+.corner.c2{top:14px;right:14px;border-left:none;border-bottom:none}
+.corner.c3{bottom:14px;left:14px;border-right:none;border-top:none}
+.corner.c4{bottom:14px;right:14px;border-left:none;border-top:none}
+@media (max-width:640px){.hud.bl,.hud.br{display:none}}
+
+/* ---------- 内容 ---------- */
+.badge{
+  display:inline-flex;align-items:center;gap:10px;font-family:Consolas,monospace;
+  font-size:11px;letter-spacing:.42em;color:var(--dim);
+  border:1px solid rgba(127,168,255,.25);border-radius:999px;padding:8px 20px;margin-bottom:34px;
+  background:rgba(10,16,36,.5);backdrop-filter:blur(4px);
+}
+.badge i{width:7px;height:7px;border-radius:50%;background:var(--aur);box-shadow:0 0 10px var(--aur);animation:blip 1.8s infinite}
+@keyframes blip{50%{opacity:.25}}
+.big404{
+  display:flex;align-items:baseline;gap:clamp(6px,1.6vw,18px);line-height:1;
+  font-family:Georgia,"Times New Roman",serif;
+  font-size:clamp(110px,26vmin,240px);font-weight:700;letter-spacing:.02em;
+}
+.big404 span{display:inline-block;animation:hover-float 5.2s ease-in-out infinite}
+.big404 span:nth-child(2){animation-delay:-1.7s}
+.big404 span:nth-child(3){animation-delay:-3.4s}
+@keyframes hover-float{0%,100%{transform:translateY(0) rotate(-.4deg)}50%{transform:translateY(-14px) rotate(.4deg)}}
+.big404 .o{color:transparent;-webkit-text-stroke:2.5px rgba(127,168,255,.75)}
+.big404 .f1{
+  background:linear-gradient(160deg,#e8ecf8 10%,var(--nova) 55%,#3c2a8a 95%);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+  filter:drop-shadow(0 10px 44px rgba(127,168,255,.35));
+}
+.big404 .f2{color:transparent;-webkit-text-stroke:2.5px rgba(255,207,138,.6)}
+h1{margin-top:26px;font-size:clamp(20px,3.2vmin,30px);font-weight:600;letter-spacing:.14em}
+h1 i{font-style:normal;color:var(--nova)}
+.sub{margin-top:12px;color:var(--dim);font-size:14px;letter-spacing:.05em;max-width:520px}
+.coords{
+  margin-top:18px;font-family:Consolas,monospace;font-size:11px;letter-spacing:.2em;color:var(--faint);
+}
+.coords b{color:var(--aur);font-weight:400}
+.acts{margin-top:36px;display:flex;gap:13px;flex-wrap:wrap;justify-content:center}
+.btn{
+  display:inline-flex;align-items:center;gap:9px;border-radius:999px;padding:13px 26px;
+  font-size:14px;letter-spacing:.08em;transition:.22s;cursor:pointer;border:1px solid transparent;
+}
+.btn.primary{
+  background:linear-gradient(135deg,var(--nova),#5a79e8);color:#071022;font-weight:700;
+  box-shadow:0 12px 34px rgba(127,168,255,.3);
+}
+.btn.primary:hover{transform:translateY(-2px);box-shadow:0 16px 44px rgba(127,168,255,.45)}
+.btn.ghost{border-color:rgba(139,147,184,.35);color:var(--dim)}
+.btn.ghost:hover{border-color:var(--nova);color:var(--ink)}
+/* 领航终端 */
+.term{
+  margin-top:30px;display:flex;align-items:center;gap:12px;
+  border:1px solid rgba(127,168,255,.25);border-radius:14px;padding:6px 6px 6px 18px;
+  background:rgba(8,13,30,.6);backdrop-filter:blur(6px);width:min(430px,88vw);
+  font-family:Consolas,monospace;transition:.2s;
+}
+.term:focus-within{border-color:var(--nova);box-shadow:0 0 0 3px rgba(127,168,255,.12)}
+.term .pr{color:var(--aur);font-size:13px}
+.term input{
+  flex:1;background:none;border:none;outline:none;color:var(--ink);
+  font-family:Consolas,monospace;font-size:13px;letter-spacing:.08em;min-width:0;
+}
+.term input::placeholder{color:var(--faint)}
+.term button{
+  border-radius:10px;padding:10px 18px;font-size:12px;letter-spacing:.2em;flex:0 0 auto;
+  background:rgba(127,168,255,.14);color:var(--nova);transition:.18s;
+}
+.term button:hover{background:rgba(127,168,255,.26)}
+/* 行星：底部露出一弯弧线 */
+.planet{
+  position:fixed;left:50%;bottom:-158vmax;transform:translateX(-50%);
+  width:180vmax;height:180vmax;border-radius:50%;z-index:1;pointer-events:none;
+  background:
+    radial-gradient(circle at 38% 8%, rgba(127,168,255,.16), transparent 34%),
+    radial-gradient(circle at 62% 4%, rgba(143,255,240,.1), transparent 30%),
+    radial-gradient(circle at 50% 0%, #16264a 0%, #0c1530 40%, #070d20 70%);
+  box-shadow:
+    0 -8px 60px rgba(127,168,255,.25),
+    inset 0 26px 80px rgba(143,255,240,.09),
+    inset 0 3px 0 rgba(200,220,255,.5);
+}
+.planet::after{ /* 大气辉光 */
+  content:"";position:absolute;inset:-3px;border-radius:50%;
+  border-top:2px solid rgba(160,200,255,.4);
+  filter:blur(6px);
+}
+/* 小飞船 */
+.ship{
+  position:fixed;z-index:2;pointer-events:none;
+  top:22%;left:-10%;
+  animation:cross 26s linear infinite;
+  animation-delay:-9s;
+}
+@keyframes cross{
+  from{transform:translate(-6vw,0)}
+  to{transform:translate(110vw,6vh)}
+}
+.ship .body{
+  width:64px;height:22px;border-radius:12px 22px 22px 12px;position:relative;
+  background:linear-gradient(100deg,#dfe6f8,#98a5cc 60%,#5d6a96);
+  box-shadow:0 0 24px rgba(160,190,255,.4);
+  animation:shipbob 3.4s ease-in-out infinite;
+}
+@keyframes shipbob{50%{transform:translateY(-5px) rotate(1.2deg)}}
+.ship .body::before{ /* 舷窗 */
+  content:"";position:absolute;top:6px;right:14px;width:9px;height:9px;border-radius:50%;
+  background:radial-gradient(circle at 35% 30%,#fff,var(--aur));
+}
+.ship .body::after{ /* 尾焰 */
+  content:"";position:absolute;right:-26px;top:6px;width:24px;height:10px;border-radius:0 12px 12px 0;
+  background:linear-gradient(90deg,rgba(143,255,240,.85),transparent);
+  filter:blur(1px);animation:flame .5s ease-in-out infinite alternate;
+}
+@keyframes flame{from{transform:scaleX(.7)}to{transform:scaleX(1.25)}}
+.ship .wake{
+  position:absolute;right:24px;top:9px;width:200px;height:4px;border-radius:4px;
+  background:linear-gradient(90deg,transparent,rgba(127,168,255,.3));
+}
+/* toast */
+.toast{
+  position:fixed;left:50%;bottom:9vh;transform:translateX(-50%) translateY(20px);z-index:20;
+  background:rgba(10,16,36,.9);border:1px solid rgba(127,168,255,.35);color:var(--ink);
+  border-radius:999px;padding:12px 26px;font-size:13px;letter-spacing:.06em;opacity:0;
+  transition:.3s;pointer-events:none;font-family:Consolas,monospace;backdrop-filter:blur(6px);
+}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.toast b{color:var(--aur);font-weight:500}
+@media (prefers-reduced-motion:reduce){
+  .big404 span,.ship,.ship .body,.ship .body::after,.badge i{animation:none}
+  .ship{left:12%;top:16%}
+}
+</style>
+</head>
+<body>
+
+<canvas id="stars" aria-hidden="true"></canvas>
+<div class="planet" aria-hidden="true"></div>
+<div class="ship" aria-hidden="true"><div class="body"></div><div class="wake"></div></div>
+
+<!-- HUD -->
+<div class="corner c1"></div><div class="corner c2"></div><div class="corner c3"></div><div class="corner c4"></div>
+<div class="hud tl">NOVA VOYAGE 新航<br>NAV.SYS <b>v9.4.1</b></div>
+<div class="hud tr">SIGNAL <b>▮▮▮▯</b><br><span class="live">DRIFT MODE</span></div>
+<div class="hud bl">VESSEL <b>NV-0042「流萤」</b><br>CREW 1 · HULL 100%</div>
+<div class="hud br">SECTOR <b>K-77 / 未测绘</b><br>DEST <span class="live" id="hudDest">LOCK FAILED</span></div>
+
+<main class="stage">
+  <span class="badge"><i></i>ERROR 404 · 航线未进入已知星图</span>
+  <div class="big404" aria-hidden="true"><span class="o">4</span><span class="f1">0</span><span class="f2">4</span></div>
+  <h1>你似乎驶出了 <i>已知星图</i></h1>
+  <p class="sub">请求的页面像一颗被除名的暗星——它可能已移动、改名，或从未在本次宇宙版本中上线。领航员建议：返回基地，或重新设定航向。</p>
+  <div class="coords">DRIFT COORDINATES · <b id="coords">RA 17h 45m 40s // DEC −29° 00′ 28″</b></div>
+  <div class="acts">
+    <a class="btn primary" href="/" onclick="return false">↑ 返回基地（首页）</a>
+    <button class="btn ghost" onclick="history.length>1?history.back():toast('回不到过去了——这是本次会话的第一个航段')">← 回到上一站</button>
+  </div>
+  <div class="term">
+    <span class="pr">&gt;_</span>
+    <input id="navInput" type="text" placeholder="输入目的地编号或名称，如 NGC-2264…" aria-label="领航终端">
+    <button id="navGo">设定航向</button>
+  </div>
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script>
+"use strict";
+/* ================= 星野 ================= */
+const cv=document.getElementById('stars'),ctx=cv.getContext('2d');
+const RM=matchMedia('(prefers-reduced-motion: reduce)').matches;
+let W,H,stars=[],meteors=[],mx=0,my=0,tx=0,ty=0;
+function resize(){
+  W=cv.width=innerWidth*devicePixelRatio;
+  H=cv.height=innerHeight*devicePixelRatio;
+  stars=Array.from({length:220},()=>({
+    x:Math.random()*W,y:Math.random()*H,
+    z:.3+Math.random()*.7,             // 层深
+    r:(Math.random()*1.4+.4)*devicePixelRatio,
+    p:Math.random()*Math.PI*2,sp:.4+Math.random()*1.2,
+  }));
+}
+addEventListener('resize',resize);resize();
+addEventListener('pointermove',e=>{
+  tx=(e.clientX/innerWidth-.5)*2;
+  ty=(e.clientY/innerHeight-.5)*2;
+});
+function spawnMeteor(){
+  if(RM)return;
+  if(Math.random()<.012&&meteors.length<2){
+    meteors.push({x:Math.random()*W*.9,y:Math.random()*H*.3,vx:6+Math.random()*6,vy:2+Math.random()*2,life:1});
+  }
+}
+function drawStars(t){
+  ctx.clearRect(0,0,W,H);
+  mx+=(tx-mx)*.03;my+=(ty-my)*.03;
+  for(const s of stars){
+    const tw=RM?.8:.55+Math.sin(t*s.sp+s.p)*.45;
+    ctx.globalAlpha=tw*s.z;
+    ctx.fillStyle=s.z>.72?'#dfe8ff':'#93a4d8';
+    ctx.beginPath();
+    ctx.arc(s.x-mx*30*s.z,s.y-my*20*s.z,s.r,0,7);
+    ctx.fill();
+  }
+  ctx.globalAlpha=1;
+  spawnMeteor();
+  for(let i=meteors.length-1;i>=0;i--){
+    const m=meteors[i];
+    m.x+=m.vx*devicePixelRatio;m.y+=m.vy*devicePixelRatio;m.life-=.012;
+    if(m.life<=0){meteors.splice(i,1);continue}
+    const g=ctx.createLinearGradient(m.x,m.y,m.x-m.vx*12,m.y-m.vy*12);
+    g.addColorStop(0,`rgba(200,225,255,${m.life})`);g.addColorStop(1,'transparent');
+    ctx.strokeStyle=g;ctx.lineWidth=1.6*devicePixelRatio;
+    ctx.beginPath();ctx.moveTo(m.x,m.y);ctx.lineTo(m.x-m.vx*12,m.y-m.vy*12);ctx.stroke();
+  }
+}
+function loop(t){
+  requestAnimationFrame(loop);
+  drawStars(t/1000);
+}
+if(RM){drawStars(0)}else{requestAnimationFrame(loop)}
+
+/* ================= 坐标读数 ================= */
+const coordEl=document.getElementById('coords');
+const RA=['17h 45m 40s','03h 32m 55s','13h 25m 11s','22h 08m 14s'];
+const DEC=['−29° 00′ 28″','+60° 14′ 07″','−11° 09′ 41″','+38° 47′ 01″'];
+let ci=0;
+if(!RM)setInterval(()=>{
+  ci=(ci+1)%RA.length;
+  coordEl.textContent=`RA ${RA[ci]} // DEC ${DEC[ci]}`;
+},2600);
+
+/* ================= 领航终端 ================= */
+const toastEl=document.getElementById('toast');
+let toastTimer=null;
+function toast(html){
+  toastEl.innerHTML=html;
+  toastEl.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>toastEl.classList.remove('show'),2800);
+}
+function nav(){
+  const v=document.getElementById('navInput').value.trim();
+  if(!v){toast('领航员：请先输入一个<b>目的地</b>，哪怕只是个好听的编号');return}
+  toast(`已收到航向 <b>${v.replace(/</g,'&lt;')}</b> · 领航员回复：本次航线暂未开通，先回基地看看吧`);
+  document.getElementById('hudDest').textContent='LOCK: '+v.slice(0,12).toUpperCase();
+}
+document.getElementById('navGo').addEventListener('click',nav);
+document.getElementById('navInput').addEventListener('keydown',e=>{if(e.key==='Enter')nav()});
+</script>
+</body>
+</html>

@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>造物 GENESIS · 一场滚动的宇宙史</title>
+<style>
+:root{
+  --void:#04050c;--ink:#eef0fa;--dim:#8b93b8;--faint:#4e5578;
+  --nova:#8fd8ff;--ember:#ffb37f;--violet:#8f7fff;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:auto}
+body{
+  background:var(--void);color:var(--ink);overflow-x:hidden;
+  font-family:"PingFang SC","Microsoft YaHei",sans-serif;
+}
+.serif{font-family:Georgia,"Songti SC",serif}
+.mono{font-family:Consolas,"SF Mono",monospace}
+::selection{background:rgba(143,216,255,.3)}
+
+/* ---------- 加载器 ---------- */
+#loader{
+  position:fixed;inset:0;z-index:100;background:var(--void);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;
+}
+#loader .word{font-size:clamp(24px,4.4vw,44px);letter-spacing:.6em;text-indent:.6em;font-weight:600;opacity:0}
+#loader .word i{font-style:normal;color:var(--nova)}
+#loader .bar{width:min(300px,64vw);height:1.5px;background:rgba(255,255,255,.1);position:relative;overflow:hidden}
+#loader .bar i{position:absolute;left:0;top:0;bottom:0;width:0;background:linear-gradient(90deg,var(--nova),var(--violet))}
+#loader .pct{font-family:Consolas,monospace;font-size:12px;letter-spacing:.3em;color:var(--dim)}
+#loader .hint{font-size:10.5px;letter-spacing:.34em;color:var(--faint)}
+
+/* ---------- 进度与导航 ---------- */
+#pb{position:fixed;top:0;left:0;height:2px;width:0;background:linear-gradient(90deg,var(--nova),var(--violet),var(--ember));z-index:60}
+#chapters{
+  position:fixed;right:26px;top:50%;transform:translateY(-50%);z-index:60;
+  display:flex;flex-direction:column;gap:16px;opacity:0;
+}
+#chapters a{display:block;width:9px;height:9px;border-radius:50%;border:1.5px solid var(--faint);transition:.25s}
+#chapters a.on{background:var(--nova);border-color:var(--nova);box-shadow:0 0 12px var(--nova)}
+@media (max-width:760px){#chapters{display:none}}
+/* 提示 */
+#scrollHint{
+  position:fixed;bottom:30px;left:50%;transform:translateX(-50%);z-index:60;
+  font-size:10.5px;letter-spacing:.4em;color:var(--dim);opacity:0;text-align:center;
+}
+#scrollHint .wheel{
+  width:20px;height:32px;border:1.5px solid var(--faint);border-radius:12px;margin:0 auto 10px;position:relative;
+}
+#scrollHint .wheel::after{content:"";position:absolute;left:50%;top:6px;width:3px;height:7px;margin-left:-1.5px;border-radius:2px;background:var(--nova);animation:wheel 1.6s ease-in-out infinite}
+@keyframes wheel{0%{transform:translateY(0);opacity:1}70%{transform:translateY(10px);opacity:0}100%{opacity:0}}
+
+/* ---------- 场景通用 ---------- */
+.scene{position:relative}
+.pinwrap{height:100vh;overflow:hidden;position:relative;display:flex;align-items:center;justify-content:center}
+.eyebrow{font-size:11px;letter-spacing:.5em;color:var(--nova);margin-bottom:26px}
+.eyebrow i{font-style:normal;color:var(--ember)}
+
+/* S1 奇点 */
+#s1{background:radial-gradient(1200px 700px at 50% 50%, #0a0f22, var(--void) 70%)}
+#s1 .dot{
+  width:8px;height:8px;border-radius:50%;background:#fff;position:absolute;left:50%;top:50%;
+  transform:translate(-50%,-50%);
+  box-shadow:0 0 30px 8px rgba(143,216,255,.85),0 0 90px 30px rgba(143,127,255,.4);
+}
+#s1 .s1txt{position:absolute;left:50%;top:64%;transform:translateX(-50%);text-align:center;width:90%}
+#s1 h2{font-size:clamp(24px,4.6vw,46px);font-weight:600;letter-spacing:.14em}
+#s1 h2 .w{display:inline-block;opacity:0;transform:translateY(26px)}
+#s1 .sub{margin-top:14px;color:var(--dim);font-size:13.5px;letter-spacing:.2em;opacity:0}
+
+/* S2 爆炸 */
+#s2{background:var(--void)}
+#burstCanvas{position:absolute;inset:0;width:100%;height:100%}
+#s2 .flash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none}
+#s2 .s2txt{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);text-align:center;z-index:3}
+#s2 .bang{font-size:clamp(56px,13vw,150px);font-weight:700;letter-spacing:.1em;line-height:1;
+  background:linear-gradient(120deg,#fff,var(--nova) 40%,var(--ember) 80%);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+  filter:drop-shadow(0 0 40px rgba(143,216,255,.4));
+}
+#s2 .temp{margin-top:18px;font-family:Consolas,monospace;font-size:14px;letter-spacing:.2em;color:var(--ember)}
+#s2 .bsub{margin-top:12px;color:var(--dim);font-size:13px;letter-spacing:.16em}
+
+/* S3 星云 + 横向时间线 */
+#s3{background:
+  radial-gradient(1000px 600px at 20% 20%, rgba(143,127,255,.13), transparent 60%),
+  radial-gradient(900px 600px at 80% 80%, rgba(255,179,127,.09), transparent 55%),
+  var(--void)}
+#s3 .nebula{position:absolute;border-radius:50%;filter:blur(70px);opacity:.5;pointer-events:none}
+#s3 .nb1{width:46vw;height:46vw;left:-8vw;top:-10vw;background:radial-gradient(circle,rgba(143,127,255,.5),transparent 65%)}
+#s3 .nb2{width:38vw;height:38vw;right:-6vw;bottom:-8vw;background:radial-gradient(circle,rgba(143,216,255,.4),transparent 65%)}
+#s3 .nb3{width:26vw;height:26vw;left:34vw;top:52vh;background:radial-gradient(circle,rgba(255,179,127,.34),transparent 65%)}
+#s3 .head3{position:absolute;left:50%;top:12vh;transform:translateX(-50%);text-align:center;width:92%}
+#s3 h2{font-size:clamp(26px,4.8vw,48px);font-weight:600;letter-spacing:.16em}
+#s3 .hsub{margin-top:12px;color:var(--dim);font-size:13px;letter-spacing:.24em}
+/* 横向轨道 */
+#htrack{height:100vh;display:flex;align-items:center}
+#hscroll{display:flex;gap:5vw;padding:0 12vw;align-items:center;will-change:transform}
+.era{
+  flex:0 0 auto;width:min(420px,78vw);border:1px solid rgba(143,216,255,.18);border-radius:20px;
+  padding:34px 32px;background:rgba(8,12,28,.62);backdrop-filter:blur(8px);position:relative;
+}
+.era .ago{font-family:Consolas,monospace;font-size:12px;letter-spacing:.24em;color:var(--ember)}
+.era h3{margin-top:12px;font-size:24px;font-weight:600;letter-spacing:.06em}
+.era p{margin-top:12px;color:var(--dim);font-size:13.5px;line-height:1.95}
+.era .tick{position:absolute;top:-5px;left:32px;width:9px;height:9px;border-radius:50%;background:var(--nova);box-shadow:0 0 12px var(--nova)}
+.era.now{border-color:rgba(255,179,127,.5)}
+.era.now .tick{background:var(--ember);box-shadow:0 0 12px var(--ember)}
+.era.now h3{color:var(--ember)}
+
+/* S4 蓝色星球 */
+#s4{background:radial-gradient(1000px 640px at 50% 120%, #0a1e3d, var(--void) 72%)}
+#s4 .planet{
+  position:absolute;left:50%;bottom:-58vh;transform:translateX(-50%);
+  width:120vh;height:120vh;border-radius:50%;
+  background:
+    radial-gradient(circle at 40% 18%, rgba(143,216,255,.35), transparent 30%),
+    radial-gradient(circle at 62% 8%, rgba(255,255,255,.2), transparent 22%),
+    radial-gradient(circle at 50% 30%, #2a5e9e 0%, #1a3f74 42%, #0c2450 74%);
+  box-shadow:0 -10px 90px rgba(143,216,255,.4), inset 0 30px 90px rgba(160,220,255,.28), inset 0 3px 0 rgba(220,240,255,.6);
+}
+#s4 .planet::after{content:"";position:absolute;inset:-4px;border-radius:50%;border-top:2.5px solid rgba(170,225,255,.55);filter:blur(5px)}
+#s4 .s4txt{position:absolute;left:50%;top:22vh;transform:translateX(-50%);text-align:center;width:92%}
+#s4 h2{font-size:clamp(28px,5.2vw,54px);font-weight:600;letter-spacing:.2em}
+#s4 .w{display:inline-block;opacity:0;transform:translateY(30px)}
+#s4 .sub{margin-top:16px;color:var(--dim);font-size:13.5px;letter-spacing:.2em}
+.ripple{
+  position:absolute;left:50%;bottom:34vh;width:14vh;height:14vh;border-radius:50%;
+  border:1.5px solid rgba(143,216,255,.5);transform:translateX(-50%) scale(.1);opacity:0;
+}
+
+/* S5 文明 */
+#s5{background:var(--void)}
+#citySvg{position:absolute;inset:auto 0 0;height:64%;width:100%}
+#citySvg path{stroke:rgba(143,216,255,.5);fill:none;stroke-width:1.4}
+#s5 .s5txt{position:absolute;left:50%;top:16vh;transform:translateX(-50%);text-align:center;width:92%}
+#s5 h2{font-size:clamp(26px,4.8vw,48px);font-weight:600;letter-spacing:.16em}
+#s5 .counters{margin-top:34px;display:flex;gap:clamp(18px,5vw,64px);justify-content:center;flex-wrap:wrap}
+.counter{text-align:center}
+.counter .n{font-family:Consolas,monospace;font-size:clamp(26px,4.4vw,44px);color:var(--nova)}
+.counter .n i{font-style:normal;font-size:.5em;color:var(--faint)}
+.counter .l{margin-top:6px;font-size:11px;letter-spacing:.3em;color:var(--dim)}
+#s5 .civil{margin-top:38px;color:var(--dim);font-size:13.5px;letter-spacing:.18em}
+
+/* S6 尾声 */
+#s6{background:radial-gradient(900px 560px at 50% 58%, #101832, var(--void) 75%)}
+#s6 .stage6{text-align:center;position:relative;z-index:2}
+#s6 .dust{
+  width:10px;height:10px;border-radius:50%;margin:0 auto 34px;
+  background:radial-gradient(circle at 35% 30%,#fff,var(--nova));
+  box-shadow:0 0 26px 6px rgba(143,216,255,.6);
+}
+#s6 h2{font-size:clamp(28px,5.4vw,58px);font-weight:600;letter-spacing:.22em}
+#s6 h2 .glow{background:linear-gradient(120deg,#fff,var(--nova),var(--violet));-webkit-background-clip:text;background-clip:text;color:transparent}
+#s6 .sub{margin:22px auto 0;max-width:560px;color:var(--dim);font-size:14px;line-height:2.1;letter-spacing:.08em}
+#s6 .acts{margin-top:40px;display:flex;gap:14px;justify-content:center;flex-wrap:wrap}
+#s6 .btn{
+  display:inline-flex;border-radius:999px;padding:13px 28px;font-size:13.5px;letter-spacing:.16em;cursor:pointer;
+  border:1px solid rgba(143,216,255,.35);color:var(--ink);text-decoration:none;transition:.22s;background:rgba(10,16,36,.4);
+}
+#s6 .btn.primary{background:linear-gradient(120deg,var(--nova),var(--violet));color:#071022;font-weight:700;border-color:transparent}
+#s6 .btn:hover{transform:translateY(-2px);box-shadow:0 10px 30px rgba(143,216,255,.25)}
+#s6 .credits{margin-top:66px;font-size:10.5px;letter-spacing:.3em;color:var(--faint);line-height:2.4}
+
+@media (prefers-reduced-motion:reduce){
+  #loader,#scrollHint{display:none}
+  #s1 h2 .w,#s4 .w{opacity:1;transform:none}
+}
+</style>
+</head>
+<body>
+
+<!-- 加载器 -->
+<div id="loader">
+  <div class="word serif">造物 <i>·</i> GENESIS</div>
+  <div class="bar"><i id="loadbar"></i></div>
+  <div class="pct" id="loadpct">000</div>
+  <div class="hint">一次滚动 · 一百三十七亿年</div>
+</div>
+
+<div id="pb" aria-hidden="true"></div>
+<nav id="chapters" aria-label="章节">
+  <a href="#s1" data-s="s1" class="on" aria-label="奇点"></a>
+  <a href="#s2" data-s="s2" aria-label="爆炸"></a>
+  <a href="#s3" data-s="s3" aria-label="星云与时间"></a>
+  <a href="#s4" data-s="s4" aria-label="蓝色星球"></a>
+  <a href="#s5" data-s="s5" aria-label="文明"></a>
+  <a href="#s6" data-s="s6" aria-label="尾声"></a>
+</nav>
+<div id="scrollHint"><div class="wheel"></div>向下滚动 · 开始时间</div>
+
+<!-- S1 奇点 -->
+<section class="scene" id="s1">
+  <div class="pinwrap">
+    <div class="dot" id="dot"></div>
+    <div class="s1txt">
+      <div class="eyebrow">SCENE 01 · <i>奇点</i></div>
+      <h2 class="serif" id="s1h"><span class="w">一切</span> <span class="w">始于</span> <span class="w">一个点</span></h2>
+      <p class="sub">没有空间，没有时间，没有观者</p>
+    </div>
+  </div>
+</section>
+
+<!-- S2 爆炸 -->
+<section class="scene" id="s2">
+  <div class="pinwrap">
+    <canvas id="burstCanvas"></canvas>
+    <div class="flash" id="flash"></div>
+    <div class="s2txt">
+      <div class="eyebrow">SCENE 02 · <i>爆炸</i></div>
+      <div class="bang serif">BANG</div>
+      <div class="temp">T ≈ <span id="tempN">10³²</span> K · 半径 <span id="radN">0</span> m</div>
+      <p class="sub">时间从此开始计数 —— 每一帧都是十亿年</p>
+    </div>
+  </div>
+</section>
+
+<!-- S3 星云 + 横向时间线 -->
+<section class="scene" id="s3">
+  <div class="nebula nb1"></div><div class="nebula nb2"></div><div class="nebula nb3"></div>
+  <div id="htrack">
+    <div id="hscroll">
+      <div style="flex:0 0 auto;width:min(430px,80vw);text-align:left">
+        <div class="eyebrow">SCENE 03 · <i>星云与时间</i></div>
+        <h2 class="serif" style="font-size:clamp(26px,4.8vw,48px);font-weight:600;letter-spacing:.1em">尘埃聚成云，<br>云点亮成星。</h2>
+        <p class="hsub">横向滚动 · 宇宙大事记 →</p>
+      </div>
+      <div class="era"><span class="tick"></span><div class="ago">T + 10⁻³² 秒</div><h3>暴胀</h3><p>空间以超越光速的速度膨胀，一粒沙的尺度被放大成星系团的摇篮。物理学的规则在这一瞬间定型。</p></div>
+      <div class="era"><span class="tick"></span><div class="ago">T + 38 万年</div><h3>第一缕光</h3><p>电子与原子核握手成原子，光子挣脱束缚——宇宙第一次变得透明。那道光至今仍以微波的形式弥漫在所有方向。</p></div>
+      <div class="era"><span class="tick"></span><div class="ago">T + 9 亿年</div><h3>星系点火</h3><p>第一代恒星点燃，重元素在它们的心脏里被锻造。你所站的土地、你呼吸的碳，都曾是某颗恒星的核心。</p></div>
+      <div class="era"><span class="tick"></span><div class="ago">T + 91 亿年</div><h3>地球</h3><p>一颗平庸的行星在三流星系边缘凝聚。海洋在它表面铺开，像一次漫长的深呼吸。</p></div>
+      <div class="era"><span class="tick"></span><div class="ago">T + 137 亿年</div><h3>此刻</h3><p>恒星烧完的尘埃开始好奇自己的来处——你正用一块发光的玻璃读这句话。</p></div>
+      <div class="era now"><span class="tick"></span><div class="ago">NOW · 2026</div><h3>你在这里</h3><p>宇宙用了 137 亿年走到今晚。而你的这段滚动，只用了不到一分钟。</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- S4 蓝色星球 -->
+<section class="scene" id="s4">
+  <div class="pinwrap">
+    <div class="planet" id="p4"></div>
+    <div class="ripple" id="r1"></div><div class="ripple" id="r2"></div><div class="ripple" id="r3"></div>
+    <div class="s4txt">
+      <div class="eyebrow">SCENE 04 · <i>蓝色星球</i></div>
+      <h2 class="serif" id="s4h"><span class="w">水</span><span class="w">来</span><span class="w">了</span></h2>
+      <p class="sub">38 亿年前 · 一次持续十亿年的下雨</p>
+    </div>
+  </div>
+</section>
+
+<!-- S5 文明 -->
+<section class="scene" id="s5">
+  <div class="pinwrap">
+    <svg id="citySvg" viewBox="0 0 1200 420" preserveAspectRatio="xMidYMax slice" aria-hidden="true">
+      <path id="cityPath" d="M0,420 L0,360 L60,360 L60,300 L120,300 L120,340 L200,340 L200,250 L260,250 L260,320 L340,320 L340,190 L400,190 L400,290 L480,290 L480,140 L540,140 L540,270 L620,270 L620,210 L680,210 L680,300 L760,300 L760,170 L820,170 L820,280 L900,280 L900,110 L960,110 L960,250 L1040,250 L1040,190 L1100,190 L1100,300 L1200,300 L1200,420"/>
+      <path d="M0,420 L0,390 L100,390 L100,370 L220,370 L220,395 L360,395 L360,365 L520,365 L520,392 L700,392 L700,362 L880,362 L880,394 L1060,394 L1060,368 L1200,368 L1200,420" opacity=".45"/>
+    </svg>
+    <div class="s5txt">
+      <div class="eyebrow">SCENE 05 · <i>文明</i></div>
+      <h2 class="serif">文明，是宇宙的一瞬</h2>
+      <div class="counters">
+        <div class="counter"><div class="n"><span data-c="137" data-dec="0">0</span><i> 亿年</i></div><div class="l">宇宙年龄</div></div>
+        <div class="counter"><div class="n"><span data-c="1" data-dec="0">0</span><i> 万年</i></div><div class="l">智人历史</div></div>
+        <div class="counter"><div class="n"><span data-c="276" data-dec="0">0</span><i> 年</i></div><div class="l">电力文明</div></div>
+        <div class="counter"><div class="n"><span data-c="0.03" data-dec="2">0</span><i> 秒</i></div><div class="l">换算到一天，电力文明所占的比重</div></div>
+      </div>
+      <p class="civil">把 137 亿年压缩成 24 小时——人类出现在最后 4 秒，而这一切灯火，只闪了 0.03 秒。</p>
+    </div>
+  </div>
+</section>
+
+<!-- S6 尾声 -->
+<section class="scene" id="s6">
+  <div class="pinwrap">
+    <div class="stage6">
+      <div class="dust"></div>
+      <div class="eyebrow">SCENE 06 · <i>尾声</i></div>
+      <h2 class="serif">你在这里，<span class="glow">一粒会回望的尘埃。</span></h2>
+      <p class="sub">一百三十七亿年间，氢原子变成恒星，恒星变成碳，碳学会思考，思考开始滚动屏幕。<br>宇宙花了这么久，才终于长出一双能看见自己的眼睛。</p>
+      <div class="acts">
+        <a class="btn primary" href="#s1" id="replayBtn">↑ 重新回到奇点</a>
+        <a class="btn" href="#s3">再看看时间线</a>
+      </div>
+      <div class="credits">GENESIS · 一场滚动的宇宙史<br>GSAP ScrollTrigger · CANVAS · 2026 · 单文件，无图片，全部程序化</div>
+    </div>
+  </div>
+</section>
+
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/ScrollTrigger.min.js"></script>
+<script>
+"use strict";
+const RM=matchMedia('(prefers-reduced-motion: reduce)').matches;
+gsap.registerPlugin(ScrollTrigger);
+
+/* ================= 加载器 ================= */
+const loadTl=gsap.timeline({onComplete(){
+  document.getElementById('loader').style.display='none';
+  if(!RM)gsap.to('#scrollHint',{opacity:1,duration:1,delay:.3});
+}});
+loadTl
+  .to('#loader .word',{opacity:1,duration:.9,ease:'power2.out'})
+  .to('#loadbar',{width:'100%',duration:1.5,ease:'power2.inOut',onUpdate(){
+    const k=Math.round(loadTl.progress()*100);
+    document.getElementById('loadpct').textContent=String(Math.min(k,100)).padStart(3,'0');
+  }},'-=.2')
+  .to('#loader',{opacity:0,duration:.7,ease:'power2.in'},'+=.15');
+
+/* ================= S1 奇点 ================= */
+const tl1=gsap.timeline({
+  scrollTrigger:{trigger:'#s1',start:'top top',end:'+=140%',scrub:1,pin:true,anticipatePin:1}
+});
+tl1
+  .fromTo('#dot',{scale:.4},{scale:2.6,duration:.5,ease:'power2.in'})
+  .to('.s1txt .w',{opacity:1,y:0,stagger:.14,duration:.3},'<+.1')
+  .to('#s1 .sub',{opacity:1,duration:.2},'-=.2')
+  .to('#s1',{background:'radial-gradient(1200px 700px at 50% 50%, #16224a, #04050c 70%)',duration:.4},'<')
+  .to('#dot',{scale:60,duration:.55,ease:'power4.in'})
+  .to('.s1txt',{opacity:0,y:-40,duration:.3},'<+.1');
+
+/* ================= S2 爆炸 ================= */
+/* 星尘粒子（canvas，受滚动进度驱动） */
+const bc=document.getElementById('burstCanvas'),bctx=bc.getContext('2d');
+let bw,bh,parts=[];
+function bcResize(){
+  bw=bc.width=bc.clientWidth*devicePixelRatio;
+  bh=bc.height=bc.clientHeight*devicePixelRatio;
+  parts=Array.from({length:420},()=>({
+    a:Math.random()*Math.PI*2,
+    r:(Math.random()**2.4),
+    sp:.3+Math.random()*.9,
+    s:(Math.random()*1.8+.5)*devicePixelRatio,
+    hue:Math.random(),
+  }));
+}
+bcResize();addEventListener('resize',bcResize);
+function drawBurst(k){ /* k: 0..1 滚动进度 */
+  bctx.clearRect(0,0,bw,bh);
+  const maxR=Math.max(bw,bh)*.75;
+  for(const p of parts){
+    const rr=p.r*maxR*k*p.sp+4;
+    const x=bw/2+Math.cos(p.a)*rr, y=bh/2+Math.sin(p.a)*rr*.86;
+    const fade=Math.max(0,1-k*.65);
+    const col=p.hue<.5?`rgba(143,216,255,${fade})`:`rgba(255,179,127,${fade})`;
+    bctx.fillStyle=col;
+    bctx.beginPath();bctx.arc(x,y,p.s*(1-k*.4),0,7);bctx.fill();
+  }
+}
+const tl2=gsap.timeline({
+  scrollTrigger:{trigger:'#s2',start:'top top',end:'+=160%',scrub:1,pin:true,anticipatePin:1,
+    onUpdate(self){drawBurst(self.progress)}}
+});
+tl2
+  .fromTo('#flash',{opacity:0},{opacity:1,duration:.06,ease:'power1.in'})
+  .to('#flash',{opacity:0,duration:.3,ease:'power2.out'})
+  .fromTo('.bang',{scale:.5,opacity:0},{scale:1,opacity:1,duration:.2,ease:'power2.out'},'-=.25')
+  .fromTo('#s2 .temp,#s2 .bsub',{opacity:0,y:16},{opacity:1,y:0,duration:.2,stagger:.06},'-=.1')
+  .to('.bang',{scale:1.35,letterSpacing:'.3em',duration:.5,ease:'none'},'>')
+  .to('#s2 .s2txt',{opacity:0,scale:.92,duration:.25},'-=.15');
+
+/* 温度与半径滚动读数（半径用科学计数，避免数字撑爆布局） */
+ScrollTrigger.create({trigger:'#s2',start:'top top',end:'+=160%',scrub:true,
+  onUpdate(self){
+    const k=self.progress;
+    const logs=[32,26,17,9,3];
+    const i=Math.min(logs.length-1,Math.floor(k*logs.length));
+    document.getElementById('tempN').textContent='10^'+logs[i];
+    document.getElementById('radN').textContent=(k*8.8).toFixed(1)+'×10^'+Math.round(3+k*25);
+  }
+});
+
+/* ================= S3 星云 + 横向时间线 ================= */
+gsap.to('.nb1',{x:'12vw',y:'6vh',scrollTrigger:{trigger:'#s3',start:'top bottom',end:'bottom top',scrub:1}});
+gsap.to('.nb2',{x:'-10vw',y:'-6vh',scrollTrigger:{trigger:'#s3',start:'top bottom',end:'bottom top',scrub:1}});
+gsap.to('.nb3',{y:'-14vh',scrollTrigger:{trigger:'#s3',start:'top bottom',end:'bottom top',scrub:1}});
+const hscroll=document.getElementById('hscroll');
+gsap.to(hscroll,{
+  x:()=>-(hscroll.scrollWidth-innerWidth),
+  ease:'none',
+  scrollTrigger:{trigger:'#htrack',start:'top top',end:()=>'+='+(hscroll.scrollWidth-innerWidth),scrub:1,pin:true,anticipatePin:1,invalidateOnRefresh:true}
+});
+/* 时代卡入场 */
+document.querySelectorAll('.era').forEach((era,i)=>{
+  gsap.fromTo(era,{opacity:0,y:34,rotateZ:i%2?1.2:-1.2},{
+    opacity:1,y:0,rotateZ:0,duration:.8,ease:'power2.out',
+    scrollTrigger:{trigger:era,containerAnimation:gsap.getTweensOf(hscroll)[0],start:'left 82%'}
+  });
+});
+
+/* ================= S4 蓝色星球 ================= */
+const tl4=gsap.timeline({
+  scrollTrigger:{trigger:'#s4',start:'top top',end:'+=150%',scrub:1,pin:true,anticipatePin:1}
+});
+tl4
+  .fromTo('#p4',{y:'34vh'},{y:'0vh',duration:.6,ease:'power2.out'})
+  .to('.s4txt .w',{opacity:1,y:0,stagger:.16,duration:.24},'<+.2')
+  .fromTo('#r1',{opacity:.8,scale:.08},{opacity:0,scale:2.4,duration:.7},'<+.1')
+  .fromTo('#r2',{opacity:.8,scale:.08},{opacity:0,scale:2.4,duration:.7},'-=.5')
+  .fromTo('#r3',{opacity:.8,scale:.08},{opacity:0,scale:2.4,duration:.7},'-=.5')
+  .to('#p4',{y:'-8vh',duration:.4},'>-.2');
+
+/* ================= S5 文明 ================= */
+const cityLen=document.getElementById('cityPath').getTotalLength();
+gsap.set('#cityPath',{strokeDasharray:cityLen,strokeDashoffset:cityLen});
+gsap.to('#cityPath',{
+  strokeDashoffset:0,ease:'none',
+  scrollTrigger:{trigger:'#s5',start:'top 70%',end:'center 40%',scrub:1}
+});
+gsap.utils.toArray('.counter span').forEach(n=>{
+  const target=+n.dataset.c,dec=+n.dataset.dec;
+  const o={v:0};
+  gsap.to(o,{v:target,duration:1.6,ease:'power1.out',
+    scrollTrigger:{trigger:n,start:'top 80%'},
+    onUpdate(){n.textContent=o.v.toFixed(dec)}
+  });
+});
+
+/* ================= S6 尾声 ================= */
+gsap.from('#s6 .stage6 > *',{opacity:0,y:34,stagger:.12,duration:.9,ease:'power2.out',
+  scrollTrigger:{trigger:'#s6',start:'top 55%'}
+});
+
+/* ================= 进度 / 导航高亮 ================= */
+addEventListener('scroll',()=>{
+  const h=document.documentElement;
+  document.getElementById('pb').style.width=(h.scrollTop/(h.scrollHeight-innerHeight)*100)+'%';
+},{passive:true});
+const ids=['s1','s2','s3','s4','s5','s6'];
+const links=[...document.querySelectorAll('#chapters a')];
+ids.forEach(id=>{
+  ScrollTrigger.create({trigger:'#'+id,start:'top center',end:'bottom center',
+    onToggle(self){if(self.isActive){links.forEach(a=>a.classList.toggle('on',a.dataset.s===id))}}
+  });
+});
+/* 提示淡出 */
+addEventListener('scroll',()=>{
+  if(scrollY>innerHeight*.5)gsap.to('#scrollHint',{opacity:0,duration:.4});
+},{passive:true});
+addEventListener('resize',()=>ScrollTrigger.refresh());
+</script>
+</body>
+</html>

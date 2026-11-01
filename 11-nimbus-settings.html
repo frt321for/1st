@@ -1,0 +1,1568 @@
+<!DOCTYPE html>
+<!--
+DIRECTION CONTRACT
+THESIS         设置中心的真正难点不是控件长什么样，而是「我改了什么、还没保存」。
+               所以整页围绕一条会累计差异的未保存栏来组织：它列出每一项的旧值与新值。
+               拒绝 SaaS 设置页默认的「一排卡片 + 一个孤零零的保存按钮」。
+OWN-WORLD      冷白工作面（带青向色偏）+ 墨黑正文 + 单一深青强调色；
+               分组用发丝线而非卡片阴影，数值与标识符一律等宽表格数字。
+STORY          进来先看见分组导航，改动任意一项后底部升起未保存栏并写清差异，
+               保存或放弃都给出可撤销的反馈；删除工作区必须手打名称才可执行。
+FIRST VIEWPORT 左列是纵向标签页，右侧是当前分组的设置项，
+               底部未保存栏在有改动时才出现，且永远压在同一位置。
+SIGNATURE      未保存栏里的差异清单：不是「有未保存更改」，而是逐条写出
+               「界面密度 舒适 → 紧凑」，点任意一条能跳回那个控件。
+-->
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>设置 · Nimbus 云枢</title>
+<style>
+/* ==========================================================================
+   Nimbus 云枢 · 设置中心
+   ========================================================================== */
+
+:root{
+  --bg:#f5f8f8;
+  --surface:#ffffff;
+  --surface-2:#eef2f3;
+  --surface-3:#e4eaeb;
+
+  --ink:#12191b;
+  --ink-2:#4a5a5e;
+  --ink-3:#617175;
+
+  --hair:#dce3e4;
+  --hair-2:#c5cfd1;
+
+  --accent:#0f6e6e;
+  --accent-2:#0c5b5b;
+  --accent-fg:#ffffff;
+  --accent-soft:rgba(15,110,110,.10);
+
+  --danger:#b3261e;
+  --danger-2:#8f1e17;
+  --danger-soft:#fbeceb;
+
+  --ok:#1d6b4f;
+
+  --shadow:0 1px 2px rgba(18,25,27,.07), 0 12px 28px -18px rgba(18,25,27,.35);
+
+  --density:1;                    /* 由「界面密度」滑块实时改写 */
+  --gap:calc(1rem * var(--density));
+
+  --r-sm:5px; --r-md:9px; --r-lg:14px;
+
+  --font:"PingFang SC","Hiragino Sans GB","Microsoft YaHei",
+         ui-sans-serif,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  --mono:ui-monospace,"SF Mono","Cascadia Mono",Consolas,monospace;
+  --ease:cubic-bezier(.22,.61,.36,1);
+  --dur:.18s;
+}
+
+html[data-theme="dark"]{
+  --bg:#101416;
+  --surface:#171c1f;
+  --surface-2:#1f262a;
+  --surface-3:#283136;
+
+  --ink:#e8edee;
+  --ink-2:#a9b7ba;
+  --ink-3:#8a999c;
+
+  --hair:rgba(232,237,238,.14);
+  --hair-2:rgba(232,237,238,.26);
+
+  --accent:#4cbfb5;
+  --accent-2:#6ad2c9;
+  --accent-fg:#06201e;
+  --accent-soft:rgba(76,191,181,.15);
+
+  --danger:#f0897d;
+  --danger-2:#f6a89e;
+  --danger-soft:rgba(240,137,125,.13);
+
+  --ok:#79cfa8;
+
+  --shadow:0 1px 2px rgba(0,0,0,.5), 0 16px 34px -20px rgba(0,0,0,.8);
+  color-scheme:dark;
+}
+
+html[data-motion="reduced"] *,
+html[data-motion="reduced"] *::before,
+html[data-motion="reduced"] *::after{
+  animation-duration:.01ms !important;
+  transition-duration:.01ms !important;
+}
+
+*,*::before,*::after{ box-sizing:border-box; }
+html,body{ margin:0; padding:0; overflow-x:clip; }
+
+body{
+  min-height:100dvh;
+  background:var(--bg);
+  color:var(--ink);
+  font-family:var(--font);
+  font-size:16px;
+  line-height:1.6;
+  -webkit-font-smoothing:antialiased;
+  transition:background-color var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+
+h1,h2,h3,p,ul,ol,dl,dd,dt,fieldset,legend{ margin:0; padding:0; }
+fieldset{ border:0; min-width:0; }
+ul,ol{ list-style:none; }
+
+:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; border-radius:3px; }
+
+.u-mono{ font-family:var(--mono); font-variant-numeric:tabular-nums; }
+.u-sr{
+  position:absolute; width:1px; height:1px; padding:0; margin:-1px;
+  overflow:hidden; clip-path:inset(50%); white-space:nowrap; border:0;
+}
+
+/* ==========================================================================
+   顶栏
+   ========================================================================== */
+.top{
+  position:sticky; top:0; z-index:20;
+  background:color-mix(in srgb, var(--bg) 86%, transparent);
+  backdrop-filter:blur(10px);
+  border-bottom:1px solid var(--hair);
+}
+.top__in{
+  max-width:1180px; margin-inline:auto;
+  padding:.85rem clamp(1rem,3vw,2rem);
+  display:flex; align-items:center; justify-content:space-between; gap:1rem;
+}
+.brand{ display:inline-flex; align-items:baseline; gap:.6ch; font-weight:660; font-size:1.0625rem; }
+.brand em{
+  font-style:normal; font-weight:400; font-size:.75rem;
+  letter-spacing:.18em; text-transform:uppercase; color:var(--ink-3);
+}
+.brand::before{
+  content:""; width:10px; height:10px; border-radius:3px;
+  background:var(--accent); align-self:center; margin-right:.35ch;
+}
+.who{
+  display:flex; align-items:center; gap:.6rem;
+  font-size:.8125rem; color:var(--ink-3);
+}
+.avatar{
+  width:30px; height:30px; border-radius:50%;
+  display:grid; place-items:center;
+  background:var(--accent); color:var(--accent-fg);
+  font-size:.8125rem; font-weight:700;
+}
+
+/* ==========================================================================
+   骨架
+   ========================================================================== */
+.wrap{
+  max-width:1180px; margin-inline:auto;
+  padding:clamp(1.25rem,3vw,2.25rem) clamp(1rem,3vw,2rem) 8rem;
+  display:grid;
+  grid-template-columns:minmax(190px,232px) minmax(0,1fr);
+  gap:clamp(1.25rem,3vw,2.75rem);
+  align-items:start;
+}
+
+.pagehead{ grid-column:1 / -1; margin-bottom:.25rem; }
+.pagehead h1{ font-size:1.65rem; font-weight:660; letter-spacing:-.02em; }
+.pagehead p{ color:var(--ink-2); font-size:.9375rem; margin-top:.2rem; max-width:56ch; }
+
+/* ---- 纵向标签页 ---- */
+.tabs{
+  position:sticky; top:5.2rem;
+  display:flex; flex-direction:column; gap:2px;
+}
+.tab{
+  display:flex; align-items:center; gap:.65rem;
+  min-height:44px;
+  padding:.5rem .8rem;
+  border:0; border-radius:var(--r-md);
+  background:transparent;
+  color:var(--ink-2);
+  font:inherit; font-size:.9375rem; text-align:left;
+  cursor:pointer;
+  transition:background-color var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+.tab:hover{ background:var(--surface-2); color:var(--ink); }
+.tab[aria-selected="true"]{
+  background:var(--accent-soft);
+  color:var(--accent);
+  font-weight:620;
+}
+.tab__dot{
+  width:6px; height:6px; border-radius:50%;
+  background:var(--danger);
+  margin-left:auto;
+  opacity:0;
+}
+.tab[data-dirty="true"] .tab__dot{ opacity:1; }
+.tab[data-dirty="true"]::after{ content:"有未保存更改"; position:absolute; left:-9999px; }
+
+/* ---- 面板 ---- */
+.panel{ min-width:0; }
+.panel[hidden]{ display:none; }
+
+.group{
+  background:var(--surface);
+  border:1px solid var(--hair);
+  border-radius:var(--r-lg);
+  margin-bottom:1rem;
+  overflow:hidden;
+}
+.group__head{
+  padding:calc(.9rem * var(--density)) 1.15rem;
+  border-bottom:1px solid var(--hair);
+}
+.group__head h2{ font-size:1rem; font-weight:640; letter-spacing:-.01em; }
+.group__head p{ font-size:.8125rem; color:var(--ink-3); margin-top:.15rem; text-wrap:pretty; }
+
+.item{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) minmax(0,auto);
+  gap:1rem 1.5rem;
+  align-items:center;
+  padding:calc(.85rem * var(--density)) 1.15rem;
+  border-bottom:1px solid var(--hair);
+}
+.item:last-child{ border-bottom:0; }
+.item--stack{ grid-template-columns:minmax(0,1fr); }
+.item__label{ min-width:0; }
+.item__label label,
+.item__label .lbl{
+  display:block;
+  font-size:.9375rem; font-weight:560; color:var(--ink);
+}
+.item__label p{ font-size:.8125rem; color:var(--ink-3); margin-top:.15rem; text-wrap:pretty; }
+.item__ctl{ display:flex; align-items:center; gap:.7rem; justify-self:end; min-width:0; }
+.item[data-disabled="true"]{ opacity:.52; }
+
+/* ==========================================================================
+   控件
+   ========================================================================== */
+.control{
+  min-height:44px;
+  padding:.5rem .75rem;
+  border:1px solid var(--hair-2);
+  border-radius:var(--r-md);
+  background:var(--surface);
+  color:var(--ink);
+  font:inherit; font-size:.9375rem;
+  transition:border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+}
+.control:hover:not(:disabled){ border-color:var(--ink-3); }
+.control:focus{ outline:none; border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-soft); }
+.control:focus-visible{ outline:2px solid var(--accent); outline-offset:1px; }
+.control:disabled{ background:var(--surface-2); color:var(--ink-3); cursor:not-allowed; }
+select.control{ min-width:11rem; appearance:none; padding-right:2.1rem;
+  background-image:linear-gradient(45deg,transparent 50%,var(--ink-2) 50%),
+                   linear-gradient(135deg,var(--ink-2) 50%,transparent 50%);
+  background-position:calc(100% - 17px) 19px, calc(100% - 11px) 19px;
+  background-size:6px 6px,6px 6px; background-repeat:no-repeat;
+}
+textarea.control{ min-height:96px; width:100%; resize:vertical; font-family:var(--mono); font-size:.875rem; }
+.control--prefix{ display:flex; align-items:stretch; }
+.control--prefix span{
+  display:flex; align-items:center; padding:0 .7rem;
+  background:var(--surface-2); border:1px solid var(--hair-2); border-right:0;
+  border-radius:var(--r-md) 0 0 var(--r-md);
+  color:var(--ink-3); font-family:var(--mono); font-size:.875rem;
+}
+.control--prefix input{ border-radius:0 var(--r-md) var(--r-md) 0; }
+
+/* ---- 开关 ---- */
+.switch{
+  position:relative;
+  width:46px; height:27px;
+  flex:0 0 auto;
+  padding:0; border:0;
+  border-radius:999px;
+  background:var(--hair-2);
+  cursor:pointer;
+  transition:background-color var(--dur) var(--ease);
+}
+.switch::after{
+  content:"";
+  position:absolute; top:3px; left:3px;
+  width:21px; height:21px;
+  border-radius:50%;
+  background:#fff;
+  box-shadow:0 1px 3px rgba(0,0,0,.34);
+  transition:translate var(--dur) var(--ease);
+}
+.switch[aria-checked="true"]{ background:var(--accent); }
+.switch[aria-checked="true"]::after{ translate:19px 0; }
+.switch:disabled{ opacity:.45; cursor:not-allowed; }
+.switch:hover:not(:disabled){ filter:brightness(.96); }
+
+/* ---- 滑块 ---- */
+.slider{ display:flex; align-items:center; gap:.85rem; min-width:0; }
+.slider input[type="range"]{
+  width:clamp(120px,20vw,190px);
+  height:24px;
+  appearance:none;
+  background:transparent;
+  cursor:pointer;
+  margin:0;
+}
+.slider input[type="range"]::-webkit-slider-runnable-track{
+  height:5px; border-radius:99px;
+  background:linear-gradient(90deg, var(--accent) 0 var(--fill,50%), var(--hair-2) var(--fill,50%) 100%);
+}
+.slider input[type="range"]::-moz-range-track{
+  height:5px; border-radius:99px; background:var(--hair-2);
+}
+.slider input[type="range"]::-moz-range-progress{
+  height:5px; border-radius:99px; background:var(--accent);
+}
+.slider input[type="range"]::-webkit-slider-thumb{
+  appearance:none;
+  width:20px; height:20px; margin-top:-7.5px;
+  border-radius:50%;
+  background:var(--surface);
+  border:2px solid var(--accent);
+  box-shadow:0 1px 4px rgba(0,0,0,.28);
+}
+.slider input[type="range"]::-moz-range-thumb{
+  width:18px; height:18px; border-radius:50%;
+  background:var(--surface); border:2px solid var(--accent);
+}
+.slider input[type="range"]:disabled{ cursor:not-allowed; opacity:.45; }
+.slider output{
+  min-width:5.5em; text-align:right;
+  font-family:var(--mono); font-variant-numeric:tabular-nums;
+  font-size:.875rem; color:var(--ink-2);
+}
+
+/* ---- 单选卡 ---- */
+.choices{ display:flex; gap:.5rem; flex-wrap:wrap; }
+.choice{
+  position:relative;
+  display:inline-flex; align-items:center; gap:.5rem;
+  min-height:44px;
+  padding:.45rem .85rem;
+  border:1px solid var(--hair-2);
+  border-radius:var(--r-md);
+  cursor:pointer;
+  font-size:.9375rem;
+  white-space:nowrap;
+  transition:border-color var(--dur) var(--ease), background-color var(--dur) var(--ease);
+}
+.choice input{ position:absolute; opacity:0; pointer-events:none; }
+.choice:hover{ background:var(--surface-2); }
+.choice:has(input:checked){
+  border-color:var(--accent); background:var(--accent-soft); color:var(--accent); font-weight:600;
+}
+.choice:has(input:focus-visible){ outline:2px solid var(--accent); outline-offset:2px; }
+
+/* ---- 强调色色板 ---- */
+.swatches{ display:flex; gap:.45rem; }
+.swatch{
+  position:relative;
+  width:32px; height:32px;
+  border-radius:50%;
+  border:2px solid transparent;
+  padding:0;
+  cursor:pointer;
+  box-shadow:inset 0 0 0 1px rgba(0,0,0,.14);
+}
+.swatch[aria-pressed="true"]{ border-color:var(--ink); }
+.swatch[aria-pressed="true"]::after{
+  content:""; position:absolute; left:50%; top:46%;
+  width:6px; height:11px;
+  border:solid #fff; border-width:0 2px 2px 0;
+  translate:-50% -50%; rotate:45deg;
+  filter:drop-shadow(0 0 1px rgba(0,0,0,.6));
+}
+
+/* ---- 按钮 ---- */
+.btn{
+  position:relative;
+  min-height:44px;
+  display:inline-flex; align-items:center; justify-content:center; gap:.55ch;
+  padding:0 1.05rem;
+  border:1px solid var(--hair-2);
+  border-radius:var(--r-md);
+  background:var(--surface);
+  color:var(--ink);
+  font:inherit; font-size:.9375rem; font-weight:560;
+  cursor:pointer;
+  transition:background-color var(--dur) var(--ease), border-color var(--dur) var(--ease), translate .08s var(--ease);
+}
+.btn:hover{ background:var(--surface-2); }
+.btn:active{ translate:0 1px; }
+.btn--primary{ background:var(--accent); border-color:var(--accent); color:var(--accent-fg); font-weight:620; }
+.btn--primary:hover{ background:var(--accent-2); border-color:var(--accent-2); }
+.btn--primary:focus-visible{ outline-color:var(--ink); }
+.btn--danger{ background:var(--danger); border-color:var(--danger); color:#fff; font-weight:620; }
+.btn--danger:hover{ background:var(--danger-2); border-color:var(--danger-2); }
+.btn--ghostdanger{ color:var(--danger); border-color:color-mix(in srgb, var(--danger) 45%, transparent); }
+.btn--ghostdanger:hover{ background:var(--danger-soft); }
+.btn[disabled],.btn[aria-disabled="true"]{ opacity:.45; cursor:not-allowed; pointer-events:none; }
+.btn[data-state="loading"]{ color:transparent; pointer-events:none; }
+.btn[data-state="loading"]::after{
+  content:""; position:absolute; inset:0; margin:auto;
+  width:1.05em; height:1.05em; border-radius:50%;
+  border:2px solid color-mix(in srgb, currentColor 30%, transparent);
+  border-top-color:var(--accent-fg);
+  animation:spin .68s linear infinite;
+}
+@keyframes spin{ to{ rotate:360deg; } }
+
+/* ---- 危险区 ---- */
+.group--danger{ border-color:color-mix(in srgb, var(--danger) 40%, var(--hair)); }
+.group--danger .group__head{
+  background:var(--danger-soft);
+  border-bottom-color:color-mix(in srgb, var(--danger) 30%, var(--hair));
+}
+.group--danger .group__head h2{ color:var(--danger); }
+
+/* ==========================================================================
+   未保存栏
+   ========================================================================== */
+.savebar{
+  position:fixed;
+  left:50%; bottom:1rem;
+  translate:-50% 0;
+  z-index:40;
+  width:min(calc(100vw - 2rem), 900px);
+  background:var(--surface);
+  border:1px solid var(--hair-2);
+  border-radius:var(--r-lg);
+  box-shadow:var(--shadow);
+  padding:.8rem .9rem .8rem 1.1rem;
+  display:none;
+  gap:1rem;
+  align-items:center;
+  animation:barUp .26s var(--ease) both;
+}
+.savebar[data-on="true"]{ display:flex; }
+@keyframes barUp{ from{ opacity:0; transform:translateY(14px); } to{ opacity:1; transform:none; } }
+
+.savebar__txt{ min-width:0; flex:1 1 auto; }
+.savebar__txt b{ display:block; font-size:.9375rem; font-weight:620; }
+.diffs{
+  display:flex; flex-wrap:wrap; gap:.35rem .5rem;
+  margin-top:.35rem;
+  max-height:4.6rem; overflow-y:auto; overscroll-behavior:contain;
+}
+.diff{
+  display:inline-flex; align-items:center; gap:.4ch;
+  padding:.18rem .5rem;
+  border:1px solid var(--hair);
+  border-radius:999px;
+  background:var(--surface-2);
+  font-size:.75rem;
+  color:var(--ink-2);
+  cursor:pointer;
+  font-family:var(--font);
+}
+.diff:hover{ border-color:var(--accent); color:var(--accent); }
+.diff s{ color:var(--ink-3); text-decoration:line-through; }
+.diff b{ color:var(--ink); font-weight:600; }
+.savebar__acts{ display:flex; gap:.5rem; flex:0 0 auto; }
+
+/* 被跳转到的控件闪一下（不使用颜色作为唯一提示：同时加边框） */
+.flash{ animation:flash 1.1s var(--ease) 1; }
+@keyframes flash{
+  0%,100%{ box-shadow:0 0 0 0 transparent; }
+  20%    { box-shadow:0 0 0 3px var(--accent-soft), inset 0 0 0 1px var(--accent); }
+  70%    { box-shadow:0 0 0 3px var(--accent-soft), inset 0 0 0 1px var(--accent); }
+}
+
+/* ==========================================================================
+   弹窗
+   ========================================================================== */
+.scrim{
+  position:fixed; inset:0; z-index:50;
+  background:rgba(9,14,15,.5);
+  backdrop-filter:blur(2px);
+  display:none;
+  place-items:center;
+  padding:1rem;
+  overscroll-behavior:contain;
+}
+.scrim[data-on="true"]{ display:grid; animation:fadeIn .18s var(--ease) both; }
+@keyframes fadeIn{ from{opacity:0;} to{opacity:1;} }
+
+.modal{
+  width:min(100%,480px);
+  background:var(--surface);
+  border:1px solid var(--hair);
+  border-radius:var(--r-lg);
+  box-shadow:0 30px 70px -24px rgba(0,0,0,.6);
+  padding:1.35rem;
+  animation:modalIn .2s var(--ease) both;
+  max-height:calc(100dvh - 2rem);
+  overflow-y:auto;
+  overscroll-behavior:contain;
+}
+@keyframes modalIn{ from{ opacity:0; transform:scale(.97); } to{ opacity:1; transform:none; } }
+.modal h2{ font-size:1.125rem; font-weight:660; letter-spacing:-.01em; }
+.modal p{ font-size:.9375rem; color:var(--ink-2); margin-top:.5rem; text-wrap:pretty; }
+.modal__warn{
+  margin-top:.9rem; padding:.75rem .85rem;
+  background:var(--danger-soft);
+  border:1px solid color-mix(in srgb, var(--danger) 32%, transparent);
+  border-radius:var(--r-md);
+  font-size:.875rem; color:var(--danger);
+}
+.modal__warn ul{ margin-top:.4rem; padding-left:.2rem; }
+.modal__warn li{ padding:.1rem 0; }
+.modal__warn li::before{ content:"· "; }
+.modal__field{ margin-top:1rem; }
+.modal__field label{ display:block; font-size:.875rem; font-weight:560; margin-bottom:.35rem; }
+.modal__field code{
+  font-family:var(--mono); background:var(--surface-2);
+  padding:.05em .4em; border-radius:4px; font-size:.9em;
+}
+.modal__field input{ width:100%; }
+.modal__acts{ display:flex; gap:.5rem; justify-content:flex-end; margin-top:1.35rem; flex-wrap:wrap; }
+
+/* ==========================================================================
+   Toast
+   ========================================================================== */
+.toasts{
+  position:fixed;
+  right:1rem; bottom:1rem;
+  z-index:60;
+  display:flex; flex-direction:column-reverse; gap:.5rem;
+  width:min(360px, calc(100vw - 2rem));
+  pointer-events:none;
+}
+.toast{
+  pointer-events:auto;
+  display:flex; align-items:flex-start; gap:.7rem;
+  padding:.75rem .8rem .75rem .9rem;
+  background:var(--surface);
+  border:1px solid var(--hair-2);
+  border-radius:var(--r-md);
+  box-shadow:var(--shadow);
+  animation:toastIn .22s var(--ease) both;
+}
+.toast[data-leaving="true"]{ animation:toastOut .18s var(--ease) both; }
+@keyframes toastIn { from{ opacity:0; transform:translateY(10px) scale(.98); } to{ opacity:1; transform:none; } }
+@keyframes toastOut{ to{ opacity:0; transform:translateY(6px) scale(.98); } }
+.toast__mark{
+  flex:0 0 auto; width:18px; height:18px; margin-top:2px;
+  border-radius:50%; border:2px solid var(--ink-3);
+  position:relative;
+}
+.toast[data-kind="ok"] .toast__mark{ border-color:var(--ok); background:var(--ok); }
+.toast[data-kind="ok"] .toast__mark::after{
+  content:""; position:absolute; left:50%; top:46%;
+  width:4px; height:8px; border:solid var(--surface); border-width:0 2px 2px 0;
+  translate:-50% -50%; rotate:45deg;
+}
+.toast[data-kind="danger"] .toast__mark{ border-color:var(--danger); }
+.toast[data-kind="danger"] .toast__mark::after{
+  content:"!"; position:absolute; inset:0; display:grid; place-items:center;
+  font-size:11px; font-weight:800; color:var(--danger); line-height:1;
+}
+.toast__body{ flex:1 1 auto; min-width:0; }
+.toast__body b{ display:block; font-size:.875rem; font-weight:620; }
+.toast__body span{ display:block; font-size:.8125rem; color:var(--ink-3); }
+.toast__undo{
+  background:none; border:0; padding:.15rem 0; margin-top:.3rem;
+  color:var(--accent); font:inherit; font-size:.8125rem; font-weight:600;
+  cursor:pointer; text-decoration:underline; text-underline-offset:2px;
+}
+.toast__x{
+  flex:0 0 auto;
+  width:28px; height:28px; margin:-2px -2px 0 0;
+  border:0; border-radius:var(--r-sm);
+  background:transparent; color:var(--ink-3);
+  font-size:16px; line-height:1; cursor:pointer;
+}
+.toast__x:hover{ background:var(--surface-2); color:var(--ink); }
+
+/* ==========================================================================
+   降低动效
+   ========================================================================== */
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{ animation-duration:.01ms !important; transition-duration:.01ms !important; }
+}
+
+/* ==========================================================================
+   响应式
+   ========================================================================== */
+@media (max-width:860px){
+  .wrap{ grid-template-columns:minmax(0,1fr); }
+  .tabs{
+    position:static;
+    flex-direction:row;
+    overflow-x:auto;
+    overscroll-behavior-x:contain;
+    padding-bottom:.35rem;
+    border-bottom:1px solid var(--hair);
+    gap:.25rem;
+  }
+  .tab{ white-space:nowrap; }
+  .item{ grid-template-columns:minmax(0,1fr); }
+  .item__ctl{ justify-self:start; flex-wrap:wrap; }
+  .savebar{ flex-direction:column; align-items:stretch; }
+  .savebar__acts .btn{ flex:1 1 auto; }
+}
+@media (max-width:420px){
+  .slider input[type="range"]{ width:100%; }
+  .slider{ width:100%; }
+  .toasts{ left:1rem; right:1rem; width:auto; }
+}
+</style>
+</head>
+<body>
+
+<!-- ==================== 顶栏 ==================== -->
+<header class="top">
+  <div class="top__in">
+    <span class="brand">Nimbus <em>云枢</em></span>
+    <div class="who">
+      <span>工作区 <b class="u-mono" id="wsBadge">acme-core</b></span>
+      <span class="avatar" aria-hidden="true">K</span>
+      <span class="u-sr">当前登录：管理员</span>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <div class="pagehead">
+    <h1>设置</h1>
+    <p>这里的更改只作用于当前工作区。改动会先暂存，底部出现未保存栏后再决定保存或放弃。</p>
+  </div>
+
+  <!-- ==================== 标签页 ==================== -->
+  <div class="tabs" role="tablist" aria-orientation="vertical" aria-label="设置分组" id="tablist">
+    <button class="tab" role="tab" id="tab-general"  aria-controls="p-general"  aria-selected="true"  tabindex="0">通用<span class="tab__dot" aria-hidden="true"></span></button>
+    <button class="tab" role="tab" id="tab-notify"   aria-controls="p-notify"   aria-selected="false" tabindex="-1">通知<span class="tab__dot" aria-hidden="true"></span></button>
+    <button class="tab" role="tab" id="tab-appear"   aria-controls="p-appear"   aria-selected="false" tabindex="-1">外观<span class="tab__dot" aria-hidden="true"></span></button>
+    <button class="tab" role="tab" id="tab-security" aria-controls="p-security" aria-selected="false" tabindex="-1">安全<span class="tab__dot" aria-hidden="true"></span></button>
+    <button class="tab" role="tab" id="tab-danger"   aria-controls="p-danger"   aria-selected="false" tabindex="-1">高级<span class="tab__dot" aria-hidden="true"></span></button>
+  </div>
+
+  <!-- ==================== 面板 ==================== -->
+  <div class="panel-host">
+
+    <!-- ---------- 通用 ---------- -->
+    <section class="panel" role="tabpanel" id="p-general" aria-labelledby="tab-general" tabindex="0">
+      <div class="group">
+        <div class="group__head">
+          <h2>工作区</h2>
+          <p>名称与地址会出现在成员的邀请邮件和分享链接里。</p>
+        </div>
+
+        <div class="item">
+          <div class="item__label">
+            <label for="s-wsname">工作区名称</label>
+            <p>显示在侧栏顶部与所有对外通知中。</p>
+          </div>
+          <div class="item__ctl">
+            <input class="control" id="s-wsname" data-setting="wsname" data-label="工作区名称"
+                   type="text" value="Acme 核心平台" maxlength="40" style="min-width:14rem">
+          </div>
+        </div>
+
+        <div class="item">
+          <div class="item__label">
+            <label for="s-slug">工作区地址</label>
+            <p>只允许小写字母、数字和连字符。</p>
+          </div>
+          <div class="item__ctl">
+            <span class="control--prefix">
+              <span>nimbus.app/</span>
+              <input class="control" id="s-slug" data-setting="slug" data-label="工作区地址"
+                     type="text" value="acme-core" maxlength="32" spellcheck="false" style="width:10rem">
+            </span>
+          </div>
+        </div>
+
+        <div class="item">
+          <div class="item__label">
+            <label for="s-lang">界面语言</label>
+            <p>只影响你自己看到的界面，不影响其他成员。</p>
+          </div>
+          <div class="item__ctl">
+            <select class="control" id="s-lang" data-setting="lang" data-label="界面语言">
+              <option value="zh-CN">简体中文</option>
+              <option value="zh-TW">繁體中文</option>
+              <option value="en">English</option>
+              <option value="ja">日本語</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="item">
+          <div class="item__label">
+            <label for="s-tz">时区</label>
+            <p>所有时间戳按此时区渲染。</p>
+          </div>
+          <div class="item__ctl">
+            <select class="control" id="s-tz" data-setting="tz" data-label="时区">
+              <option value="Asia/Shanghai">Asia/Shanghai　UTC+8</option>
+              <option value="Asia/Tokyo">Asia/Tokyo　UTC+9</option>
+              <option value="Europe/London">Europe/London　UTC+0</option>
+              <option value="America/Los_Angeles">America/Los_Angeles　UTC−8</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="item">
+          <div class="item__label">
+            <span class="lbl">每周起始日</span>
+            <p>影响日历视图与周报的统计边界。</p>
+          </div>
+          <div class="item__ctl">
+            <div class="choices" role="radiogroup" aria-label="每周起始日">
+              <label class="choice"><input type="radio" name="weekstart" value="mon" data-setting="weekstart" data-label="每周起始日" data-text="周一" checked>周一</label>
+              <label class="choice"><input type="radio" name="weekstart" value="sun" data-setting="weekstart" data-label="每周起始日" data-text="周日">周日</label>
+              <label class="choice"><input type="radio" name="weekstart" value="sat" data-setting="weekstart" data-label="每周起始日" data-text="周六">周六</label>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ---------- 通知 ---------- -->
+    <section class="panel" role="tabpanel" id="p-notify" aria-labelledby="tab-notify" tabindex="0" hidden>
+      <div class="group">
+        <div class="group__head">
+          <h2>推送渠道</h2>
+          <p>关闭邮件通知后，摘要频率与静默时段不再生效。</p>
+        </div>
+
+        <div class="item">
+          <div class="item__label">
+            <span class="lbl" id="lb-email">邮件通知</span>
+            <p>项目变更、@ 提及与审批请求发送到你的登记邮箱。</p>
+          </div>
+          <div class="item__ctl">
+            <button class="switch" role="switch" aria-checked="true" aria-labelledby="lb-email"
+                    data-setting="email" data-label="邮件通知" type="button"></button>
+          </div>
+        </div>
+
+        <div class="item" id="row-digest">
+          <div class="item__label">
+            <label for="s-digest">摘要频率</label>
+            <p>把低优先级通知合并成一封。</p>
+          </div>
+          <div class="item__ctl">
+            <select class="control" id="s-digest" data-setting="digest" data-label="摘要频率">
+              <option value="realtime">实时，不合并</option>
+              <option value="hourly">每小时一封</option>
+              <option value="daily" selected>每天一封</option>
+              <option value="weekly">每周一封</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="item">
+          <div class="item__label">
+            <span class="lbl" id="lb-desktop">桌面通知</span>
+            <p>需要浏览器授权后才会真正弹出。</p>
+          </div>
+          <div class="item__ctl">
+            <button class="switch" role="switch" aria-checked="false" aria-labelledby="lb-desktop"
+                    data-setting="desktop" data-label="桌面通知" type="button"></button>
+          </div>
+        </div>
+
+        <div class="item" id="row-quiet">
+          <div class="item__label">
+            <label for="s-quiet-a">静默时段</label>
+            <p>该时段内不推送任何非紧急通知。</p>
+          </div>
+          <div class="item__ctl">
+            <input class="control" id="s-quiet-a" type="time" value="22:30" data-setting="quietA" data-label="静默开始">
+            <span style="color:var(--ink-3)">至</span>
+            <input class="control" id="s-quiet-b" type="time" value="08:00" data-setting="quietB" data-label="静默结束">
+          </div>
+        </div>
+
+        <div class="item">
+          <div class="item__label">
+            <label for="s-volume">提示音音量</label>
+            <p>0 为静音。</p>
+          </div>
+          <div class="item__ctl">
+            <div class="slider">
+              <input type="range" id="s-volume" min="0" max="100" step="5" value="60"
+                     data-setting="volume" data-label="提示音音量" data-unit="%"
+                     aria-describedby="out-volume">
+              <output id="out-volume" for="s-volume">60 %</output>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="group">
+        <div class="group__head"><h2>测试</h2><p>不改动任何设置，只发一条示例通知。</p></div>
+        <div class="item">
+          <div class="item__label">
+            <span class="lbl">发送测试通知</span>
+            <p>用当前渠道配置发送一条，确认能收到。</p>
+          </div>
+          <div class="item__ctl">
+            <button class="btn" type="button" id="btnTestNotify" data-state="idle">发送测试</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ---------- 外观 ---------- -->
+    <section class="panel" role="tabpanel" id="p-appear" aria-labelledby="tab-appear" tabindex="0" hidden>
+      <div class="group">
+        <div class="group__head">
+          <h2>主题与密度</h2>
+          <p>这一组会立即生效，方便你边调边看；仍然需要保存才会记住。</p>
+        </div>
+
+        <div class="item">
+          <div class="item__label">
+            <span class="lbl">主题</span>
+            <p>「跟随系统」会读取你的操作系统外观设置。</p>
+          </div>
+          <div class="item__ctl">
+            <div class="choices" role="radiogroup" aria-label="主题">
+              <label class="choice"><input type="radio" name="theme" value="light" data-setting="theme" data-label="主题" data-text="浅色" checked>浅色</label>
+              <label class="choice"><input type="radio" name="theme" value="dark" data-setting="theme" data-label="主题" data-text="深色">深色</label>
+              <label class="choice"><input type="radio" name="theme" value="system" data-setting="theme" data-label="主题" data-text="跟随系统">跟随系统</label>
+            </div>
+          </div>
+        </div>
+
+        <div class="item">
+          <div class="item__label">
+            <span class="lbl" id="lb-accent">强调色</span>
+            <p>用于选中态、链接与主按钮。</p>
+          </div>
+          <div class="item__ctl">
+            <div class="swatches" role="radiogroup" aria-labelledby="lb-accent" id="swatches"></div>
+          </div>
+        </div>
+
+        <div class="item">
+          <div class="item__label">
+            <label for="s-density">界面密度</label>
+            <p>紧凑模式会压缩每一行的上下留白。</p>
+          </div>
+          <div class="item__ctl">
+            <div class="slider">
+              <input type="range" id="s-density" min="0" max="2" step="1" value="1"
+                     data-setting="densityLv" data-label="界面密度" aria-describedby="out-density">
+              <output id="out-density" for="s-density">舒适</output>
+            </div>
+          </div>
+        </div>
+
+        <div class="item">
+          <div class="item__label">
+            <span class="lbl" id="lb-motion">减少动效</span>
+            <p>关闭过渡与位移动画。系统级偏好开启时始终生效。</p>
+          </div>
+          <div class="item__ctl">
+            <button class="switch" role="switch" aria-checked="false" aria-labelledby="lb-motion"
+                    data-setting="motion" data-label="减少动效" type="button"></button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ---------- 安全 ---------- -->
+    <section class="panel" role="tabpanel" id="p-security" aria-labelledby="tab-security" tabindex="0" hidden>
+      <div class="group">
+        <div class="group__head"><h2>访问控制</h2><p>更严格的设置会立刻影响所有成员的登录方式。</p></div>
+
+        <div class="item">
+          <div class="item__label">
+            <span class="lbl" id="lb-2fa">强制两步验证</span>
+            <p>开启后，未绑定验证器的成员下次登录会被要求先绑定。</p>
+          </div>
+          <div class="item__ctl">
+            <button class="switch" role="switch" aria-checked="false" aria-labelledby="lb-2fa"
+                    data-setting="twofa" data-label="强制两步验证" type="button"></button>
+          </div>
+        </div>
+
+        <div class="item">
+          <div class="item__label">
+            <label for="s-session">会话超时</label>
+            <p>超过该时长无操作则要求重新登录。</p>
+          </div>
+          <div class="item__ctl">
+            <div class="slider">
+              <input type="range" id="s-session" min="15" max="480" step="15" value="120"
+                     data-setting="session" data-label="会话超时" aria-describedby="out-session">
+              <output id="out-session" for="s-session">2 小时</output>
+            </div>
+          </div>
+        </div>
+
+        <div class="item">
+          <div class="item__label">
+            <span class="lbl" id="lb-api">开放 API 访问</span>
+            <p>关闭后所有个人访问令牌立即失效。</p>
+          </div>
+          <div class="item__ctl">
+            <button class="switch" role="switch" aria-checked="true" aria-labelledby="lb-api"
+                    data-setting="api" data-label="开放 API 访问" type="button"></button>
+          </div>
+        </div>
+
+        <div class="item item--stack">
+          <div class="item__label">
+            <label for="s-ip">允许的 IP 段</label>
+            <p>每行一个 CIDR。留空表示不限制来源。</p>
+          </div>
+          <textarea class="control" id="s-ip" data-setting="ip" data-label="允许的 IP 段"
+                    spellcheck="false" placeholder="10.0.0.0/8">203.0.113.0/24
+198.51.100.0/24</textarea>
+        </div>
+      </div>
+    </section>
+
+    <!-- ---------- 高级 / 危险区 ---------- -->
+    <section class="panel" role="tabpanel" id="p-danger" aria-labelledby="tab-danger" tabindex="0" hidden>
+      <div class="group">
+        <div class="group__head"><h2>数据</h2><p>导出不会影响线上数据。</p></div>
+        <div class="item">
+          <div class="item__label">
+            <span class="lbl">导出工作区数据</span>
+            <p>生成一份包含项目、成员与日志的归档，完成后发到你的邮箱。</p>
+          </div>
+          <div class="item__ctl">
+            <button class="btn" type="button" id="btnExport" data-state="idle">请求导出</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="group group--danger">
+        <div class="group__head">
+          <h2>危险操作</h2>
+          <p>以下操作不可撤销，执行前需要额外确认。</p>
+        </div>
+
+        <div class="item">
+          <div class="item__label">
+            <span class="lbl">转移所有权</span>
+            <p>把工作区的所有者身份交给另一位管理员，你将降级为普通管理员。</p>
+          </div>
+          <div class="item__ctl">
+            <button class="btn btn--ghostdanger" type="button" id="btnTransfer">转移…</button>
+          </div>
+        </div>
+
+        <div class="item">
+          <div class="item__label">
+            <span class="lbl">删除工作区</span>
+            <p>连同全部项目、文件与审计日志一并永久删除。</p>
+          </div>
+          <div class="item__ctl">
+            <button class="btn btn--danger" type="button" id="btnDelete">删除工作区…</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </div>
+</div>
+
+<!-- ==================== 未保存栏 ==================== -->
+<div class="savebar" id="savebar" data-on="false" role="region" aria-label="未保存的更改">
+  <div class="savebar__txt">
+    <b id="savebarTitle">有未保存的更改</b>
+    <div class="diffs" id="diffs"></div>
+  </div>
+  <div class="savebar__acts">
+    <button class="btn" type="button" id="btnDiscard">放弃</button>
+    <button class="btn btn--primary" type="button" id="btnSave" data-state="idle">保存更改</button>
+  </div>
+</div>
+
+<!-- ==================== 弹窗 ==================== -->
+<div class="scrim" id="scrim" data-on="false">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="mTitle" aria-describedby="mDesc" id="modal">
+    <h2 id="mTitle">删除工作区</h2>
+    <p id="mDesc">这个操作不可撤销。删除后无法通过任何方式恢复，包括联系支持。</p>
+
+    <div class="modal__warn" id="mWarn">
+      <b>将被永久删除：</b>
+      <ul id="mList"></ul>
+    </div>
+
+    <div class="modal__field" id="mConfirmField">
+      <label for="mInput">请输入 <code id="mCode">acme-core</code> 以确认</label>
+      <input class="control" id="mInput" type="text" spellcheck="false" autocomplete="off"
+             aria-describedby="mHint">
+      <p class="u-sr" id="mHint">输入必须与工作区地址完全一致。</p>
+    </div>
+
+    <div class="modal__acts">
+      <button class="btn" type="button" id="mCancel">取消</button>
+      <button class="btn btn--danger" type="button" id="mConfirm" aria-disabled="true" data-state="idle">永久删除</button>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== Toast ==================== -->
+<div class="toasts" id="toasts" role="region" aria-label="通知" aria-live="polite"></div>
+
+<script>
+(function () {
+  'use strict';
+
+  function $(id){ return document.getElementById(id); }
+  function $$(sel, root){ return Array.prototype.slice.call((root||document).querySelectorAll(sel)); }
+
+  /* ======================================================================
+     1. 标签页（ARIA tabs + 漫游 tabindex）
+     ====================================================================== */
+  var tabs = $$('[role="tab"]', $('tablist'));
+
+  function selectTab(id, focus){
+    tabs.forEach(function(t){
+      var on = (t.id === id);
+      t.setAttribute('aria-selected', String(on));
+      t.tabIndex = on ? 0 : -1;
+      $(t.getAttribute('aria-controls')).hidden = !on;
+      if (on && focus) t.focus();
+    });
+  }
+  $('tablist').addEventListener('click', function(e){
+    var t = e.target.closest('[role="tab"]');
+    if (t) selectTab(t.id, false);
+  });
+  $('tablist').addEventListener('keydown', function(e){
+    var i = tabs.indexOf(document.activeElement);
+    if (i < 0) return;
+    var n = i;
+    var vertical = window.matchMedia('(min-width:861px)').matches;
+    var prev = vertical ? 'ArrowUp' : 'ArrowLeft';
+    var next = vertical ? 'ArrowDown' : 'ArrowRight';
+    if (e.key === prev) n = (i - 1 + tabs.length) % tabs.length;
+    else if (e.key === next) n = (i + 1) % tabs.length;
+    else if (e.key === 'Home') n = 0;
+    else if (e.key === 'End') n = tabs.length - 1;
+    else return;
+    e.preventDefault();
+    selectTab(tabs[n].id, true);
+  });
+
+  /* ======================================================================
+     2. Toast
+     ====================================================================== */
+  var toastSeq = 0;
+  function toast(opts){
+    var host = $('toasts');
+    while (host.children.length >= 3) host.firstChild.remove();
+
+    var id = ++toastSeq;
+    var el = document.createElement('div');
+    el.className = 'toast';
+    el.dataset.kind = opts.kind || 'info';
+
+    var mark = document.createElement('span'); mark.className = 'toast__mark';
+    var body = document.createElement('div'); body.className = 'toast__body';
+    var b = document.createElement('b'); b.textContent = opts.title;
+    body.appendChild(b);
+    if (opts.desc){
+      var s = document.createElement('span'); s.textContent = opts.desc;
+      body.appendChild(s);
+    }
+    if (opts.undo){
+      var u = document.createElement('button');
+      u.type = 'button'; u.className = 'toast__undo'; u.textContent = '撤销';
+      u.addEventListener('click', function(){ opts.undo(); close(); });
+      body.appendChild(u);
+    }
+    var x = document.createElement('button');
+    x.type = 'button'; x.className = 'toast__x'; x.textContent = '×';
+    x.setAttribute('aria-label','关闭通知');
+    x.addEventListener('click', close);
+
+    el.appendChild(mark); el.appendChild(body); el.appendChild(x);
+    host.appendChild(el);
+
+    var life = opts.ms || 5200;
+    var timer = setTimeout(close, life);
+    // 悬停与聚焦都暂停自动关闭
+    ['mouseenter','focusin'].forEach(function(ev){
+      el.addEventListener(ev, function(){ clearTimeout(timer); });
+    });
+    ['mouseleave','focusout'].forEach(function(ev){
+      el.addEventListener(ev, function(){ clearTimeout(timer); timer = setTimeout(close, 2200); });
+    });
+
+    function close(){
+      clearTimeout(timer);
+      if (el.dataset.leaving === 'true') return;
+      el.dataset.leaving = 'true';
+      el.addEventListener('animationend', function(){ el.remove(); });
+      setTimeout(function(){ if (el.isConnected) el.remove(); }, 400);
+    }
+    return { close: close };
+  }
+
+  /* ======================================================================
+     3. 设置模型：读值 / 写值 / 显示文本
+     ====================================================================== */
+  var NODES = {};   // setting -> {kind, node(s), label, panel}
+
+  function registerAll(){
+    $$('[data-setting]').forEach(function(node){
+      var key = node.dataset.setting;
+      var panel = node.closest('[role="tabpanel"]');
+      var kind =
+        node.getAttribute('role') === 'switch' ? 'switch' :
+        node.type === 'radio' ? 'radio' :
+        node.type === 'range' ? 'range' :
+        node.tagName === 'SELECT' ? 'select' : 'text';
+
+      if (kind === 'radio'){
+        if (!NODES[key]) NODES[key] = { kind:kind, nodes:[], label:node.dataset.label, panel:panel };
+        NODES[key].nodes.push(node);
+      } else {
+        NODES[key] = { kind:kind, node:node, label:node.dataset.label, panel:panel };
+      }
+    });
+  }
+
+  function readVal(key){
+    var m = NODES[key];
+    if (!m) return null;
+    switch (m.kind){
+      case 'switch': return m.node.getAttribute('aria-checked') === 'true';
+      case 'radio':
+        var c = m.nodes.filter(function(n){ return n.checked; })[0];
+        return c ? c.value : null;
+      case 'range': return m.node.value;
+      default: return m.node.value;
+    }
+  }
+
+  function writeVal(key, v){
+    var m = NODES[key];
+    if (!m) return;
+    switch (m.kind){
+      case 'switch': m.node.setAttribute('aria-checked', String(!!v)); break;
+      case 'radio': m.nodes.forEach(function(n){ n.checked = (n.value === v); }); break;
+      default: m.node.value = v;
+    }
+  }
+
+  /* 人类可读的值文本 */
+  var VOL_UNIT = ' %';
+  function displayVal(key, v){
+    var m = NODES[key];
+    if (!m) return String(v);
+    if (m.kind === 'switch') return v ? '开' : '关';
+    if (m.kind === 'radio'){
+      var n = m.nodes.filter(function(x){ return x.value === v; })[0];
+      return n ? (n.dataset.text || n.value) : String(v);
+    }
+    if (m.kind === 'select'){
+      var o = m.node.querySelector('option[value="' + CSS.escape(String(v)) + '"]');
+      return o ? o.textContent.replace(/　.*$/,'') : String(v);
+    }
+    if (key === 'volume') return v + VOL_UNIT;
+    if (key === 'densityLv') return DENSITY_TEXT[+v];
+    if (key === 'session') return sessionText(+v);
+    if (key === 'ip') return (String(v).split('\n').filter(Boolean).length) + ' 条';
+    return String(v) || '（空）';
+  }
+
+  var DENSITY_TEXT = ['紧凑','舒适','宽松'];
+  var DENSITY_SCALE = [0.66, 1, 1.34];
+  function sessionText(min){
+    if (min < 60) return min + ' 分钟';
+    var h = min / 60;
+    return (Number.isInteger(h) ? h : h.toFixed(1)) + ' 小时';
+  }
+
+  /* ======================================================================
+     4. 派生效果（改动即时预览）
+     ====================================================================== */
+  var ACCENTS = [
+    { id:'teal',   name:'深青', light:'#0f6e6e', dark:'#4cbfb5', lfg:'#ffffff', dfg:'#06201e' },
+    { id:'indigo', name:'靛蓝', light:'#3a4fa0', dark:'#8f9dea', lfg:'#ffffff', dfg:'#10142e' },
+    { id:'clay',   name:'陶红', light:'#a4432c', dark:'#e59175', lfg:'#ffffff', dfg:'#2a0f07' },
+    { id:'moss',   name:'苔绿', light:'#3f6b2e', dark:'#96c97e', lfg:'#ffffff', dfg:'#0e1c08' },
+    { id:'slate',  name:'石墨', light:'#4a565e', dark:'#a9b8c2', lfg:'#ffffff', dfg:'#131a1f' }
+  ];
+  var accentId = 'teal';
+
+  (function buildSwatches(){
+    var host = $('swatches');
+    ACCENTS.forEach(function(a){
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'swatch';
+      b.style.background = a.light;
+      b.setAttribute('aria-pressed', String(a.id === accentId));
+      b.setAttribute('aria-label', '强调色 ' + a.name);
+      b.dataset.accent = a.id;
+      b.addEventListener('click', function(){
+        accentId = a.id;
+        $$('.swatch').forEach(function(s){ s.setAttribute('aria-pressed', String(s.dataset.accent === accentId)); });
+        applyAccent();
+        markDirty();
+      });
+      host.appendChild(b);
+    });
+  })();
+
+  function applyAccent(){
+    var a = ACCENTS.filter(function(x){ return x.id === accentId; })[0];
+    var dark = document.documentElement.dataset.theme === 'dark';
+    var c = dark ? a.dark : a.light;
+    var fg = dark ? a.dfg : a.lfg;
+    document.documentElement.style.setProperty('--accent', c);
+    document.documentElement.style.setProperty('--accent-fg', fg);
+    document.documentElement.style.setProperty('--accent-2',
+      dark ? a.light : a.dark);
+    document.documentElement.style.setProperty('--accent-soft',
+      'color-mix(in srgb, ' + c + ' ' + (dark ? '20%' : '11%') + ', transparent)');
+  }
+
+  var sysDark = window.matchMedia('(prefers-color-scheme: dark)');
+  function applyTheme(){
+    var v = readVal('theme');
+    var eff = v === 'system' ? (sysDark.matches ? 'dark' : 'light') : v;
+    document.documentElement.dataset.theme = eff;
+    applyAccent();
+  }
+  sysDark.addEventListener('change', function(){ if (readVal('theme') === 'system') applyTheme(); });
+
+  function applyDensity(){
+    var lv = +readVal('densityLv');
+    document.documentElement.style.setProperty('--density', DENSITY_SCALE[lv]);
+    $('out-density').textContent = DENSITY_TEXT[lv];
+  }
+
+  function applyMotion(){
+    document.documentElement.dataset.motion = readVal('motion') ? 'reduced' : '';
+  }
+
+  function applyDependents(){
+    var emailOn = readVal('email');
+    $('s-digest').disabled = !emailOn;
+    $('row-digest').dataset.disabled = String(!emailOn);
+    $('s-quiet-a').disabled = !emailOn && !readVal('desktop');
+    $('s-quiet-b').disabled = $('s-quiet-a').disabled;
+    $('row-quiet').dataset.disabled = String($('s-quiet-a').disabled);
+
+    var vol = $('s-volume');
+    vol.disabled = !readVal('desktop');
+  }
+
+  function syncRangeFills(){
+    $$('input[type="range"]').forEach(function(r){
+      var pct = (r.value - r.min) / (r.max - r.min) * 100;
+      r.style.setProperty('--fill', pct.toFixed(1) + '%');
+    });
+    $('out-volume').textContent = $('s-volume').value + ' %';
+    $('out-session').textContent = sessionText(+$('s-session').value);
+    $('out-density').textContent = DENSITY_TEXT[+$('s-density').value];
+  }
+
+  /* ======================================================================
+     5. 脏值追踪
+     ====================================================================== */
+  var saved = {};
+
+  function snapshot(){
+    var o = { __accent: accentId };
+    Object.keys(NODES).forEach(function(k){ o[k] = readVal(k); });
+    return o;
+  }
+  function restore(snap){
+    accentId = snap.__accent;
+    $$('.swatch').forEach(function(s){ s.setAttribute('aria-pressed', String(s.dataset.accent === accentId)); });
+    Object.keys(NODES).forEach(function(k){ writeVal(k, snap[k]); });
+    applyTheme(); applyDensity(); applyMotion(); applyDependents(); syncRangeFills();
+  }
+
+  function diffList(){
+    var out = [];
+    if (accentId !== saved.__accent){
+      out.push({
+        key:'__accent', label:'强调色', panel:$('p-appear'),
+        from: (ACCENTS.filter(function(a){return a.id===saved.__accent;})[0]||{}).name,
+        to:   (ACCENTS.filter(function(a){return a.id===accentId;})[0]||{}).name
+      });
+    }
+    Object.keys(NODES).forEach(function(k){
+      var now = readVal(k);
+      if (String(now) === String(saved[k])) return;
+      out.push({
+        key:k, label:NODES[k].label, panel:NODES[k].panel,
+        from: displayVal(k, saved[k]),
+        to:   displayVal(k, now)
+      });
+    });
+    return out;
+  }
+
+  function markDirty(){
+    var diffs = diffList();
+    var bar = $('savebar');
+    bar.dataset.on = String(diffs.length > 0);
+    $('savebarTitle').textContent = diffs.length
+      ? ('有 ' + diffs.length + ' 项未保存的更改')
+      : '有未保存的更改';
+
+    var host = $('diffs');
+    host.textContent = '';
+    diffs.forEach(function(d){
+      var chip = document.createElement('button');
+      chip.type = 'button';
+      chip.className = 'diff';
+      var name = document.createElement('span'); name.textContent = d.label;
+      var from = document.createElement('s'); from.textContent = d.from;
+      var arrow = document.createElement('span'); arrow.textContent = '→';
+      var to = document.createElement('b'); to.textContent = d.to;
+      chip.appendChild(name); chip.appendChild(from); chip.appendChild(arrow); chip.appendChild(to);
+      chip.addEventListener('click', function(){ jumpTo(d); });
+      host.appendChild(chip);
+    });
+
+    // 标签页脏标记
+    tabs.forEach(function(t){
+      var panel = $(t.getAttribute('aria-controls'));
+      t.dataset.dirty = String(diffs.some(function(d){ return d.panel === panel; }));
+    });
+  }
+
+  function jumpTo(d){
+    var panel = d.panel;
+    var tab = tabs.filter(function(t){ return t.getAttribute('aria-controls') === panel.id; })[0];
+    if (tab) selectTab(tab.id, false);
+
+    var target = d.key === '__accent'
+      ? $('swatches').querySelector('.swatch')
+      : (NODES[d.key].node || NODES[d.key].nodes[0]);
+    if (!target) return;
+    var row = target.closest('.item') || target;
+    row.scrollIntoView({ block:'center',
+      behavior: document.documentElement.dataset.motion === 'reduced' ? 'auto' : 'smooth' });
+    row.classList.remove('flash'); void row.offsetWidth; row.classList.add('flash');
+    if (target.focus) target.focus({ preventScroll:true });
+  }
+
+  /* ======================================================================
+     6. 控件事件
+     ====================================================================== */
+  registerAll();
+
+  $$('[role="switch"]').forEach(function(sw){
+    sw.addEventListener('click', function(){
+      if (sw.disabled) return;
+      sw.setAttribute('aria-checked', String(sw.getAttribute('aria-checked') !== 'true'));
+      if (sw.dataset.setting === 'motion') applyMotion();
+      applyDependents();
+      markDirty();
+    });
+  });
+
+  $$('input[type="range"]').forEach(function(r){
+    r.addEventListener('input', function(){
+      syncRangeFills();
+      if (r.id === 's-density') applyDensity();
+      markDirty();
+    });
+  });
+
+  $$('input[type="radio"][data-setting]').forEach(function(r){
+    r.addEventListener('change', function(){
+      if (r.name === 'theme') applyTheme();
+      markDirty();
+    });
+  });
+
+  $$('select[data-setting], input[type="text"][data-setting], input[type="time"][data-setting], textarea[data-setting]')
+    .forEach(function(n){
+      n.addEventListener('input', markDirty);
+      n.addEventListener('change', markDirty);
+    });
+
+  $('s-slug').addEventListener('input', function(){
+    this.value = this.value.toLowerCase().replace(/[^a-z0-9-]/g,'');
+    $('wsBadge').textContent = this.value || '未命名';
+    $('mCode').textContent = saved.slug;
+    markDirty();
+  });
+
+  /* ---- 保存 / 放弃 ---- */
+  $('btnSave').addEventListener('click', function(){
+    var btn = this;
+    var before = snapshot();
+    btn.dataset.state = 'loading';
+    btn.setAttribute('aria-busy','true');
+
+    setTimeout(function(){
+      btn.dataset.state = 'idle';
+      btn.setAttribute('aria-busy','false');
+      var count = diffList().length;
+      saved = snapshot();
+      markDirty();
+      toast({
+        kind:'ok',
+        title:'已保存 ' + count + ' 项更改',
+        desc:'新的设置已对当前工作区生效。',
+        undo:function(){
+          restore(before);
+          saved = snapshot();
+          markDirty();
+          toast({ kind:'ok', title:'已回到保存前的状态' });
+        }
+      });
+    }, 850);
+  });
+
+  $('btnDiscard').addEventListener('click', function(){
+    var before = snapshot();
+    restore(saved);
+    markDirty();
+    toast({
+      title:'已放弃未保存的更改',
+      undo:function(){
+        restore(before);
+        markDirty();
+        toast({ title:'已恢复刚才的改动' });
+      }
+    });
+  });
+
+  /* ---- 测试通知 / 导出 ---- */
+  $('btnTestNotify').addEventListener('click', function(){
+    var b = this;
+    b.dataset.state = 'loading'; b.setAttribute('aria-busy','true');
+    setTimeout(function(){
+      b.dataset.state = 'idle'; b.setAttribute('aria-busy','false');
+      var channels = [];
+      if (readVal('email')) channels.push('邮件');
+      if (readVal('desktop')) channels.push('桌面');
+      if (!channels.length){
+        toast({ kind:'danger', title:'没有可用的通知渠道', desc:'请先开启邮件或桌面通知。' });
+      } else {
+        toast({ kind:'ok', title:'测试通知已发出', desc:'渠道：' + channels.join('、') });
+      }
+    }, 700);
+  });
+
+  $('btnExport').addEventListener('click', function(){
+    var b = this;
+    b.dataset.state = 'loading'; b.setAttribute('aria-busy','true');
+    setTimeout(function(){
+      b.dataset.state = 'idle'; b.setAttribute('aria-busy','false');
+      toast({ kind:'ok', title:'导出任务已排队', desc:'完成后会发送下载链接到你的邮箱。' });
+    }, 900);
+  });
+
+  /* ======================================================================
+     7. 危险操作弹窗（含焦点陷阱）
+     ====================================================================== */
+  var scrim = $('scrim'), modal = $('modal'), lastFocus = null, modalMode = null;
+
+  var MODAL_CONF = {
+    del: {
+      title:'删除工作区',
+      desc:'这个操作不可撤销。删除后无法通过任何方式恢复，包括联系支持。',
+      list:['全部项目与文件','成员与权限配置','近 24 个月的审计日志','所有 API 令牌与 Webhook'],
+      needType:true,
+      cta:'永久删除',
+      done:function(){ toast({ kind:'danger', title:'工作区已删除', desc:'这是演示流程，未真正删除任何数据。' }); }
+    },
+    transfer: {
+      title:'转移所有权',
+      desc:'转移后你会降级为普通管理员，无法再修改计费与危险区设置。',
+      list:['所有者身份','计费与发票权限','危险区操作权限'],
+      needType:true,
+      cta:'确认转移',
+      done:function(){ toast({ kind:'ok', title:'所有权转移请求已发出', desc:'对方接受后生效。' }); }
+    }
+  };
+
+  function openModal(mode){
+    modalMode = mode;
+    var c = MODAL_CONF[mode];
+    lastFocus = document.activeElement;
+
+    $('mTitle').textContent = c.title;
+    $('mDesc').textContent = c.desc;
+    var ul = $('mList'); ul.textContent = '';
+    c.list.forEach(function(t){ var li = document.createElement('li'); li.textContent = t; ul.appendChild(li); });
+    $('mCode').textContent = saved.slug;
+    $('mInput').value = '';
+    $('mConfirm').textContent = c.cta;
+    $('mConfirm').setAttribute('aria-disabled','true');
+
+    scrim.dataset.on = 'true';
+    document.body.style.overflow = 'hidden';
+    setTimeout(function(){ $('mInput').focus(); }, 20);
+    document.addEventListener('keydown', onModalKey, true);
+  }
+
+  function closeModal(){
+    scrim.dataset.on = 'false';
+    document.body.style.overflow = '';
+    document.removeEventListener('keydown', onModalKey, true);
+    if (lastFocus && lastFocus.focus) lastFocus.focus();
+  }
+
+  function onModalKey(e){
+    if (e.key === 'Escape'){ e.preventDefault(); closeModal(); return; }
+    if (e.key !== 'Tab') return;
+    var f = $$('button, [href], input, select, textarea', modal)
+      .filter(function(n){ return !n.disabled && n.getAttribute('aria-disabled') !== 'true' && n.offsetParent !== null; });
+    if (!f.length) return;
+    var first = f[0], last = f[f.length-1];
+    if (e.shiftKey && document.activeElement === first){ e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && document.activeElement === last){ e.preventDefault(); first.focus(); }
+  }
+
+  $('mInput').addEventListener('input', function(){
+    var ok = this.value.trim() === saved.slug;
+    $('mConfirm').setAttribute('aria-disabled', String(!ok));
+  });
+
+  $('mCancel').addEventListener('click', closeModal);
+  scrim.addEventListener('mousedown', function(e){ if (e.target === scrim) closeModal(); });
+
+  $('mConfirm').addEventListener('click', function(){
+    if (this.getAttribute('aria-disabled') === 'true') return;
+    var b = this, c = MODAL_CONF[modalMode];
+    b.dataset.state = 'loading'; b.setAttribute('aria-busy','true');
+    setTimeout(function(){
+      b.dataset.state = 'idle'; b.setAttribute('aria-busy','false');
+      closeModal();
+      c.done();
+    }, 1000);
+  });
+
+  $('btnDelete').addEventListener('click', function(){ openModal('del'); });
+  $('btnTransfer').addEventListener('click', function(){ openModal('transfer'); });
+
+  /* ======================================================================
+     8. 启动
+     ====================================================================== */
+  applyTheme();
+  applyDensity();
+  applyMotion();
+  applyDependents();
+  syncRangeFills();
+  saved = snapshot();
+  markDirty();
+
+  window.addEventListener('beforeunload', function(e){
+    if ($('savebar').dataset.on === 'true'){ e.preventDefault(); e.returnValue = ''; }
+  });
+})();
+</script>
+
+</body>
+</html>

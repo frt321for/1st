@@ -1,0 +1,984 @@
+<!DOCTYPE html>
+<!--
+DIRECTION CONTRACT
+THESIS         三个方向共用同一个播放状态：一次播放/暂停/拖动，三张卡同时响应。
+               它们不是三张换了配色的同款卡片，而是同一个组件的三种不同主张——
+               形态、密度、控件出现时机全都不同。拒绝「三个色板 + 同一套布局」的伪对比。
+OWN-WORLD      页面本身是一张设计评审单：中性纸底、发丝分隔、等宽标注；
+               三张卡各自有独立的材质与配色，作为被评审的实物摆在纸上。
+STORY          先读到评审命题与共享的曲目数据，再横向对比三种主张，
+               每一栏下方给出这个方向换来了什么、放弃了什么。
+FIRST VIEWPORT 顶部是命题与共享状态条，往下立刻是三栏并置；
+               每栏顶部是方向名与两句理念，理念在卡片之前。
+SIGNATURE      共享状态：在任意一张卡上拖动进度，另外两张同步走动——
+               这让「同一个组件，三种设计」变成可验证的事实，而不是一句说明。
+-->
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>音乐播放器卡片 · 三个设计方向</title>
+<style>
+/* ==========================================================================
+   同一个播放器，三种主张
+   ========================================================================== */
+
+:root{
+  --paper:#f2f2f1;
+  --paper-2:#fbfbfa;
+  --ink:#17181a;
+  --ink-2:#4a4c50;
+  --ink-3:#5e6165;
+  --hair:#dcdcd8;
+  --hair-2:#c1c1bb;
+  --pin:#b5442f;
+
+  --font:"PingFang SC","Hiragino Sans GB","Microsoft YaHei",
+         ui-sans-serif,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  --mono:ui-monospace,"SF Mono","Cascadia Mono",Consolas,monospace;
+  --ease:cubic-bezier(.22,.61,.36,1);
+}
+
+*,*::before,*::after{ box-sizing:border-box; }
+html,body{ margin:0; padding:0; overflow-x:clip; }
+html{ color-scheme:light; }
+
+body{
+  min-height:100dvh;
+  background:var(--paper);
+  color:var(--ink);
+  font-family:var(--font);
+  font-size:16px;
+  line-height:1.62;
+  -webkit-font-smoothing:antialiased;
+}
+
+h1,h2,h3,h4,p,ul,ol,dl,dd,dt,figure{ margin:0; padding:0; }
+ul,ol{ list-style:none; }
+button{ font:inherit; }
+
+:focus-visible{ outline:2px solid var(--pin); outline-offset:3px; border-radius:3px; }
+
+.mono{ font-family:var(--mono); font-variant-numeric:tabular-nums; }
+.sr{
+  position:absolute; width:1px; height:1px; padding:0; margin:-1px;
+  overflow:hidden; clip-path:inset(50%); white-space:nowrap; border:0;
+}
+
+.sheet{ max-width:1360px; margin-inline:auto; padding:clamp(1.25rem,4vw,3rem) clamp(1rem,4vw,3rem) 4rem; }
+
+/* ==========================================================================
+   评审单头
+   ========================================================================== */
+.brief{
+  border-bottom:1px solid var(--ink);
+  padding-bottom:1.4rem;
+  display:grid;
+  grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);
+  gap:clamp(1rem,3vw,3rem);
+  align-items:end;
+}
+.brief h1{
+  font-size:clamp(1.6rem,3.6vw,2.5rem);
+  font-weight:700; letter-spacing:-.032em; line-height:1.1;
+  text-wrap:balance;
+}
+.brief p{ margin-top:.7rem; color:var(--ink-2); max-width:56ch; text-wrap:pretty; }
+
+.track{
+  border-top:1px solid var(--hair);
+}
+.track div{
+  display:grid; grid-template-columns:minmax(0,6em) minmax(0,1fr);
+  gap:1rem; padding:.45rem 0;
+  border-bottom:1px solid var(--hair);
+  font-size:.875rem;
+}
+.track dt{ color:var(--ink-3); font-size:.75rem; letter-spacing:.1em; }
+.track dd{ font-family:var(--mono); font-variant-numeric:tabular-nums; }
+
+/* 共享状态条 */
+.shared{
+  margin-top:1.1rem;
+  display:flex; flex-wrap:wrap; align-items:center; gap:.7rem 1.2rem;
+  padding:.7rem .9rem;
+  background:var(--paper-2);
+  border:1px solid var(--hair);
+  border-radius:9px;
+  font-size:.8125rem;
+  color:var(--ink-2);
+}
+.shared b{ font-family:var(--mono); color:var(--ink); }
+.shared__badge{
+  display:inline-flex; align-items:center; gap:.45ch;
+  padding:.16rem .6rem; border-radius:99px;
+  border:1px solid var(--hair-2);
+  font-size:.75rem;
+}
+.shared__badge::before{
+  content:""; width:6px; height:6px; border-radius:50%;
+  background:var(--hair-2);
+}
+.shared__badge[data-on="true"]::before{ background:var(--pin); }
+
+/* ==========================================================================
+   三栏
+   ========================================================================== */
+.cols{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:clamp(1rem,2.4vw,2.25rem);
+  margin-top:clamp(1.5rem,4vw,3rem);
+  align-items:start;
+}
+
+.col__head{ padding-bottom:1rem; border-bottom:1px solid var(--ink); }
+.col__no{
+  font-family:var(--mono); font-size:.75rem; color:var(--pin);
+  letter-spacing:.16em; font-weight:600;
+}
+.col__head h2{
+  margin-top:.25rem;
+  font-size:clamp(1.15rem,2vw,1.45rem);
+  font-weight:660; letter-spacing:-.024em;
+}
+.col__idea{
+  margin-top:.65rem;
+  font-size:.9375rem;
+  color:var(--ink-2);
+  text-wrap:pretty;
+}
+.col__for{
+  margin-top:.7rem;
+  font-size:.8125rem;
+  color:var(--ink-3);
+  padding-left:.75rem;
+  border-left:2px solid var(--hair-2);
+}
+
+.stagebox{
+  margin-top:1.4rem;
+  padding:clamp(1rem,2vw,1.6rem);
+  border-radius:14px;
+  display:grid; place-items:center;
+  min-height:clamp(280px,30vw,340px);
+}
+.stagebox--a{ background:#e8e8e6; }
+.stagebox--b{ background:#eceeef; }
+.stagebox--c{ background:#151113; }
+
+.tradeoff{ margin-top:1.3rem; }
+.tradeoff h3{
+  font-size:.6875rem; letter-spacing:.16em; text-transform:uppercase;
+  color:var(--ink-3); font-weight:660; margin-bottom:.5rem;
+}
+.tradeoff ul{ display:grid; gap:.4rem; }
+.tradeoff li{
+  display:grid; grid-template-columns:1.4rem minmax(0,1fr); gap:.4rem;
+  font-size:.875rem; color:var(--ink-2);
+}
+.tradeoff li[data-k="+"]::before{ content:"得"; color:var(--ink); font-size:.75rem; font-weight:700; }
+.tradeoff li[data-k="-"]::before{ content:"失"; color:var(--pin); font-size:.75rem; font-weight:700; }
+
+/* ==========================================================================
+   方向 A · 物理播放器
+   ========================================================================== */
+.cardA{
+  --alu-hi:#f0f1f2;
+  --alu:#c8ccd0;
+  --alu-lo:#8f959b;
+  --body:#26282b;
+  --body-2:#33363a;
+  --amber:#e8a33d;
+
+  width:min(100%,340px);
+  padding:1.15rem;
+  border-radius:16px;
+  background:linear-gradient(168deg,var(--body-2),var(--body));
+  box-shadow:
+    0 1px 0 rgba(255,255,255,.1) inset,
+    0 18px 34px -18px rgba(0,0,0,.7);
+  color:#e9eaec;
+}
+.cardA__top{ display:flex; align-items:center; gap:.9rem; }
+
+/* 旋钮 */
+.knob{
+  position:relative;
+  width:104px; height:104px; flex:0 0 auto;
+  border-radius:50%;
+  background:
+    repeating-conic-gradient(from 0deg,
+      rgba(255,255,255,.12) 0deg .5deg, rgba(0,0,0,.1) .5deg 1.2deg),
+    conic-gradient(from 220deg, var(--alu-hi), var(--alu) 30%, var(--alu-lo) 55%, var(--alu-hi) 78%, var(--alu) 100%);
+  box-shadow:
+    0 0 0 5px #1c1e21,
+    0 0 0 6px rgba(255,255,255,.08),
+    0 8px 14px -6px rgba(0,0,0,.8);
+  cursor:grab;
+  touch-action:none;
+}
+.knob:active{ cursor:grabbing; }
+.knob:focus-visible{ outline:2px solid var(--amber); outline-offset:8px; }
+/* 指针 */
+.knob__ptr{
+  position:absolute;
+  left:50%; top:7px;
+  width:3px; height:26px;
+  translate:-50% 0;
+  transform-origin:50% 45px;
+  border-radius:2px;
+  background:var(--body);
+  box-shadow:0 0 0 1px rgba(255,255,255,.35);
+}
+/* 环形进度 */
+.knob__ring{
+  position:absolute; inset:-11px;
+  border-radius:50%;
+  background:conic-gradient(var(--amber) var(--deg,0deg), rgba(255,255,255,.1) 0deg);
+  -webkit-mask:radial-gradient(circle, transparent 0 61%, #000 61% 68%, transparent 68%);
+          mask:radial-gradient(circle, transparent 0 61%, #000 61% 68%, transparent 68%);
+  pointer-events:none;
+}
+
+.cardA__info{ min-width:0; flex:1 1 auto; }
+.cardA__lamp{
+  display:inline-flex; align-items:center; gap:.45ch;
+  font-size:.625rem; letter-spacing:.2em; text-transform:uppercase;
+  color:rgba(233,234,236,.6);
+}
+.cardA__lamp i{
+  width:7px; height:7px; border-radius:50%;
+  background:#4a4d52;
+  box-shadow:inset 0 0 2px rgba(0,0,0,.8);
+}
+.cardA__lamp[data-on="true"] i{
+  background:var(--amber);
+  box-shadow:0 0 6px var(--amber);
+}
+.cardA h3{
+  margin-top:.35rem;
+  font-size:1.0625rem; font-weight:620; letter-spacing:-.014em;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.cardA__artist{ font-size:.8125rem; color:rgba(233,234,236,.62); }
+.cardA__time{
+  margin-top:.5rem;
+  font-family:var(--mono); font-variant-numeric:tabular-nums;
+  font-size:.75rem; color:rgba(233,234,236,.72);
+  display:flex; justify-content:space-between;
+}
+
+/* 机械按键 */
+.keys{
+  display:grid; grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:.5rem;
+  margin-top:1.1rem;
+  padding-top:1rem;
+  border-top:1px solid rgba(255,255,255,.1);
+}
+.key{
+  min-height:48px;
+  border:0; border-radius:8px;
+  background:linear-gradient(180deg,#4a4d52,#34373b);
+  color:#e9eaec;
+  box-shadow:0 3px 0 #1b1d20, 0 5px 8px -3px rgba(0,0,0,.7);
+  cursor:pointer;
+  display:grid; place-items:center;
+  transition:translate .07s var(--ease), box-shadow .07s var(--ease);
+}
+.key:hover{ background:linear-gradient(180deg,#54585e,#3b3e43); }
+.key:active{ translate:0 3px; box-shadow:0 0 0 #1b1d20, 0 2px 4px -2px rgba(0,0,0,.7); }
+.key--main{ background:linear-gradient(180deg,#f0b35a,#d1892b); color:#2a1a02; box-shadow:0 3px 0 #8e5b13, 0 5px 8px -3px rgba(0,0,0,.7); }
+.key--main:hover{ background:linear-gradient(180deg,#f7c274,#dd9436); }
+.key:focus-visible{ outline:2px solid var(--amber); outline-offset:3px; }
+.glyph{ width:14px; height:14px; display:block; }
+
+/* ==========================================================================
+   方向 B · 信息优先
+   ========================================================================== */
+.cardB{
+  --line:#d8dcde;
+  --ink-b:#14181a;
+  --dim:#5c6669;
+  --acc:#0f5c4c;
+
+  width:min(100%,360px);
+  background:#fdfdfd;
+  border:1px solid var(--line);
+  border-radius:10px;
+  overflow:hidden;
+  color:var(--ink-b);
+  box-shadow:0 10px 24px -18px rgba(20,24,26,.5);
+}
+.cardB__bar{
+  display:flex; align-items:center; justify-content:space-between; gap:1ch;
+  padding:.5rem .75rem;
+  border-bottom:1px solid var(--line);
+  font-family:var(--mono); font-size:.6875rem; color:var(--dim);
+  letter-spacing:.06em;
+}
+.cardB__body{ padding:.85rem .9rem; }
+.cardB h3{ font-size:.9375rem; font-weight:640; letter-spacing:-.012em; }
+.cardB__sub{
+  font-size:.8125rem; color:var(--dim);
+  display:flex; flex-wrap:wrap; gap:.2rem .6rem;
+}
+
+/* 波形 */
+.wave{
+  position:relative;
+  margin-top:.8rem;
+  height:56px;
+  display:flex; align-items:center; gap:1px;
+}
+.wave i{
+  flex:1 1 auto;
+  background:var(--line);
+  border-radius:1px;
+  min-width:2px;
+}
+.wave i[data-p="true"]{ background:var(--acc); }
+.wave input{
+  position:absolute; inset:0;
+  width:100%; height:100%;
+  margin:0; opacity:0; cursor:pointer;
+}
+.wave:has(input:focus-visible){ outline:2px solid var(--acc); outline-offset:3px; border-radius:3px; }
+
+.cardB__meter{
+  display:grid; grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:1px;
+  margin-top:.85rem;
+  background:var(--line);
+  border:1px solid var(--line);
+  border-radius:6px;
+  overflow:hidden;
+}
+.cardB__meter div{ background:#fdfdfd; padding:.45rem .5rem; }
+.cardB__meter dt{ font-size:.625rem; color:var(--dim); letter-spacing:.08em; }
+.cardB__meter dd{ font-family:var(--mono); font-size:.8125rem; font-weight:600; }
+
+.queue{ margin-top:.85rem; border-top:1px solid var(--line); }
+.queue h4{
+  font-size:.625rem; letter-spacing:.14em; text-transform:uppercase;
+  color:var(--dim); margin:.6rem 0 .35rem;
+}
+.queue li{
+  display:grid; grid-template-columns:1.6rem minmax(0,1fr) auto;
+  gap:.5rem; align-items:baseline;
+  padding:.28rem 0;
+  font-size:.8125rem;
+}
+.queue li em{ font-style:normal; font-family:var(--mono); font-size:.6875rem; color:var(--dim); }
+.queue li span{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.queue li b{ font-family:var(--mono); font-size:.6875rem; color:var(--dim); font-weight:400; }
+
+.cardB__acts{
+  display:flex; gap:.4rem; align-items:center;
+  margin-top:.9rem; padding-top:.75rem;
+  border-top:1px solid var(--line);
+}
+.bbtn{
+  min-height:44px; min-width:44px;
+  padding:0 .7rem;
+  border:1px solid var(--line);
+  border-radius:6px;
+  background:#fff;
+  color:var(--ink-b);
+  cursor:pointer;
+  display:grid; place-items:center;
+  transition:background-color .16s var(--ease), border-color .16s var(--ease);
+}
+.bbtn:hover{ background:#f2f5f4; border-color:#b9c2c4; }
+.bbtn--main{ background:var(--acc); border-color:var(--acc); color:#fff; }
+.bbtn--main:hover{ background:#0c4d40; border-color:#0c4d40; }
+.kbd{
+  margin-left:auto;
+  font-family:var(--mono); font-size:.625rem; color:var(--dim);
+}
+.kbd b{
+  display:inline-block; padding:.05rem .3rem; border:1px solid var(--line);
+  border-radius:3px; background:#f6f8f8; font-weight:500;
+}
+
+/* ==========================================================================
+   方向 C · 环境
+   ========================================================================== */
+.cardC{
+  --cover:#a8462e;
+  --cover-2:#d97b4a;
+
+  position:relative;
+  width:min(100%,330px);
+  padding:1.5rem 1.35rem 1.2rem;
+  border-radius:22px;
+  color:#f6efe9;
+  background:rgba(255,255,255,.04);
+  overflow:hidden;
+  isolation:isolate;
+}
+/* 封面色扩散出的光：不是装饰光球，是封面本身的延伸 */
+.cardC::before{
+  content:"";
+  position:absolute; inset:-30%;
+  z-index:-1;
+  background:
+    radial-gradient(42% 38% at 30% 26%, var(--cover-2), transparent 66%),
+    radial-gradient(50% 44% at 66% 62%, var(--cover), transparent 70%);
+  filter:blur(34px);
+  opacity:.72;
+  animation:breathe 9s ease-in-out infinite alternate;
+}
+@keyframes breathe{
+  from{ transform:scale(1) translate(0,0); opacity:.6; }
+  to  { transform:scale(1.1) translate(2%,-2%); opacity:.85; }
+}
+
+.coverart{
+  width:100%; aspect-ratio:1;
+  border-radius:14px;
+  background:linear-gradient(152deg, var(--cover-2), var(--cover) 52%, #4a1c12);
+  box-shadow:0 20px 40px -18px rgba(0,0,0,.8);
+  display:grid; place-items:center;
+  position:relative;
+  overflow:hidden;
+}
+.coverart::after{
+  content:"";
+  position:absolute; inset:0;
+  background:repeating-linear-gradient(118deg, rgba(255,255,255,.05) 0 1px, transparent 1px 9px);
+}
+.coverart span{
+  font-size:2.6rem; font-weight:700; letter-spacing:-.05em;
+  color:rgba(255,255,255,.9);
+  mix-blend-mode:soft-light;
+}
+
+.cardC h3{
+  margin-top:1.15rem;
+  font-size:1.15rem; font-weight:620; letter-spacing:-.02em;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.cardC__artist{ font-size:.875rem; color:rgba(246,239,233,.66); }
+
+.cardC__line{
+  position:relative;
+  margin-top:1.1rem;
+  height:24px;
+  display:flex; align-items:center;
+}
+.cardC__line .rail{
+  width:100%; height:3px; border-radius:99px;
+  background:rgba(246,239,233,.24);
+  overflow:hidden;
+}
+.cardC__line .rail i{
+  display:block; height:100%;
+  background:rgba(246,239,233,.95);
+  border-radius:99px;
+}
+.cardC__line input{
+  position:absolute; inset:0; width:100%; height:100%;
+  margin:0; opacity:0; cursor:pointer;
+}
+.cardC__line:has(input:focus-visible){ outline:2px solid #f6efe9; outline-offset:4px; border-radius:4px; }
+
+.cardC__time{
+  display:flex; justify-content:space-between;
+  font-family:var(--mono); font-variant-numeric:tabular-nums;
+  font-size:.6875rem; color:rgba(246,239,233,.6);
+}
+
+/* 控件默认隐去，但键盘聚焦、触摸设备与「常驻」开关都能唤出 */
+.cardC__ctl{
+  display:flex; align-items:center; justify-content:center; gap:.9rem;
+  margin-top:.9rem;
+  opacity:0;
+  transform:translateY(6px);
+  transition:opacity .28s var(--ease), transform .28s var(--ease);
+}
+.cardC:hover .cardC__ctl,
+.cardC:focus-within .cardC__ctl,
+.cardC[data-always="true"] .cardC__ctl{ opacity:1; transform:none; }
+@media (hover:none){
+  .cardC__ctl{ opacity:1; transform:none; }
+}
+.cbtn{
+  width:44px; height:44px;
+  border:1px solid rgba(246,239,233,.3);
+  border-radius:50%;
+  background:rgba(246,239,233,.08);
+  color:#f6efe9;
+  cursor:pointer;
+  display:grid; place-items:center;
+  transition:background-color .16s var(--ease);
+}
+.cbtn:hover{ background:rgba(246,239,233,.2); }
+.cbtn--main{ width:54px; height:54px; background:#f6efe9; color:#2a120b; border-color:#f6efe9; }
+.cbtn--main:hover{ background:#fff; }
+.cbtn:focus-visible{ outline:2px solid #f6efe9; outline-offset:3px; }
+
+.alwaysrow{
+  display:flex; align-items:center; gap:.5rem;
+  margin-top:1rem; padding-top:.8rem;
+  border-top:1px solid rgba(246,239,233,.16);
+  font-size:.75rem; color:rgba(246,239,233,.66);
+}
+.alwaysrow input{ width:18px; height:18px; accent-color:#f6efe9; }
+
+/* ==========================================================================
+   降低动效
+   ========================================================================== */
+@media (prefers-reduced-motion:reduce){
+  .cardC::before{ animation:none; opacity:.72; }
+  .cardC__ctl{ opacity:1; transform:none; transition:none; }
+  .key,.bbtn,.cbtn{ transition:none; }
+}
+
+/* ==========================================================================
+   响应式
+   ========================================================================== */
+@media (max-width:1040px){
+  .cols{ grid-template-columns:minmax(0,1fr); gap:2.5rem; }
+  .brief{ grid-template-columns:minmax(0,1fr); }
+  .stagebox{ min-height:0; padding-block:2rem; }
+}
+@media (max-width:420px){
+  .cardA__top{ flex-direction:column; align-items:flex-start; }
+  .knob{ align-self:center; }
+  .cardB__meter{ grid-template-columns:repeat(2,minmax(0,1fr)); }
+}
+</style>
+</head>
+<body>
+
+<div class="sheet">
+
+  <!-- ==================== 命题 ==================== -->
+  <header class="brief">
+    <div>
+      <h1>同一个播放器卡片，<br>三个互不兼容的方向</h1>
+      <p>
+        三张卡共用一份播放状态。在任意一张上按播放或拖动进度，
+        另外两张会同步——这样比较的才是设计主张本身，不是三段各自为政的演示。
+      </p>
+      <div class="shared" role="status" aria-live="off">
+        <span class="shared__badge" id="badge" data-on="false">已暂停</span>
+        <span>当前位置 <b id="sharedPos">0:00</b> / <b>4:12</b></span>
+        <span>三张卡读同一个状态</span>
+      </div>
+    </div>
+
+    <dl class="track">
+      <div><dt>曲目</dt><dd>雨落在铁皮屋顶上</dd></div>
+      <div><dt>艺术家</dt><dd>南风与旧船</dd></div>
+      <div><dt>专辑</dt><dd>《潮位》</dd></div>
+      <div><dt>规格</dt><dd>FLAC 24bit / 96kHz</dd></div>
+      <div><dt>说明</dt><dd>曲目与封面均为占位内容</dd></div>
+    </dl>
+  </header>
+
+  <!-- ==================== 三栏 ==================== -->
+  <div class="cols">
+
+    <!-- ---------- A ---------- -->
+    <section class="col" aria-labelledby="hA">
+      <header class="col__head">
+        <span class="col__no">方向 A</span>
+        <h2 id="hA">物理播放器</h2>
+        <p class="col__idea">
+          把播放器当成一件有重量的东西来做。旋钮、拨杆、按下去会陷进去的按键——
+          控件的形状本身就说明了它怎么用，不需要图标去解释。
+        </p>
+        <p class="col__for">
+          为「放上一张专辑然后不再碰它」设计。单手可操作，
+          扫一眼就知道播到哪儿，不提供任何需要精细定位的操作。
+        </p>
+      </header>
+
+      <div class="stagebox stagebox--a">
+        <article class="cardA" aria-label="播放器 · 物理方向">
+          <div class="cardA__top">
+            <div class="knob" id="knobA" role="slider"
+                 tabindex="0" aria-label="播放进度旋钮"
+                 aria-valuemin="0" aria-valuemax="252" aria-valuenow="0" aria-valuetext="0 分 0 秒">
+              <span class="knob__ring" id="knobRing" aria-hidden="true"></span>
+              <span class="knob__ptr" id="knobPtr" aria-hidden="true"></span>
+            </div>
+
+            <div class="cardA__info">
+              <span class="cardA__lamp" id="lampA" data-on="false"><i></i>PLAY</span>
+              <h3>雨落在铁皮屋顶上</h3>
+              <p class="cardA__artist">南风与旧船 · 潮位</p>
+              <p class="cardA__time"><span id="aCur">0:00</span><span>4:12</span></p>
+            </div>
+          </div>
+
+          <div class="keys">
+            <button class="key" type="button" data-act="prev" aria-label="上一首">
+              <svg class="glyph" viewBox="0 0 16 16" aria-hidden="true" fill="currentColor">
+                <path d="M4 2h2v12H4zM14 2v12L6 8z"/>
+              </svg>
+            </button>
+            <button class="key key--main" type="button" data-act="toggle" aria-label="播放" aria-pressed="false">
+              <svg class="glyph" viewBox="0 0 16 16" aria-hidden="true" fill="currentColor" data-icon="play">
+                <path d="M3 2l11 6-11 6z"/>
+              </svg>
+            </button>
+            <button class="key" type="button" data-act="next" aria-label="下一首">
+              <svg class="glyph" viewBox="0 0 16 16" aria-hidden="true" fill="currentColor">
+                <path d="M10 2h2v12h-2zM2 2l8 6-8 6z"/>
+              </svg>
+            </button>
+          </div>
+        </article>
+      </div>
+
+      <div class="tradeoff">
+        <h3>取舍</h3>
+        <ul>
+          <li data-k="+">操作目标大，走过路过都能按中</li>
+          <li data-k="+">状态由材质与灯光承载，不依赖文字</li>
+          <li data-k="-">同样的面积只放得下三个功能，没有队列</li>
+          <li data-k="-">拟物成本高，改一次视觉要重画一遍材质</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- ---------- B ---------- -->
+    <section class="col" aria-labelledby="hB">
+      <header class="col__head">
+        <span class="col__no">方向 B</span>
+        <h2 id="hB">信息优先</h2>
+        <p class="col__idea">
+          不营造氛围。音乐在这里是数据：波形、码率、队列还剩几首、下一首是什么。
+          界面的职责是帮你做下一个决定，而不是让你欣赏界面。
+        </p>
+        <p class="col__for">
+          为「一边工作一边管队列」设计。信息密度高，
+          常用操作全部有键盘快捷键，鼠标只是备选。
+        </p>
+      </header>
+
+      <div class="stagebox stagebox--b">
+        <article class="cardB" aria-label="播放器 · 信息方向">
+          <div class="cardB__bar">
+            <span>NOW PLAYING</span>
+            <span id="bIdx">04 / 18</span>
+          </div>
+
+          <div class="cardB__body">
+            <h3>雨落在铁皮屋顶上</h3>
+            <p class="cardB__sub"><span>南风与旧船</span><span>《潮位》</span><span>2024</span></p>
+
+            <div class="wave" id="waveB">
+              <input type="range" id="rangeB" min="0" max="252" step="1" value="0" aria-label="播放进度">
+            </div>
+
+            <dl class="cardB__meter">
+              <div><dt>已播</dt><dd id="bCur">0:00</dd></div>
+              <div><dt>剩余</dt><dd id="bLeft">-4:12</dd></div>
+              <div><dt>格式</dt><dd>FLAC</dd></div>
+              <div><dt>码率</dt><dd>2304k</dd></div>
+            </dl>
+
+            <div class="queue">
+              <h4>接下来</h4>
+              <ol>
+                <li><em>05</em><span>沿海公路的第七个弯</span><b>3:48</b></li>
+                <li><em>06</em><span>停电那晚</span><b>5:02</b></li>
+                <li><em>07</em><span>回港</span><b>4:31</b></li>
+              </ol>
+            </div>
+
+            <div class="cardB__acts">
+              <button class="bbtn" type="button" data-act="prev" aria-label="上一首">
+                <svg class="glyph" viewBox="0 0 16 16" aria-hidden="true" fill="currentColor"><path d="M4 2h2v12H4zM14 2v12L6 8z"/></svg>
+              </button>
+              <button class="bbtn bbtn--main" type="button" data-act="toggle" aria-label="播放" aria-pressed="false">
+                <svg class="glyph" viewBox="0 0 16 16" aria-hidden="true" fill="currentColor" data-icon="play"><path d="M3 2l11 6-11 6z"/></svg>
+              </button>
+              <button class="bbtn" type="button" data-act="next" aria-label="下一首">
+                <svg class="glyph" viewBox="0 0 16 16" aria-hidden="true" fill="currentColor"><path d="M10 2h2v12h-2zM2 2l8 6-8 6z"/></svg>
+              </button>
+              <span class="kbd"><b>空格</b> 播放 · <b>← →</b> 定位</span>
+            </div>
+          </div>
+        </article>
+      </div>
+
+      <div class="tradeoff">
+        <h3>取舍</h3>
+        <ul>
+          <li data-k="+">一屏内能回答「还剩多久、下一首是谁」</li>
+          <li data-k="+">纯排版实现，改版成本最低</li>
+          <li data-k="-">信息量大，不适合远看或余光扫视</li>
+          <li data-k="-">情绪表达接近于零，音乐本身被当成条目</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- ---------- C ---------- -->
+    <section class="col" aria-labelledby="hC">
+      <header class="col__head">
+        <span class="col__no">方向 C</span>
+        <h2 id="hC">环境</h2>
+        <p class="col__idea">
+          正在播放的音乐不需要界面。卡片让位给封面，封面的颜色向外扩散成环境光；
+          控件平时不出现，指针靠近或键盘聚焦时才浮起来。
+        </p>
+        <p class="col__for">
+          为「投在客厅屏幕上、几米外看」设计。
+          触摸设备与键盘用户始终能看到控件，另外提供常驻开关，不做纯悬停可达。
+        </p>
+      </header>
+
+      <div class="stagebox stagebox--c">
+        <article class="cardC" id="cardC" data-always="false" aria-label="播放器 · 环境方向">
+          <div class="coverart" aria-hidden="true"><span>潮位</span></div>
+
+          <h3>雨落在铁皮屋顶上</h3>
+          <p class="cardC__artist">南风与旧船</p>
+
+          <div class="cardC__line" id="lineC">
+            <span class="rail" aria-hidden="true"><i id="railC" style="width:0%"></i></span>
+            <input type="range" id="rangeC" min="0" max="252" step="1" value="0" aria-label="播放进度">
+          </div>
+          <p class="cardC__time"><span id="cCur">0:00</span><span>4:12</span></p>
+
+          <div class="cardC__ctl">
+            <button class="cbtn" type="button" data-act="prev" aria-label="上一首">
+              <svg class="glyph" viewBox="0 0 16 16" aria-hidden="true" fill="currentColor"><path d="M4 2h2v12H4zM14 2v12L6 8z"/></svg>
+            </button>
+            <button class="cbtn cbtn--main" type="button" data-act="toggle" aria-label="播放" aria-pressed="false">
+              <svg class="glyph" viewBox="0 0 16 16" aria-hidden="true" fill="currentColor" data-icon="play"><path d="M3 2l11 6-11 6z"/></svg>
+            </button>
+            <button class="cbtn" type="button" data-act="next" aria-label="下一首">
+              <svg class="glyph" viewBox="0 0 16 16" aria-hidden="true" fill="currentColor"><path d="M10 2h2v12h-2zM2 2l8 6-8 6z"/></svg>
+            </button>
+          </div>
+
+          <label class="alwaysrow">
+            <input type="checkbox" id="alwaysC">
+            始终显示控件
+          </label>
+        </article>
+      </div>
+
+      <div class="tradeoff">
+        <h3>取舍</h3>
+        <ul>
+          <li data-k="+">远看清晰，封面主导，最像「音乐正在放」</li>
+          <li data-k="+">静止时几乎没有界面噪音</li>
+          <li data-k="-">控件需要额外一步才出现，快速操作更慢</li>
+          <li data-k="-">环境光依赖封面配色，深浅封面要各自校对对比度</li>
+        </ul>
+      </div>
+    </section>
+
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  var DURATION = 252;                       // 4:12
+  var state = { playing:false, pos:0, idx:4 };
+  var listeners = [];
+  var last = null, raf = null;
+
+  function fmt(s){
+    s = Math.max(0, Math.min(DURATION, s));
+    return Math.floor(s/60) + ':' + String(Math.floor(s%60)).padStart(2,'0');
+  }
+  function on(fn){ listeners.push(fn); }
+  function emit(){ listeners.forEach(function(f){ f(state); }); }
+
+  function setPos(v){
+    state.pos = Math.max(0, Math.min(DURATION, v));
+    emit();
+  }
+  function toggle(){
+    state.playing = !state.playing;
+    last = performance.now();
+    emit();
+  }
+  function step(n){
+    state.idx = Math.max(1, Math.min(18, state.idx + n));
+    state.pos = 0;
+    emit();
+  }
+
+  function tick(now){
+    if (state.playing){
+      if (last === null) last = now;
+      state.pos += (now - last) / 1000;
+      if (state.pos >= DURATION){ state.pos = DURATION; state.playing = false; }
+      emit();
+    }
+    last = now;
+    raf = requestAnimationFrame(tick);
+  }
+  raf = requestAnimationFrame(tick);
+
+  /* ---- 播放/暂停图标切换 ---- */
+  var PLAY = '<path d="M3 2l11 6-11 6z"/>';
+  var PAUSE = '<path d="M4 2h3.2v12H4zM8.8 2H12v12H8.8z"/>';
+
+  document.querySelectorAll('[data-act]').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var a = btn.dataset.act;
+      if (a === 'toggle') toggle();
+      else if (a === 'prev') step(-1);
+      else if (a === 'next') step(1);
+    });
+  });
+
+  on(function(s){
+    document.querySelectorAll('[data-act="toggle"]').forEach(function(b){
+      b.setAttribute('aria-pressed', String(s.playing));
+      b.setAttribute('aria-label', s.playing ? '暂停' : '播放');
+      var svg = b.querySelector('svg');
+      if (svg && svg.dataset.icon !== (s.playing ? 'pause' : 'play')){
+        svg.dataset.icon = s.playing ? 'pause' : 'play';
+        svg.innerHTML = s.playing ? PAUSE : PLAY;
+      }
+    });
+  });
+
+  /* ---- 共享状态条 ---- */
+  on(function(s){
+    document.getElementById('sharedPos').textContent = fmt(s.pos);
+    var b = document.getElementById('badge');
+    b.dataset.on = String(s.playing);
+    b.textContent = s.playing ? '播放中' : '已暂停';
+  });
+
+  /* ======================================================================
+     方向 A：旋钮
+     ====================================================================== */
+  var knob = document.getElementById('knobA');
+  var ring = document.getElementById('knobRing');
+  var ptr  = document.getElementById('knobPtr');
+
+  on(function(s){
+    var frac = s.pos / DURATION;
+    ring.style.setProperty('--deg', (frac * 360).toFixed(2) + 'deg');
+    ptr.style.transform = 'rotate(' + (frac * 360).toFixed(2) + 'deg)';
+    knob.setAttribute('aria-valuenow', Math.round(s.pos));
+    knob.setAttribute('aria-valuetext', fmt(s.pos));
+    document.getElementById('aCur').textContent = fmt(s.pos);
+    document.getElementById('lampA').dataset.on = String(s.playing);
+  });
+
+  var dragging = false;
+  function angleFrom(e){
+    var r = knob.getBoundingClientRect();
+    var cx = r.left + r.width/2, cy = r.top + r.height/2;
+    var a = Math.atan2(e.clientY - cy, e.clientX - cx) * 180 / Math.PI + 90;
+    if (a < 0) a += 360;
+    return a;
+  }
+  knob.addEventListener('pointerdown', function(e){
+    dragging = true;
+    knob.setPointerCapture(e.pointerId);
+    setPos(angleFrom(e) / 360 * DURATION);
+  });
+  knob.addEventListener('pointermove', function(e){
+    if (dragging) setPos(angleFrom(e) / 360 * DURATION);
+  });
+  ['pointerup','pointercancel'].forEach(function(ev){
+    knob.addEventListener(ev, function(){ dragging = false; });
+  });
+  knob.addEventListener('keydown', function(e){
+    var d = 0;
+    if (e.key === 'ArrowRight' || e.key === 'ArrowUp') d = 5;
+    else if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') d = -5;
+    else if (e.key === 'PageUp') d = 20;
+    else if (e.key === 'PageDown') d = -20;
+    else if (e.key === 'Home') { e.preventDefault(); setPos(0); return; }
+    else if (e.key === 'End') { e.preventDefault(); setPos(DURATION); return; }
+    else if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); toggle(); return; }
+    else return;
+    e.preventDefault();
+    setPos(state.pos + d);
+  });
+
+  /* ======================================================================
+     方向 B：波形
+     ====================================================================== */
+  var wave = document.getElementById('waveB');
+  var rangeB = document.getElementById('rangeB');
+  var BARS = 58;
+  var bars = [];
+
+  (function buildWave(){
+    // 确定性伪随机，保证每次打开波形一致
+    var seed = 20240517;
+    for (var i=0;i<BARS;i++){
+      seed = (seed * 1103515245 + 12345) & 0x7fffffff;
+      var base = 0.24 + (seed % 1000) / 1000 * 0.68;
+      // 中段稍强，模拟一首歌的动态
+      var env = 0.55 + 0.45 * Math.sin(Math.PI * (i / (BARS - 1)));
+      var h = Math.max(0.14, Math.min(1, base * env));
+      var el = document.createElement('i');
+      el.style.height = (h * 100).toFixed(1) + '%';
+      wave.insertBefore(el, rangeB);
+      bars.push(el);
+    }
+  })();
+
+  on(function(s){
+    var frac = s.pos / DURATION;
+    var cut = Math.round(frac * BARS);
+    for (var i=0;i<BARS;i++){
+      var p = (i < cut) ? 'true' : 'false';
+      if (bars[i].dataset.p !== p) bars[i].dataset.p = p;
+    }
+    if (document.activeElement !== rangeB) rangeB.value = Math.round(s.pos);
+    document.getElementById('bCur').textContent = fmt(s.pos);
+    document.getElementById('bLeft').textContent = '-' + fmt(DURATION - s.pos);
+    document.getElementById('bIdx').textContent =
+      String(s.idx).padStart(2,'0') + ' / 18';
+  });
+
+  rangeB.addEventListener('input', function(){ setPos(+this.value); });
+
+  /* ======================================================================
+     方向 C：环境
+     ====================================================================== */
+  var railC = document.getElementById('railC');
+  var rangeC = document.getElementById('rangeC');
+
+  on(function(s){
+    var pct = (s.pos / DURATION * 100).toFixed(2) + '%';
+    railC.style.width = pct;
+    if (document.activeElement !== rangeC) rangeC.value = Math.round(s.pos);
+    document.getElementById('cCur').textContent = fmt(s.pos);
+  });
+
+  rangeC.addEventListener('input', function(){ setPos(+this.value); });
+
+  document.getElementById('alwaysC').addEventListener('change', function(){
+    document.getElementById('cardC').dataset.always = String(this.checked);
+  });
+
+  /* ======================================================================
+     全局键盘（方向 B 声明了快捷键，就必须真的能用）
+     ====================================================================== */
+  document.addEventListener('keydown', function(e){
+    var t = e.target;
+    if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t === knob)) return;
+    if (e.key === ' '){ e.preventDefault(); toggle(); }
+    else if (e.key === 'ArrowRight'){ e.preventDefault(); setPos(state.pos + 5); }
+    else if (e.key === 'ArrowLeft'){ e.preventDefault(); setPos(state.pos - 5); }
+  });
+
+  emit();
+})();
+</script>
+
+</body>
+</html>

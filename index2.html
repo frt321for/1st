@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>鹈鹕娘 — Seaside Cycling · SVG Animation</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    background: #0d1120;
+    background-image:
+      radial-gradient(ellipse 80% 60% at 50% 40%, #1b2340 0%, #0d1120 70%),
+      repeating-linear-gradient(115deg, transparent 0 34px, rgba(255,255,255,.014) 34px 35px);
+    display: flex; align-items: center; justify-content: center;
+    overflow: hidden;
+    font-family: "Zen Maru Gothic", "Yu Gothic", "Microsoft YaHei", sans-serif;
+  }
+  .stage { position: relative; width: min(100vw, calc(100vh * 16 / 9)); aspect-ratio: 16/9; }
+  .stage img {
+    width: 100%; height: 100%; display: block;
+    border-radius: 10px;
+    box-shadow: 0 30px 90px rgba(0,0,0,.65), 0 0 0 1px rgba(255,255,255,.07);
+  }
+  .corner {
+    position: fixed; color: #7f8bb0; font-size: 11px; letter-spacing: .35em;
+    font-family: "Cascadia Code", Consolas, monospace; user-select: none; z-index: 2;
+  }
+  .tl { top: 18px; left: 22px; } .tr { top: 18px; right: 22px; }
+  .bl { bottom: 16px; left: 22px; } .br { bottom: 16px; right: 22px; }
+  .corner b { color: #f2b7c6; font-weight: 600; }
+  @media (prefers-reduced-motion: no-preference) {
+    .stage { animation: drift 9s ease-in-out infinite alternate; }
+    @keyframes drift { from { transform: translateY(-4px); } to { transform: translateY(4px); } }
+  }
+</style>
+</head>
+<body>
+  <div class="corner tl"><b>PELICAN-GIRL</b> / SVG ANIMATION</div>
+  <div class="corner tr">鹈鹕娘 × 自転車</div>
+  <div class="stage">
+    <img src="pelican-girl.svg" alt="鹈鹕娘骑自行车 — 日系二次元美少女鹈鹕娘 SVG 动画">
+  </div>
+</body>
+</html>

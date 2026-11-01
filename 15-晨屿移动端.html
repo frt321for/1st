@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>晨屿 · 冥想助眠</title>
+<style>
+:root{
+  --mist:#dfe9f2;--mist-2:#cfdff0;--lilac:#cdd0ef;--cream:#faf8f4;
+  --ink:#2c3550;--dim:#7c88a6;--faint:#aab4cc;
+  --deep:#39466f;--glow:#8fd0e8;--card:#ffffff;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{
+  min-height:100vh;display:flex;align-items:center;justify-content:center;
+  background:
+    radial-gradient(900px 600px at 20% 10%, rgba(205,208,239,.55), transparent 60%),
+    radial-gradient(800px 600px at 85% 90%, rgba(143,208,232,.4), transparent 55%),
+    linear-gradient(160deg,#e8eef6,#d7ddef 60%,#e3e0ef);
+  font-family:"PingFang SC","Microsoft YaHei",sans-serif;padding:34px 14px;
+}
+.serif{font-family:Georgia,"Songti SC",serif}
+
+/* ============ 手机壳 ============ */
+.phone{
+  width:390px;max-width:96vw;height:844px;max-height:92vh;
+  background:#0f1119;border-radius:54px;padding:10px;position:relative;
+  box-shadow:0 60px 120px rgba(44,53,80,.4),0 12px 36px rgba(44,53,80,.28),inset 0 0 0 2px #2a2e3e;
+  flex:0 0 auto;
+}
+.screen{
+  width:100%;height:100%;border-radius:45px;overflow:hidden;position:relative;
+  background:linear-gradient(180deg,var(--cream) 0%,#f3f2f8 60%,#eef0f9);
+}
+.screen::after{ /* 屏幕玻璃反光 */
+  content:"";position:absolute;inset:0;pointer-events:none;z-index:60;border-radius:45px;
+  background:linear-gradient(115deg,rgba(255,255,255,.14) 0%,transparent 30%);
+}
+.island{
+  position:absolute;top:12px;left:50%;transform:translateX(-50%);width:112px;height:30px;
+  background:#0a0c12;border-radius:999px;z-index:70;
+}
+.sidebtn{position:absolute;right:-2.5px;top:190px;width:3px;height:74px;background:#2a2e3e;border-radius:2px}
+.sidebtn.l1{left:-2.5px;right:auto;top:150px;height:32px}
+.sidebtn.l2{left:-2.5px;right:auto;top:196px;height:56px}
+/* 状态栏 */
+.statusbar{
+  position:absolute;top:0;left:0;right:0;height:52px;z-index:65;
+  display:flex;align-items:center;justify-content:space-between;padding:16px 30px 0;
+  font-size:14px;font-weight:600;color:var(--ink);pointer-events:none;
+}
+.statusbar .icons{display:flex;gap:6px;align-items:center}
+.statusbar .sig{display:flex;gap:2px;align-items:flex-end}
+.statusbar .sig i{width:3px;background:var(--ink);border-radius:1px}
+.statusbar .batt{width:24px;height:12px;border:1.5px solid rgba(44,53,80,.5);border-radius:4px;position:relative;padding:1.5px}
+.statusbar .batt::before{content:"";position:absolute;inset:1.5px;width:70%;background:var(--ink);border-radius:2px}
+.statusbar .batt::after{content:"";position:absolute;right:-4px;top:3px;width:2px;height:5px;background:rgba(44,53,80,.5);border-radius:1px}
+
+/* ============ 应用内容 ============ */
+.app{
+  position:absolute;inset:0;padding:64px 0 96px;overflow-y:auto;overflow-x:hidden;
+  scrollbar-width:none;
+}
+.app::-webkit-scrollbar{display:none}
+.page{display:none;animation:pagein .35s ease}
+.page.active{display:block}
+@keyframes pagein{from{opacity:0;transform:translateY(10px)}to{opacity:1}}
+.inner{padding:0 22px}
+
+/* 问候 */
+.greet{display:flex;align-items:center;gap:14px;margin-top:8px}
+.greet .av{width:46px;height:46px;border-radius:50%;background:linear-gradient(135deg,var(--lilac),var(--glow));display:flex;align-items:center;justify-content:center;color:#fff;font-size:17px;font-weight:600;flex:0 0 auto;box-shadow:0 6px 16px rgba(57,70,111,.18)}
+.greet h1{font-size:21px;font-weight:600;letter-spacing:.02em}
+.greet p{font-size:12px;color:var(--dim);margin-top:1px}
+.streak{
+  margin-left:auto;display:flex;align-items:center;gap:6px;font-size:11.5px;font-weight:600;color:#c98a3c;
+  background:linear-gradient(135deg,#fdf3e2,#fbe9cd);border-radius:999px;padding:7px 13px;white-space:nowrap;
+}
+.streak i{font-style:normal}
+
+/* 今日推荐大卡 */
+.hero-card{
+  margin-top:20px;border-radius:26px;overflow:hidden;position:relative;height:236px;
+  box-shadow:0 22px 44px rgba(57,70,111,.22);
+}
+.hero-card .scene{position:absolute;inset:0;background:
+  radial-gradient(140% 80% at 50% 108%, #f6f0e4 0%, #e8ddcf 22%, transparent 46%),
+  radial-gradient(120% 70% at 50% 0%, #7fa8c9 0%, #a8c4d8 45%, #d8e4ea 78%);
+}
+.hero-card .mtn{position:absolute;bottom:26%;left:-8%;width:70%;height:52%;background:linear-gradient(180deg,#5c7699,#47608a);border-radius:50% 60% 0 0/90% 100% 0 0;opacity:.8}
+.hero-card .mtn.m2{left:36%;bottom:24%;width:74%;height:44%;background:linear-gradient(180deg,#6d89ab,#4a5f86);opacity:.65}
+.hero-card .fog{position:absolute;left:-20%;width:140%;height:34px;border-radius:50%;background:rgba(250,247,240,.55);filter:blur(9px);bottom:22%;animation:fog 9s ease-in-out infinite alternate}
+.hero-card .fog.f2{bottom:34%;height:22px;opacity:.4;animation-duration:13s}
+@keyframes fog{from{transform:translateX(-16px)}to{transform:translateX(22px)}}
+.hero-card .sun{position:absolute;top:16%;right:16%;width:38px;height:38px;border-radius:50%;background:radial-gradient(circle at 36% 32%,#fff8e8,#f2d9a4);box-shadow:0 0 34px rgba(242,217,164,.9)}
+.hero-card .cover{position:absolute;inset:0;background:linear-gradient(180deg,transparent 30%,rgba(30,40,66,.55));z-index:2}
+.hero-card .info{position:absolute;left:20px;right:20px;bottom:18px;z-index:3;color:#fff}
+.hero-card .info .k{font-size:10.5px;letter-spacing:.3em;opacity:.85}
+.hero-card .info h2{font-size:22px;font-weight:600;margin-top:5px;letter-spacing:.04em}
+.hero-card .info p{font-size:11.5px;opacity:.8;margin-top:3px}
+.breath{
+  position:absolute;right:18px;bottom:16px;z-index:4;width:64px;height:64px;border-radius:50%;
+  border:none;cursor:pointer;background:rgba(255,255,255,.22);backdrop-filter:blur(6px);
+  display:flex;align-items:center;justify-content:center;transition:.25s;
+}
+.breath::before{content:"";position:absolute;inset:-7px;border-radius:50%;border:1.5px solid rgba(255,255,255,.5)}
+.breath .ic{width:24px;height:24px;fill:#fff;transition:.2s}
+.breath.on::before{animation:breathring 7.6s ease-in-out infinite}
+.breath.on{background:rgba(255,255,255,.34)}
+@keyframes breathring{ /* 4-7-8 呼吸 */
+  0%{transform:scale(.72);opacity:.5}
+  32.8%{transform:scale(1.22);opacity:1}   /* 吸 4s */
+  92%{transform:scale(1.22);opacity:.95}   /* 屏 7s */
+  100%{transform:scale(.72);opacity:.5}    /* 呼 8s 压缩在尾段 */
+}
+.breath-label{position:absolute;right:30px;bottom:88px;z-index:4;color:#fff;font-size:10.5px;letter-spacing:.2em;opacity:0;transition:.3s;font-family:Consolas,monospace}
+.breath.on ~ .breath-label,.breath.on+.breath-label{opacity:.9}
+/* 呼吸计时条 */
+.session{
+  display:none;margin-top:20px;border-radius:20px;background:var(--deep);color:#fff;
+  padding:18px 20px;align-items:center;gap:14px;box-shadow:0 16px 34px rgba(57,70,111,.3);
+}
+.session.show{display:flex;animation:pagein .4s}
+.session .pulse{width:44px;height:44px;border-radius:50%;border:2px solid rgba(255,255,255,.4);position:relative;flex:0 0 auto}
+.session .pulse::before{content:"";position:absolute;inset:7px;border-radius:50%;background:radial-gradient(circle at 36% 30%,#fff,var(--glow))}
+.session.on .pulse::before{animation:bpulse 7.6s ease-in-out infinite}
+@keyframes bpulse{0%{transform:scale(.7)}33%{transform:scale(1.15)}90%{transform:scale(1.15)}100%{transform:scale(.7)}}
+.session b{font-size:15px;display:block}
+.session span{font-size:11.5px;opacity:.72}
+.session .stop{margin-left:auto;font-size:12px;background:rgba(255,255,255,.16);border-radius:999px;padding:8px 16px;color:#fff;letter-spacing:.1em}
+.session .t{margin-left:auto;font-family:Consolas,monospace;font-size:13px;opacity:.9}
+
+/* 睡眠数据卡 */
+.card{background:var(--card);border-radius:22px;padding:20px;margin-top:18px;box-shadow:0 10px 30px rgba(57,70,111,.08)}
+.card .hd{display:flex;align-items:baseline;gap:10px}
+.card .hd h3{font-size:15px;font-weight:600}
+.card .hd span{font-size:11px;color:var(--faint)}
+.card .hd .more{margin-left:auto;font-size:11.5px;color:var(--dim)}
+.sleeprow{display:flex;align-items:center;gap:16px;margin-top:14px}
+.score-ring{width:74px;height:74px;position:relative;flex:0 0 auto}
+.score-ring svg{width:100%;height:100%;transform:rotate(-90deg)}
+.score-ring .v{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:700;font-size:19px;color:var(--deep)}
+.score-ring .v i{font-style:normal;font-size:9px;color:var(--faint);font-weight:400;letter-spacing:.2em}
+.sleepbars{flex:1;display:flex;align-items:flex-end;gap:8px;height:74px}
+.sleepbars .col{flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;height:100%;justify-content:flex-end}
+.sleepbars .bar{width:100%;border-radius:6px 6px 3px 3px;background:linear-gradient(180deg,var(--glow),#b9cdf0);min-height:6px}
+.sleepbars .col.today .bar{background:linear-gradient(180deg,#8f9fe8,var(--deep))}
+.sleepbars .d{font-size:9px;color:var(--faint)}
+.sleepmeta{display:flex;gap:10px;margin-top:14px}
+.sleepmeta .sm{flex:1;background:#f4f3fa;border-radius:14px;padding:10px 12px}
+.sleepmeta .sm b{display:block;font-size:14px;color:var(--deep)}
+.sleepmeta .sm span{font-size:10px;color:var(--faint);letter-spacing:.08em}
+
+/* 课程横滚 */
+.rowhd{display:flex;align-items:baseline;margin:26px 0 14px;padding:0 22px}
+.rowhd h3{font-size:16.5px;font-weight:600}
+.rowhd span{margin-left:auto;font-size:11.5px;color:var(--dim)}
+.hscroll{display:flex;gap:14px;overflow-x:auto;padding:2px 22px 10px;scrollbar-width:none}
+.hscroll::-webkit-scrollbar{display:none}
+.course{
+  flex:0 0 148px;border-radius:20px;overflow:hidden;position:relative;height:190px;
+  box-shadow:0 12px 26px rgba(57,70,111,.14);transition:transform .2s;cursor:pointer;
+}
+.course:active{transform:scale(.97)}
+.course .bg{position:absolute;inset:0}
+.course .cover{position:absolute;inset:0;background:linear-gradient(180deg,transparent 40%,rgba(25,32,54,.62))}
+.course .tx{position:absolute;left:12px;right:12px;bottom:12px;color:#fff;z-index:2}
+.course .tx b{display:block;font-size:14px;font-weight:600;letter-spacing:.02em}
+.course .tx span{font-size:10px;opacity:.78}
+.course .dur{position:absolute;top:10px;left:12px;font-size:10px;color:#fff;background:rgba(255,255,255,.2);backdrop-filter:blur(4px);border-radius:999px;padding:3px 9px;z-index:2}
+.bg.rain{background:radial-gradient(120% 90% at 30% 12%,#4a5b82,#26314d 70%)}
+.bg.scan{background:radial-gradient(120% 90% at 70% 12%,#7c8ec9,#4c5a94 70%)}
+.bg.noon{background:radial-gradient(120% 90% at 50% 10%,#a8c4d8,#5f86a8 75%)}
+.bg.story{background:radial-gradient(120% 90% at 30% 16%,#8d7fb0,#4a3f6e 75%)}
+.bg.morn{background:radial-gradient(120% 90% at 60% 14%,#f2d9a4,#c99a5f 78%)}
+.bg.tide{background:radial-gradient(120% 90% at 40% 10%,#6fb3ad,#33635f 75%)}
+/* 课程页网格 */
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px;padding:0 22px}
+.grid2 .course{height:150px}
+/* 睡眠页 */
+.insight{margin-top:20px}
+.insight .li{display:flex;gap:12px;align-items:flex-start;padding:13px 0;border-bottom:1px solid #f0eff7}
+.insight .li:last-child{border-bottom:none}
+.insight .ic{width:36px;height:36px;border-radius:12px;flex:0 0 auto;display:flex;align-items:center;justify-content:center;font-size:15px}
+.insight b{display:block;font-size:13.5px}
+.insight span{font-size:12px;color:var(--dim)}
+/* 我的页 */
+.profile-card{margin-top:20px;display:flex;align-items:center;gap:16px}
+.profile-card .bigav{width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,var(--lilac),var(--glow));display:flex;align-items:center;justify-content:center;color:#fff;font-size:24px;font-weight:600}
+.stats3{display:flex;margin-top:18px;background:#fff;border-radius:20px;padding:18px 0;box-shadow:0 10px 30px rgba(57,70,111,.08)}
+.stats3 .s3{flex:1;text-align:center;position:relative}
+.stats3 .s3:not(:last-child)::after{content:"";position:absolute;right:0;top:20%;bottom:20%;width:1px;background:#eee9f4}
+.stats3 .s3 b{display:block;font-size:19px;color:var(--deep)}
+.stats3 .s3 span{font-size:10.5px;color:var(--faint);letter-spacing:.1em}
+.mlist{margin-top:18px;background:#fff;border-radius:20px;overflow:hidden;box-shadow:0 10px 30px rgba(57,70,111,.08)}
+.mlist .mi{display:flex;align-items:center;gap:12px;padding:15px 18px;border-bottom:1px solid #f4f2f8;font-size:13.5px}
+.mlist .mi:last-child{border-bottom:none}
+.mlist .ic2{width:32px;height:32px;border-radius:10px;background:#f4f3fa;display:flex;align-items:center;justify-content:center;font-size:14px}
+.mlist .arw{margin-left:auto;color:var(--faint)}
+
+/* Tab 栏 */
+.tabbar{
+  position:absolute;left:0;right:0;bottom:0;z-index:50;height:88px;
+  background:rgba(255,255,255,.82);backdrop-filter:blur(16px);
+  border-top:1px solid rgba(44,53,80,.07);
+  display:flex;padding:10px 14px 24px;
+}
+.tab{
+  flex:1;border:none;background:none;display:flex;flex-direction:column;align-items:center;gap:3px;
+  color:var(--faint);font-size:10px;letter-spacing:.14em;cursor:pointer;transition:.2s;border-radius:14px;
+}
+.tab svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.tab.on{color:var(--deep);font-weight:600}
+.tab .dot{width:4px;height:4px;border-radius:50%;background:transparent;transition:.2s}
+.tab.on .dot{background:var(--deep)}
+@media (prefers-reduced-motion:reduce){
+  .hero-card .fog,.breath.on::before,.session.on .pulse::before{animation:none}
+  .page.active,.session.show{animation:none}
+}
+</style>
+</head>
+<body>
+
+<div class="phone" role="application" aria-label="晨屿冥想应用演示">
+  <div class="screen">
+    <div class="island" aria-hidden="true"></div>
+    <div class="statusbar" aria-hidden="true">
+      <span>9:41</span>
+      <span class="icons">
+        <span class="sig"><i style="height:4px"></i><i style="height:6px"></i><i style="height:8px"></i><i style="height:10px"></i></span>
+        <span class="batt"></span>
+      </span>
+    </div>
+
+    <div class="app">
+      <!-- ============ 今日 ============ -->
+      <section class="page active" data-p="home">
+        <div class="inner">
+          <div class="greet">
+            <span class="av">屿</span>
+            <div>
+              <h1>晨安，陈屿</h1>
+              <p>9 月 12 日 · 周六 · 秋高气爽</p>
+            </div>
+            <span class="streak"><svg width="12" height="12" viewBox="0 0 24 24" fill="#c98a3c"><path d="M12 2c1 4-3 5.5-3 9a3.5 3.5 0 0 0 7 .3C18.5 14 20 12 19 9c3 3.2 2.6 8-1.4 10.6A7.6 7.6 0 0 1 4.4 14C4.4 8 10 6.5 12 2z"/></svg>连续 12 天</span>
+          </div>
+
+          <div class="hero-card">
+            <div class="scene" aria-hidden="true"></div>
+            <div class="mtn" aria-hidden="true"></div>
+            <div class="mtn m2" aria-hidden="true"></div>
+            <div class="fog" aria-hidden="true"></div><div class="fog f2" aria-hidden="true"></div>
+            <div class="sun" aria-hidden="true"></div>
+            <div class="cover" aria-hidden="true"></div>
+            <div class="info">
+              <div class="k">今日推荐 · MORNING</div>
+              <h2 class="serif">山间晨雾</h2>
+              <p>10 分钟 · 呼吸引导 · 新录的溪流声底</p>
+            </div>
+            <button class="breath" id="breathBtn" aria-label="开始呼吸练习"><svg class="ic" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></button>
+            <span class="breath-label" id="breathLabel">吸气 4 · 屏息 7 · 呼气 8</span>
+          </div>
+
+          <div class="session" id="session">
+            <span class="pulse"></span>
+            <div><b>山间晨雾</b><span>跟随圆环的胀缩呼吸</span></div>
+            <span class="t" id="sessionT">10:00</span>
+            <button class="stop" id="stopBtn">结束</button>
+          </div>
+
+          <div class="card">
+            <div class="hd"><h3>本周睡眠</h3><span>9.06 — 9.12</span><span class="more">详情 ›</span></div>
+            <div class="sleeprow">
+              <div class="score-ring">
+                <svg viewBox="0 0 74 74">
+                  <circle cx="37" cy="37" r="31" fill="none" stroke="#eeeaf6" stroke-width="7"></circle>
+                  <circle cx="37" cy="37" r="31" fill="none" stroke="#39466f" stroke-width="7" stroke-linecap="round" stroke-dasharray="195" stroke-dashoffset="27"></circle>
+                </svg>
+                <span class="v">86<i>SCORE</i></span>
+              </div>
+              <div class="sleepbars" role="img" aria-label="近七日睡眠时长柱状图">
+                <div class="col"><div class="bar" style="height:52%"></div><span class="d">一</span></div>
+                <div class="col"><div class="bar" style="height:66%"></div><span class="d">二</span></div>
+                <div class="col"><div class="bar" style="height:40%"></div><span class="d">三</span></div>
+                <div class="col"><div class="bar" style="height:74%"></div><span class="d">四</span></div>
+                <div class="col"><div class="bar" style="height:58%"></div><span class="d">五</span></div>
+                <div class="col"><div class="bar" style="height:88%"></div><span class="d">六</span></div>
+                <div class="col today"><div class="bar" style="height:70%"></div><span class="d">今</span></div>
+              </div>
+            </div>
+            <div class="sleepmeta">
+              <div class="sm"><b>7h 12m</b><span>平均时长</span></div>
+              <div class="sm"><b>23:24</b><span>平均入睡</span></div>
+              <div class="sm"><b>6:52</b><span>平均醒来</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="rowhd"><h3>此刻适合你</h3><span>全部课程 ›</span></div>
+        <div class="hscroll">
+          <div class="course"><div class="bg rain"></div><span class="dur">45 分钟</span><div class="cover"></div><div class="tx"><b>雨夜白噪音</b><span>助眠 · 无引导</span></div></div>
+          <div class="course"><div class="bg scan"></div><span class="dur">12 分钟</span><div class="cover"></div><div class="tx"><b>身体扫描</b><span>放松 · 引导</span></div></div>
+          <div class="course"><div class="bg noon"></div><span class="dur">8 分钟</span><div class="cover"></div><div class="tx"><b>午间小憩</b><span>能量回复</span></div></div>
+          <div class="course"><div class="bg story"></div><span class="dur">22 分钟</span><div class="cover"></div><div class="tx"><b>睡前故事</b><span>岛屿电台 · 第 41 夜</span></div></div>
+        </div>
+      </section>
+
+      <!-- ============ 课程 ============ -->
+      <section class="page" data-p="courses">
+        <div class="inner">
+          <div class="greet">
+            <div><h1>课程</h1><p>按此刻的心情挑一个</p></div>
+          </div>
+        </div>
+        <div class="rowhd"><h3>新手七日</h3><span>已 3/7 天</span></div>
+        <div class="grid2">
+          <div class="course"><div class="bg morn"></div><span class="dur">DAY 4</span><div class="cover"></div><div class="tx"><b>晨间唤醒</b><span>5 分钟 · 呼吸</span></div></div>
+          <div class="course"><div class="bg scan"></div><span class="dur">DAY 5</span><div class="cover"></div><div class="tx"><b>觉察身体</b><span>8 分钟 · 扫描</span></div></div>
+          <div class="course"><div class="bg rain"></div><span class="dur">DAY 6</span><div class="cover"></div><div class="tx"><b>安放念头</b><span>7 分钟 · 观息</span></div></div>
+          <div class="course"><div class="bg tide"></div><span class="dur">DAY 7</span><div class="cover"></div><div class="tx"><b>潮汐收束</b><span>10 分钟 · 总结</span></div></div>
+        </div>
+        <div class="rowhd"><h3>睡眠专题</h3><span>全部 24 个 ›</span></div>
+        <div class="grid2">
+          <div class="course"><div class="bg rain"></div><span class="dur">45 分钟</span><div class="cover"></div><div class="tx"><b>雨夜白噪音</b><span>无引导</span></div></div>
+          <div class="course"><div class="bg story"></div><span class="dur">22 分钟</span><div class="cover"></div><div class="tx"><b>睡前故事</b><span>岛屿电台</span></div></div>
+          <div class="course"><div class="bg tide"></div><span class="dur">30 分钟</span><div class="cover"></div><div class="tx"><b>海浪慢板</b><span>低频助眠</span></div></div>
+          <div class="course"><div class="bg story"></div><span class="dur">18 分钟</span><div class="cover"></div><div class="tx"><b>卸下今天</b><span>复盘 · 放下</span></div></div>
+        </div>
+      </section>
+
+      <!-- ============ 睡眠 ============ -->
+      <section class="page" data-p="sleep">
+        <div class="inner">
+          <div class="greet"><div><h1>睡眠</h1><p>昨晚你睡得不错</p></div></div>
+          <div class="card">
+            <div class="hd"><h3>昨晚</h3><span>9 月 11 日</span></div>
+            <div class="sleeprow">
+              <div class="score-ring">
+                <svg viewBox="0 0 74 74">
+                  <circle cx="37" cy="37" r="31" fill="none" stroke="#eeeaf6" stroke-width="7"></circle>
+                  <circle cx="37" cy="37" r="31" fill="none" stroke="#39466f" stroke-width="7" stroke-linecap="round" stroke-dasharray="195" stroke-dashoffset="23"></circle>
+                </svg>
+                <span class="v">88<i>SCORE</i></span>
+              </div>
+              <div style="flex:1">
+                <div style="font-size:13px;color:var(--dim);line-height:2.1">
+                  入床 <b style="color:var(--deep)">23:02</b> · 入睡 <b style="color:var(--deep)">23:18</b><br>
+                  深睡 <b style="color:var(--deep)">1h 42m</b> · REM <b style="color:var(--deep)">1h 08m</b><br>
+                  醒来 <b style="color:var(--deep)">6:52</b> · 夜醒 <b style="color:var(--deep)">1 次</b>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="card insight">
+            <div class="hd"><h3>睡眠洞察</h3></div>
+            <div class="li"><span class="ic" style="background:#e8f2ec"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0fa968" stroke-width="2" stroke-linecap="round"><path d="M5 19C5 9 12 4 19 4c0 8-4 14-12 14"/><path d="M5 19c2-5 6-8 10-9"/></svg></span><div><b>周三晚睡是主要变量</b><span>连续四周，周三入睡平均推迟 47 分钟，多与次日通勤早班焦虑有关——试试周三开启「午间小憩」提醒。</span></div></div>
+            <div class="li"><span class="ic" style="background:#ece9f6"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5a5fc0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13.5A8.5 8.5 0 1 1 10.5 4a6.8 6.8 0 0 0 9.5 9.5z"/></svg></span><div><b>雨夜白噪音效果显著</b><span>使用白噪音的夜晚，入睡耗时平均缩短 9 分钟。已为你加入今日推荐。</span></div></div>
+            <div class="li"><span class="ic" style="background:#fdf3e2"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#d8963c" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4 12H2M22 12h-2M5 5l1.5 1.5M17.5 17.5L19 19M19 5l-1.5 1.5M6.5 17.5L5 19"/></svg></span><div><b>起床时间很稳定</b><span>七天内起床时间波动小于 18 分钟，生物钟表现优秀，保持住。</span></div></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ 我的 ============ -->
+      <section class="page" data-p="me">
+        <div class="inner">
+          <div class="greet"><div><h1>我的</h1><p>晨屿会员 · 云屿版</p></div></div>
+          <div class="card profile-card">
+            <span class="bigav">屿</span>
+            <div style="flex:1">
+              <b style="font-size:16px">陈屿</b>
+              <p style="font-size:12px;color:var(--dim)">加入 148 天 · 目标：睡个好觉</p>
+            </div>
+            <span style="font-size:11.5px;color:var(--deep);background:#eef0fa;border-radius:999px;padding:6px 13px">会员至 2027.3</span>
+          </div>
+          <div class="stats3">
+            <div class="s3"><b>148</b><span>在屿天数</span></div>
+            <div class="s3"><b>12</b><span>连续练习</span></div>
+            <div class="s3"><b>62h</b><span>累计时长</span></div>
+          </div>
+          <div class="mlist">
+            <div class="mi"><span class="ic2"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#39466f" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span>作息提醒 · 23:00 入床<span class="arw">›</span></div>
+            <div class="mi"><span class="ic2"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#39466f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14v-2a8 8 0 0 1 16 0v2"/><rect x="3" y="14" width="4" height="6" rx="2"/><rect x="17" y="14" width="4" height="6" rx="2"/></svg></span>音效偏好 · 溪流 + 钢琴<span class="arw">›</span></div>
+            <div class="mi"><span class="ic2"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#39466f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V5a1 1 0 0 1 1-1h9l6 6v9a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1z"/><path d="M14 4v6h6"/></svg></span>数据导出与同步<span class="arw">›</span></div>
+            <div class="mi"><span class="ic2"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#39466f" stroke-width="2" stroke-linecap="round"><circle cx="8" cy="9" r="3"/><circle cx="16" cy="9" r="3"/><path d="M3 20c.8-3 2.7-4.5 5-4.5s4.2 1.5 5 4.5M13 16.2c1-.4 2-.7 3-.7 2.3 0 4.2 1.5 5 4.5"/></svg></span>同行小队 · 3 人同行中<span class="arw">›</span></div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- Tab -->
+    <nav class="tabbar" aria-label="底部导航">
+      <button class="tab on" data-t="home"><svg viewBox="0 0 24 24"><path d="M4 11l8-7 8 7"/><path d="M6 10v9h12v-9"/></svg>今日<span class="dot"></span></button>
+      <button class="tab" data-t="courses"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M3 10h18M9 4v6"/></svg>课程<span class="dot"></span></button>
+      <button class="tab" data-t="sleep"><svg viewBox="0 0 24 24"><path d="M20 13.5A8.5 8.5 0 1 1 10.5 4a6.8 6.8 0 0 0 9.5 9.5z"/></svg>睡眠<span class="dot"></span></button>
+      <button class="tab" data-t="me"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg>我的<span class="dot"></span></button>
+    </nav>
+  </div>
+  <span class="sidebtn l1" aria-hidden="true"></span><span class="sidebtn l2" aria-hidden="true"></span><span class="sidebtn" aria-hidden="true"></span>
+</div>
+
+<script>
+"use strict";
+/* Tab 切换 */
+document.querySelectorAll('.tab').forEach(t=>{
+  t.addEventListener('click',()=>{
+    document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('on',x===t));
+    document.querySelectorAll('.page').forEach(p=>p.classList.toggle('active',p.dataset.p===t.dataset.t));
+    document.querySelector('.app').scrollTop=0;
+  });
+});
+/* 呼吸练习 */
+const RM=matchMedia('(prefers-reduced-motion: reduce)').matches;
+let sessionOn=false,secs=600,timer=null;
+const breathBtn=document.getElementById('breathBtn');
+const session=document.getElementById('session');
+const sessT=document.getElementById('sessionT');
+function fmt(s){return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0')}
+breathBtn.addEventListener('click',()=>{
+  sessionOn=!sessionOn;
+  breathBtn.classList.toggle('on',sessionOn);
+  session.classList.toggle('on',sessionOn);
+  session.classList.toggle('show',sessionOn);
+  breathBtn.querySelector('.ic').innerHTML=sessionOn
+    ?'<rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/>'
+    :'<path d="M8 5v14l11-7z"/>';
+  clearInterval(timer);
+  if(sessionOn){
+    secs=600;
+    sessT.textContent=fmt(secs);
+    if(!RM)timer=setInterval(()=>{
+      secs--;
+      if(secs<=0){clearInterval(timer);stopAll()}else sessT.textContent=fmt(secs);
+    },1000);
+  }
+});
+function stopAll(){
+  sessionOn=false;clearInterval(timer);
+  breathBtn.classList.remove('on');session.classList.remove('on','show');
+  breathBtn.querySelector('.ic').innerHTML='<path d="M8 5v14l11-7z"/>';
+}
+document.getElementById('stopBtn').addEventListener('click',stopAll);
+</script>
+</body>
+</html>

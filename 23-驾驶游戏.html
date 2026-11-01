@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>SPEEDLINE · 公路机遇号</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow:hidden}
+body{background:#180f1e;font-family:"PingFang SC","Microsoft YaHei",sans-serif;color:#f2ecdc}
+#app{position:fixed;inset:0}
+canvas{display:block}
+/* ---------- HUD ---------- */
+#hud{position:fixed;inset:0;pointer-events:none;z-index:10;display:none}
+#hud.show{display:block}
+.hudbox{
+  position:absolute;background:rgba(14,8,20,.55);border:1px solid rgba(255,180,90,.25);
+  border-radius:14px;padding:10px 16px;backdrop-filter:blur(8px);
+}
+#speedBox{left:24px;bottom:24px;text-align:left}
+#speedBox .v{font-family:Consolas,monospace;font-size:38px;font-weight:700;line-height:1;color:#ffcf8a}
+#speedBox .u{font-size:10px;letter-spacing:.3em;color:rgba(242,236,220,.6);margin-top:3px}
+#scoreBox{right:24px;top:22px;text-align:right}
+#scoreBox .s{font-family:Consolas,monospace;font-size:26px;font-weight:700;color:#fff}
+#scoreBox .b{font-size:10.5px;letter-spacing:.2em;color:rgba(242,236,220,.6);margin-top:2px}
+#shieldBox{left:24px;top:22px;display:flex;gap:6px}
+#shieldBox i{width:26px;height:9px;border-radius:4px;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.2)}
+#shieldBox i.on{background:linear-gradient(90deg,#5ad8a8,#8ff2c8);border-color:transparent;box-shadow:0 0 10px rgba(90,216,168,.6)}
+#combo{position:absolute;left:50%;top:20%;transform:translateX(-50%);font-family:Consolas,monospace;
+  font-size:15px;letter-spacing:.2em;color:#8ff2c8;opacity:0;transition:opacity .3s}
+#msg{position:absolute;left:50%;top:56%;transform:translateX(-50%);font-size:15px;letter-spacing:.24em;
+  color:#ffd9a0;opacity:0;transition:opacity .25s;text-shadow:0 2px 12px rgba(0,0,0,.8)}
+/* ---------- 覆盖层 ---------- */
+.overlay{
+  position:fixed;inset:0;z-index:20;display:flex;align-items:center;justify-content:center;
+  background:radial-gradient(900px 600px at 50% 40%, rgba(40,16,60,.82), rgba(10,6,14,.94));
+  backdrop-filter:blur(6px);transition:opacity .4s;visibility:visible;
+}
+.overlay.hidden{opacity:0;visibility:hidden}
+.panel{text-align:center;max-width:520px;padding:44px 40px;border:1px solid rgba(255,180,90,.25);
+  border-radius:24px;background:rgba(16,10,24,.75);box-shadow:0 40px 100px rgba(0,0,0,.6)}
+.panel h1{font-family:Georgia,"Songti SC",serif;font-size:clamp(30px,5.4vw,46px);letter-spacing:.14em;line-height:1.25}
+.panel h1 i{font-style:normal;color:#ffcf8a}
+.panel .tagline{margin-top:12px;font-size:13px;color:#b9ab98;letter-spacing:.1em;line-height:1.9}
+.keys{margin:26px auto 0;display:grid;grid-template-columns:auto auto;gap:9px 18px;width:fit-content;
+  font-size:12px;color:#cfc2ac;text-align:left;letter-spacing:.08em}
+.keys b{font-family:Consolas,monospace;color:#ffcf8a;border:1px solid rgba(255,207,138,.35);border-radius:6px;padding:2px 9px;font-weight:400}
+.bigbtn{
+  margin-top:32px;display:inline-block;font:inherit;font-size:15px;letter-spacing:.34em;text-indent:.34em;
+  color:#241408;font-weight:700;padding:15px 44px;border-radius:999px;border:none;cursor:pointer;
+  background:linear-gradient(135deg,#ffcf8a,#f2914c);box-shadow:0 14px 40px rgba(242,145,76,.4);transition:.2s;
+}
+.bigbtn:hover{transform:translateY(-2px);filter:brightness(1.08)}
+.stats{margin-top:24px;display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.stats .st{background:rgba(255,255,255,.05);border-radius:14px;padding:14px 10px}
+.stats .st b{display:block;font-family:Consolas,monospace;font-size:22px;color:#ffcf8a}
+.stats .st span{font-size:10px;letter-spacing:.24em;color:#9a8c7c}
+#menuStats{display:none}
+.newbest{display:none;margin-top:14px;font-size:12px;letter-spacing:.3em;color:#8ff2c8}
+.newbest.show{display:block;animation:bp 1s ease infinite alternate}
+@keyframes bp{to{opacity:.55}}
+@media (prefers-reduced-motion:reduce){.newbest.show{animation:none}}
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<!-- HUD -->
+<div id="hud">
+  <div class="hudbox" id="speedBox"><div class="v">0</div><div class="u">KM/H · 油门 W</div></div>
+  <div class="hudbox" id="scoreBox"><div class="s">0</div><div class="b">SCORE · 最佳 <span id="bestHud">0</span></div></div>
+  <div class="hudbox" id="shieldBox"><i class="on"></i><i class="on"></i><i class="on"></i></div>
+  <div id="combo"></div>
+  <div id="msg"></div>
+</div>
+
+<!-- 菜单 -->
+<div class="overlay" id="menu">
+  <div class="panel">
+    <h1>SPEED<i>LINE</i></h1>
+    <p class="tagline">公路 · 机遇号 —— 黄昏公路上的无尽竞速。<br>躲开车流，拾起金币，把油门焊死。</p>
+    <div class="keys">
+      <span><b>W / ↑</b> 油门</span><span><b>S / ↓</b> 刹车</span>
+      <span><b>A D / ← →</b> 变道转向</span><span><b>P</b> 暂停</span>
+    </div>
+    <button class="bigbtn" id="startBtn">发车</button>
+    <div class="stats" id="menuStats"><div class="st"><b id="mBest">0</b><span>最佳</span></div><div class="st"><b id="mRuns">0</b><span>局数</span></div><div class="st"><b id="mCoins">0</b><span>累计金币</span></div></div>
+  </div>
+</div>
+
+<!-- 结算 -->
+<div class="overlay hidden" id="over">
+  <div class="panel">
+    <h1 id="overTitle">旅程结束</h1>
+    <p class="tagline" id="overSub">公路把你还给了黄昏。</p>
+    <div class="stats">
+      <div class="st"><b id="rScore">0</b><span>得分</span></div>
+      <div class="st"><b id="rDist">0</b><span>里程 m</span></div>
+      <div class="st"><b id="rCoins">0</b><span>金币</span></div>
+    </div>
+    <div class="newbest" id="newBest">★ 新纪录 ★</div>
+    <button class="bigbtn" id="againBtn">再跑一趟</button>
+  </div>
+</div>
+
+<script type="importmap">
+{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}
+</script>
+<script type="module">
+import * as THREE from 'three';
+
+/* ================= 舞台 ================= */
+const app=document.getElementById('app');
+const renderer=new THREE.WebGLRenderer({antialias:true});
+renderer.setSize(innerWidth,innerHeight);
+renderer.setPixelRatio(Math.min(devicePixelRatio,1.8));
+renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+renderer.toneMapping=THREE.ACESFilmicToneMapping;
+app.appendChild(renderer.domElement);
+const scene=new THREE.Scene();
+scene.background=new THREE.Color(0x3a1f3e);
+scene.fog=new THREE.Fog(0x4a2846,24,95);
+const camera=new THREE.PerspectiveCamera(62,innerWidth/innerHeight,.1,120);
+
+const hemi=new THREE.HemisphereLight(0xffc8a0,0x3a2848,.75);scene.add(hemi);
+const sun=new THREE.DirectionalLight(0xffb070,2);
+sun.position.set(-6,8,4);sun.castShadow=true;
+sun.shadow.mapSize.set(1024,1024);
+sun.shadow.camera.left=-8;sun.shadow.camera.right=8;sun.shadow.camera.top=8;sun.shadow.camera.bottom=-8;
+scene.add(sun);
+scene.add(new THREE.AmbientLight(0x402a50,.9));
+/* 落日 */
+const sunDisc=new THREE.Mesh(new THREE.CircleGeometry(5,32),new THREE.MeshBasicMaterial({color:0xffc87a,fog:false}));
+sunDisc.position.set(-20,6,-60);scene.add(sunDisc);
+/* 天空穹 */
+{
+  const cv=document.createElement('canvas');cv.width=16;cv.height=256;
+  const c=cv.getContext('2d');
+  const g=c.createLinearGradient(0,0,0,256);
+  g.addColorStop(0,'#241040');g.addColorStop(.5,'#7a3868');g.addColorStop(.78,'#e07a52');g.addColorStop(1,'#ffb070');
+  c.fillStyle=g;c.fillRect(0,0,16,256);
+  scene.add(new THREE.Mesh(new THREE.SphereGeometry(70,20,14),
+    new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(cv),side:THREE.BackSide,fog:false})));
+}
+/* 远山剪影（两层，循环） */
+const mountMat=new THREE.MeshBasicMaterial({color:0x2a1436,fog:false});
+const mounts=[];
+for(let i=0;i<10;i++){
+  const h=5+Math.random()*7,w=14+Math.random()*14;
+  const m=new THREE.Mesh(new THREE.ConeGeometry(w/2,h,4),mountMat);
+  m.position.set((Math.random()-.5)*70,h/2-2,-55-Math.random()*12);
+  m.rotation.y=Math.random()*Math.PI;
+  scene.add(m);mounts.push(m);
+}
+
+/* ================= 公路（流式滚动） ================= */
+const LANES=[-2.6,0,2.6];
+const ROAD_W=8.4;
+const roadMat=new THREE.MeshStandardMaterial({color:0x2a2530,roughness:.9});
+const road=new THREE.Mesh(new THREE.BoxGeometry(ROAD_W,.1,300),roadMat);
+road.position.set(0,-.05,120);road.receiveShadow=true;scene.add(road);
+/* 两侧路肩红白条 + 草地 */
+const shoulderMat=new THREE.MeshStandardMaterial({color:0xc0503a,roughness:.8});
+[-1,1].forEach(s=>{
+  const sh=new THREE.Mesh(new THREE.BoxGeometry(.3,.12,300),shoulderMat);
+  sh.position.set(s*(ROAD_W/2+.15),-.04,120);scene.add(sh);
+});
+const grass=new THREE.Mesh(new THREE.BoxGeometry(90,.08,300),new THREE.MeshStandardMaterial({color:0x3e4a3a,roughness:1}));
+grass.position.set(0,-.09,120);grass.receiveShadow=true;scene.add(grass);
+/* 车道虚线（循环滚动） */
+const dashes=[];
+const dashMat=new THREE.MeshStandardMaterial({color:0xd8cfb8,roughness:.7});
+for(let i=0;i<40;i++){
+  [-1.3,1.3].forEach(lx=>{
+    const d=new THREE.Mesh(new THREE.BoxGeometry(.12,.02,2.2),dashMat);
+    d.position.set(lx,.02,i*7.5);scene.add(d);dashes.push(d);
+  });
+}
+/* 路边物：树 / 岩 / 仙人掌（循环） */
+const sideProps=[];
+const treeGeo=new THREE.ConeGeometry(.7,2.2,6);
+const trunkGeo=new THREE.CylinderGeometry(.09,.12,.8,6);
+const rockGeo=new THREE.DodecahedronGeometry(.5,0);
+const treeMat=new THREE.MeshStandardMaterial({color:0x2e5c3e,roughness:.9,flatShading:true});
+const trunkMat=new THREE.MeshStandardMaterial({color:0x5c4028,roughness:.9});
+const rockMat=new THREE.MeshStandardMaterial({color:0x6a5a6e,roughness:1,flatShading:true});
+const cactusMat=new THREE.MeshStandardMaterial({color:0x4a7c50,roughness:.9});
+for(let i=0;i<34;i++){
+  const side=Math.random()<.5?-1:1;
+  const x=side*(6.5+Math.random()*16);
+  const kind=Math.random();
+  let g=new THREE.Group();
+  if(kind<.45){
+    const t=new THREE.Mesh(treeGeo,treeMat);t.position.y=1.2;t.castShadow=true;g.add(t);
+    const tr=new THREE.Mesh(trunkGeo,trunkMat);tr.position.y=.4;g.add(tr);
+  }else if(kind<.72){
+    const r=new THREE.Mesh(rockGeo,rockMat);r.scale.setScalar(.5+Math.random()*.9);r.position.y=.25;r.castShadow=true;g.add(r);
+  }else{
+    const c=new THREE.Mesh(new THREE.CylinderGeometry(.16,.2,1.4,8),cactusMat);
+    c.position.y=.7;c.castShadow=true;g.add(c);
+    const arm=new THREE.Mesh(new THREE.CylinderGeometry(.1,.1,.6,8),cactusMat);
+    arm.position.set(.3,.85,0);arm.rotation.z=-.9;g.add(arm);
+  }
+  g.position.set(x,0,i*9-20);
+  scene.add(g);sideProps.push({g,span:34*9/34*9});
+}
+const PROP_SPAN=34*9;   /* 306 */
+/* 路灯 */
+const lamps=[];
+for(let i=0;i<12;i++){
+  const side=i%2?1:-1;
+  const g=new THREE.Group();
+  const pole=new THREE.Mesh(new THREE.CylinderGeometry(.05,.07,3.2,6),new THREE.MeshStandardMaterial({color:0x333844,roughness:.6}));
+  pole.position.y=1.6;g.add(pole);
+  const head=new THREE.Mesh(new THREE.SphereGeometry(.14,8,8),new THREE.MeshStandardMaterial({color:0x444,emissive:0xffb35c,emissiveIntensity:0}));
+  head.position.set(0,3.2,.2);g.add(head);
+  g.position.set(side*5.2,0,i*9-20);
+  scene.add(g);lamps.push({g,head,span:12*9});
+}
+
+/* ================= 玩家车 ================= */
+function buildCar(bodyColor,isPlayer){
+  const g=new THREE.Group();
+  const bodyMat=new THREE.MeshStandardMaterial({color:bodyColor,roughness:.32,metalness:.55});
+  const glass=new THREE.MeshStandardMaterial({color:0x11141c,roughness:.15,metalness:.8});
+  const body=new THREE.Mesh(new THREE.BoxGeometry(1.5,.42,2.9),bodyMat);
+  body.position.y=.42;body.castShadow=true;g.add(body);
+  const cabin=new THREE.Mesh(new THREE.BoxGeometry(1.2,.4,1.5),glass);
+  cabin.position.set(0,.78,.15);cabin.castShadow=true;g.add(cabin);
+  const nose=new THREE.Mesh(new THREE.BoxGeometry(1.4,.28,.7),bodyMat);
+  nose.position.set(0,.3,-1.5);nose.castShadow=true;g.add(nose);
+  [[-.62,-1.05],[.62,-1.05],[-.62,1.0],[.62,1.0]].forEach(([x,z])=>{
+    const w=new THREE.Mesh(new THREE.CylinderGeometry(.3,.3,.24,14),new THREE.MeshStandardMaterial({color:0x15161a,roughness:.85}));
+    w.rotation.z=Math.PI/2;w.position.set(x,.3,z);w.castShadow=true;g.add(w);
+    const hub=new THREE.Mesh(new THREE.CylinderGeometry(.14,.14,.26,10),new THREE.MeshStandardMaterial({color:0xc8ccd2,roughness:.3,metalness:.9}));
+    hub.rotation.z=Math.PI/2;hub.position.set(x,.3,z);g.add(hub);
+  });
+  if(isPlayer){
+    const lt=new THREE.Mesh(new THREE.BoxGeometry(.34,.08,.05),new THREE.MeshStandardMaterial({color:0xfff2c8,emissive:0xffe9a8,emissiveIntensity:2}));
+    lt.position.set(-.45,.42,-1.86);g.add(lt);
+    const rt=lt.clone();rt.position.x=.45;g.add(rt);
+    const tl=new THREE.Mesh(new THREE.BoxGeometry(1.3,.07,.05),new THREE.MeshStandardMaterial({color:0xff2418,emissive:0xff2418,emissiveIntensity:2.2}));
+    tl.position.set(0,.5,1.47);g.add(tl);
+  }
+  return g;
+}
+const player=buildCar(0xe8553c,true);scene.add(player);
+
+/* ================= 交通与拾取 ================= */
+const trafficColors=[0x3a6ea8,0xd8a03c,0x8a8f98,0x4f8c5c,0x8a4a7c];
+const traffic=[];
+for(let i=0;i<8;i++){
+  const dir=i%2===0?1:-1;               /* 1 同向(慢)  -1 对向(快) */
+  const c=buildCar(trafficColors[i%5],false);
+  scene.add(c);
+  traffic.push({g:c,dir,lane:LANES[(i+(dir>0?0:1))%3],z:-30-i*32,speed:dir>0?7:14});
+}
+const coins=[];
+const coinGeo=new THREE.CylinderGeometry(.32,.32,.06,18);
+coinGeo.rotateX(Math.PI/2);
+const coinMat=new THREE.MeshStandardMaterial({color:0xffc84a,emissive:0xb07818,emissiveIntensity:.6,metalness:.8,roughness:.3});
+for(let i=0;i<14;i++){
+  const c=new THREE.Mesh(coinGeo,coinMat);
+  c.castShadow=true;scene.add(c);
+  coins.push({g:c,lane:LANES[i%3],z:-40-i*17+Math.random()*6,taken:false});
+}
+const boosts=[];
+const boostMat=new THREE.MeshStandardMaterial({color:0x38d898,emissive:0x1a9a68,emissiveIntensity:1.2,transparent:true,opacity:.85});
+for(let i=0;i<4;i++){
+  const b=new THREE.Mesh(new THREE.BoxGeometry(2,.06,4.5),boostMat);
+  b.position.set(LANES[(i+1)%3],.03,-90-i*85);scene.add(b);
+  boosts.push({g:b,lane:LANES[(i+1)%3],z:-90-i*85,used:false});
+}
+
+/* ================= 音频 ================= */
+let AC=null,engineOsc=null,engineGain=null;
+function audioInit(){
+  if(AC)return;
+  AC=new (window.AudioContext||window.webkitAudioContext)();
+  engineGain=AC.createGain();engineGain.gain.value=0;
+  engineOsc=AC.createOscillator();engineOsc.type='sawtooth';engineOsc.frequency.value=60;
+  const lp=AC.createBiquadFilter();lp.type='lowpass';lp.frequency.value=340;
+  engineOsc.connect(lp).connect(engineGain).connect(AC.destination);
+  engineOsc.start();
+}
+function sfxCoin(){
+  if(!AC)return;const t=AC.currentTime;
+  [1320,1760].forEach((f,i)=>{
+    const o=AC.createOscillator(),g=AC.createGain();
+    o.type='sine';o.frequency.value=f;
+    g.gain.setValueAtTime(0,t+i*.05);g.gain.linearRampToValueAtTime(.12,t+i*.05+.01);
+    g.gain.exponentialRampToValueAtTime(.001,t+i*.05+.25);
+    o.connect(g).connect(AC.destination);o.start(t+i*.05);o.stop(t+i*.05+.3);
+  });
+}
+function sfxCrash(){
+  if(!AC)return;const t=AC.currentTime;
+  const buf=AC.createBuffer(1,AC.sampleRate*.3,AC.sampleRate);
+  const d=buf.getChannelData(0);
+  for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/d.length,1.5);
+  const n=AC.createBufferSource();n.buffer=buf;
+  const g=AC.createGain();g.gain.value=.5;
+  n.connect(g).connect(AC.destination);n.start(t);
+}
+
+/* ================= 游戏状态 ================= */
+const S={menu:true,over:false,paused:false,
+  speed:0,maxSpeed:42,lane:1,x:0,shield:3,score:0,coins:0,dist:0,boostT:0,
+  best:+(localStorage.getItem('sl_best')||0),runs:+(localStorage.getItem('sl_runs')||0),
+  totalCoins:+(localStorage.getItem('sl_coins')||0),
+  shake:0,comboT:0};
+const keys={};
+addEventListener('keydown',e=>{
+  keys[e.key.toLowerCase()]=true;
+  if((e.key==='p'||e.key==='P'||e.key==='Escape')&&!S.menu&&!S.over){S.paused=!S.paused;showMsg(S.paused?'已暂停 · 按 P 继续':'')}
+});
+addEventListener('keyup',e=>keys[e.key.toLowerCase()]=false);
+
+const $=id=>document.getElementById(id);
+function showMsg(txt){const m=$('msg');if(!txt){m.style.opacity=0;return}m.textContent=txt;m.style.opacity=1;setTimeout(()=>m.style.opacity=0,1600)}
+function refreshHUD(){
+  $('speedBox').querySelector('.v').textContent=Math.round(S.speed*3.6*1.6);
+  $('scoreBox').querySelector('.s').textContent=Math.floor(S.score);
+  $('bestHud').textContent=Math.floor(S.best);
+  [...$('shieldBox').children].forEach((i,idx)=>i.classList.toggle('on',idx<S.shield));
+}
+refreshHUD();
+
+/* 开始 / 结束 */
+function startGame(){
+  S.menu=false;S.over=false;S.paused=false;
+  S.speed=0;S.lane=1;S.x=0;S.shield=3;S.score=0;S.coins=0;S.dist=0;S.shake=0;
+  traffic.forEach((t,i)=>{t.z=-30-i*32;t.lane=LANES[(i+(t.dir>0?0:1))%3]});
+  coins.forEach((c,i)=>{c.z=-40-i*17+Math.random()*6;c.taken=false;c.g.visible=true});
+  boosts.forEach((b,i)=>{b.z=-90-i*85;b.used=false;b.g.visible=true});
+  $('menu').classList.add('hidden');
+  $('over').classList.add('hidden');
+  $('hud').classList.add('show');
+  audioInit();
+  showMsg('出发！');
+}
+function endGame(){
+  S.over=true;
+  S.runs++;S.totalCoins+=S.coins;
+  const isBest=S.score>S.best;
+  if(isBest)S.best=S.score;
+  localStorage.setItem('sl_best',S.best);
+  localStorage.setItem('sl_runs',S.runs);
+  localStorage.setItem('sl_coins',S.totalCoins);
+  $('rScore').textContent=Math.floor(S.score);
+  $('rDist').textContent=Math.floor(S.dist);
+  $('rCoins').textContent=S.coins;
+  $('newBest').classList.toggle('show',isBest);
+  $('overSub').textContent=isBest?'这台发动机今晚属于你。':'公路把你还给了黄昏。';
+  $('over').classList.remove('hidden');
+  $('hud').classList.remove('show');
+  if(engineGain)engineGain.gain.setTargetAtTime(0,AC.currentTime,.2);
+}
+$('startBtn').addEventListener('click',startGame);
+$('againBtn').addEventListener('click',startGame);
+addEventListener('keydown',e=>{
+  if(e.key==='Enter'||e.key===' '){
+    if(S.menu||S.over)startGame();
+  }
+});
+function refreshMenu(){
+  $('mBest').textContent=Math.floor(S.best);
+  $('mRuns').textContent=S.runs;
+  $('mCoins').textContent=S.totalCoins;
+  $('menuStats').style.display=S.runs>0?'grid':'none';
+}
+refreshMenu();
+
+/* ================= 主循环 ================= */
+const clock=new THREE.Clock();
+const camTarget=new THREE.Vector3();
+let crashedTimer=0;
+function loop(){
+  requestAnimationFrame(loop);
+  const dt=Math.min(clock.getDelta(),.05);
+  if(S.menu){menuSpin(dt);return}
+  if(!S.paused&&!S.over){
+    /* 操控 */
+    const acc=keys['w']||keys['arrowup'];
+    const brake=keys['s']||keys['arrowdown'];
+    let laneInput=0;
+    if(keys['a']||keys['arrowleft'])laneInput-=1;
+    if(keys['d']||keys['arrowright'])laneInput+=1;
+    S.lane=Math.max(0,Math.min(2,S.lane+laneInput*dt*4.2));
+    const targetX=LANES[Math.round(S.lane)];
+    S.x+=(targetX-S.x)*Math.min(1,dt*7);
+    const maxNow=S.maxSpeed*(1+ (S.boostT>0?.25:0));
+    if(acc)S.speed+=dt*14;
+    else if(brake)S.speed-=dt*26;
+    else S.speed-=dt*4;
+    if(S.boostT>0){S.boostT-=dt;S.speed+=dt*10}
+    S.speed=Math.max(0,Math.min(maxNow,S.speed));
+    S.dist+=S.speed*dt;
+    S.score+=S.speed*dt*.6;
+    /* 车姿态 */
+    player.position.set(S.x,0,0);
+    player.rotation.z=(S.x-targetX)*.25;
+    player.rotation.y=(targetX-S.x)*.06;
+    /* 世界滚动 */
+    const dz=S.speed*dt;
+    dashes.forEach(d=>{
+      d.position.z+=dz;
+      if(d.position.z>8)d.position.z-=300;
+    });
+    sideProps.forEach(p=>{
+      p.g.position.z+=dz;
+      if(p.g.position.z>16)p.g.position.z-=PROP_SPAN;
+    });
+    lamps.forEach(l=>{
+      l.g.position.z+=dz;
+      l.head.material.emissiveIntensity=S.dist>400?1.6:0;
+      if(l.g.position.z>16)l.g.position.z-=l.span;
+    });
+    /* 交通 */
+    traffic.forEach(t=>{
+      t.z+=dz - t.dir*t.speed*dt;
+      if(t.z>14){ // 重置到远处
+        t.z=-120-Math.random()*60;
+        t.lane=LANES[Math.floor(Math.random()*3)];
+      }
+      if(t.z<-160)t.z=-120;
+      t.g.position.set(t.lane,0,t.z);
+      if(t.dir<0)t.g.rotation.y=Math.PI;
+      /* 碰撞 */
+      if(crashedTimer<=0&&Math.abs(t.z)<2.3&&Math.abs(t.lane-S.x)<1.5){
+        crash(t);
+      }
+    });
+    /* 金币 */
+    coins.forEach(c=>{
+      c.z+=dz;
+      c.g.rotation.y+=dt*3.4;
+      if(c.z>12){c.z=-90-Math.random()*80;c.taken=false;c.g.visible=true}
+      c.g.position.set(c.lane,.75+Math.sin(clock.elapsedTime*3+c.z)*.06,c.z);
+      if(!c.taken&&Math.abs(c.z)<1.6&&Math.abs(c.lane-S.x)<1.2){
+        c.taken=true;c.g.visible=false;S.coins++;S.score+=25;
+        sfxCoin();showCombo('+'+25);
+      }
+    });
+    /* 加速带 */
+    boosts.forEach(b=>{
+      b.z+=dz;
+      if(b.z>12){b.z=-260-Math.random()*120;b.used=false;b.g.visible=true}
+      b.g.position.z=b.z;
+      if(!b.used&&Math.abs(b.z)<2.4&&Math.abs(b.lane-S.x)<1.3){
+        b.used=true;b.g.visible=false;S.boostT=2.2;
+        showMsg('推进器！');showCombo('BOOST');
+      }
+    });
+    /* 引擎音 */
+    if(engineGain){
+      engineOsc.frequency.value=55+S.speed*3.4;
+      engineGain.gain.setTargetAtTime(.03+S.speed*.0022,AC.currentTime,.1);
+    }
+    /* 分数与连击 */
+    if(S.comboT>0){S.comboT-=dt;if(S.comboT<=0)$('combo').style.opacity=0}
+    if(crashedTimer>0)crashedTimer-=dt;
+    refreshHUD();
+  }
+  /* 相机：追尾位于车后（+z），看向前进方向（-z） */
+  const shk=S.shake>0?(S.shake-=dt*2)*.14:0;
+  camTarget.set(player.position.x*.5,2.1+S.speed*.006,6.4);
+  camera.position.x+=(camTarget.x+(Math.random()-.5)*shk-camera.position.x)*Math.min(1,dt*5);
+  camera.position.y+=(camTarget.y+(Math.random()-.5)*shk-camera.position.y)*Math.min(1,dt*5);
+  camera.position.z+=(camTarget.z-camera.position.z)*Math.min(1,dt*4);
+  camera.lookAt(player.position.x*.7,.6,-6);
+  camera.fov=62+S.speed*.45;
+  camera.updateProjectionMatrix();
+  renderer.render(scene,camera);
+}
+function crash(hit){
+  S.shield--;
+  S.shake=1;
+  S.speed*=.25;
+  crashedTimer=1.2;
+  sfxCrash();
+  if(hit){hit.z=-60-Math.random()*40;hit.lane=LANES[Math.floor(Math.random()*3)]}
+  if(S.shield<=0){endGame();return}
+  showMsg('碰撞！剩余护盾 '+S.shield);
+}
+let comboTimer=null;
+function showCombo(txt){
+  const c=$('combo');
+  c.textContent=txt;c.style.opacity=1;
+  clearTimeout(comboTimer);
+  comboTimer=setTimeout(()=>c.style.opacity=0,900);
+}
+function menuSpin(dt){
+  /* 菜单时缓慢展示场景 */
+  player.position.set(0,0,0);
+  player.rotation.y=Math.sin(clock.elapsedTime*.3)*.2;
+  camera.position.set(Math.sin(clock.elapsedTime*.14)*6,2.4,Math.cos(clock.elapsedTime*.14)*6);
+  camera.lookAt(0,.5,0);
+  camera.fov=55;camera.updateProjectionMatrix();
+  dashes.forEach(d=>{});
+  renderer.render(scene,camera);
+}
+addEventListener('resize',()=>{
+  camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth,innerHeight);
+});
+loop();
+</script>
+</body>
+</html>

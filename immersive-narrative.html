@@ -1,0 +1,1111 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>光 · The Story of Light</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;0,700;1,300;1,400&family=Noto+Serif+SC:wght@200;300;400;600;700&family=Space+Mono:wght@400;700&display=swap');
+
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+html { scroll-behavior: auto; }
+
+body {
+  background: #000;
+  color: #fff;
+  font-family: 'Cormorant Garamond', 'Noto Serif SC', serif;
+  overflow-x: hidden;
+  cursor: none;
+}
+
+.custom-cursor {
+  position: fixed;
+  width: 20px;
+  height: 20px;
+  border: 1.5px solid rgba(255,255,255,0.6);
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 10000;
+  mix-blend-mode: difference;
+  transform: translate(-50%, -50%);
+  transition: width 0.3s, height 0.3s, border-color 0.3s;
+}
+.custom-cursor.active {
+  width: 50px;
+  height: 50px;
+  border-color: rgba(255,200,100,0.8);
+}
+.cursor-dot {
+  position: fixed;
+  width: 4px;
+  height: 4px;
+  background: #fff;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 10001;
+  mix-blend-mode: difference;
+  transform: translate(-50%, -50%);
+}
+
+canvas#particles {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.progress-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 2px;
+  background: linear-gradient(90deg, #ff6b35, #f7c948, #fff);
+  z-index: 9999;
+  width: 0%;
+}
+
+.scroll-hint {
+  position: fixed;
+  bottom: 40px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  opacity: 1;
+}
+.scroll-hint span {
+  font-family: 'Space Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.5);
+}
+.scroll-line {
+  width: 1px;
+  height: 60px;
+  background: linear-gradient(to bottom, rgba(255,255,255,0.6), transparent);
+  animation: scrollPulse 2s ease-in-out infinite;
+}
+@keyframes scrollPulse {
+  0%, 100% { transform: scaleY(1); opacity: 1; }
+  50% { transform: scaleY(0.5); opacity: 0.3; }
+}
+
+/* ===== HERO ===== */
+.hero {
+  position: relative;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  z-index: 2;
+}
+.hero-bg {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 50% 50%, #0a0a1a 0%, #000 70%);
+}
+.hero-glow {
+  position: absolute;
+  width: 600px;
+  height: 600px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255,107,53,0.15) 0%, transparent 70%);
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  filter: blur(80px);
+}
+.hero-content {
+  position: relative;
+  text-align: center;
+  z-index: 2;
+}
+.hero-eyebrow {
+  font-family: 'Space Mono', monospace;
+  font-size: 12px;
+  letter-spacing: 8px;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.4);
+  margin-bottom: 30px;
+}
+.hero-title {
+  font-size: clamp(4rem, 12vw, 10rem);
+  font-weight: 300;
+  line-height: 0.95;
+  letter-spacing: -0.02em;
+  background: linear-gradient(135deg, #fff 0%, #f7c948 40%, #ff6b35 70%, #fff 100%);
+  background-size: 200% 200%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: shimmer 6s ease-in-out infinite;
+}
+@keyframes shimmer {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+.hero-subtitle {
+  font-size: clamp(1rem, 2.5vw, 1.4rem);
+  font-weight: 300;
+  color: rgba(255,255,255,0.5);
+  margin-top: 24px;
+  font-style: italic;
+  letter-spacing: 2px;
+}
+.hero-chinese {
+  font-family: 'Noto Serif SC', serif;
+  font-size: clamp(1.2rem, 3vw, 1.8rem);
+  font-weight: 200;
+  color: rgba(255,200,100,0.6);
+  margin-top: 16px;
+  letter-spacing: 12px;
+}
+
+/* ===== SECTIONS ===== */
+.section {
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+  overflow: hidden;
+}
+
+/* Chapter I - Genesis */
+.chapter-genesis {
+  background: radial-gradient(ellipse at 30% 60%, #0a0510 0%, #000 60%);
+}
+.chapter-genesis .content-wrap {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 80px;
+  max-width: 1200px;
+  padding: 0 60px;
+  align-items: center;
+}
+.chapter-num {
+  font-family: 'Space Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 6px;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.3);
+  margin-bottom: 20px;
+}
+.chapter-title {
+  font-size: clamp(2.5rem, 5vw, 4rem);
+  font-weight: 300;
+  line-height: 1.15;
+  margin-bottom: 30px;
+}
+.chapter-title em {
+  font-style: italic;
+  color: #f7c948;
+}
+.chapter-text {
+  font-size: 1.15rem;
+  line-height: 1.9;
+  color: rgba(255,255,255,0.55);
+  font-weight: 300;
+  max-width: 480px;
+}
+.visual-block {
+  position: relative;
+  height: 500px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.orb {
+  width: 300px;
+  height: 300px;
+  border-radius: 50%;
+  position: relative;
+}
+.orb-core {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: radial-gradient(circle at 40% 35%, #f7c948, #ff6b35, #8b2500);
+  filter: blur(1px);
+}
+.orb-glow {
+  position: absolute;
+  inset: -60px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255,150,50,0.2) 0%, transparent 70%);
+  filter: blur(40px);
+}
+.orb-ring {
+  position: absolute;
+  inset: -30px;
+  border-radius: 50%;
+  border: 1px solid rgba(255,200,100,0.15);
+  animation: orbRingSpin 20s linear infinite;
+}
+.orb-ring:nth-child(3) {
+  inset: -60px;
+  animation-duration: 30s;
+  animation-direction: reverse;
+  border-color: rgba(255,100,50,0.1);
+}
+@keyframes orbRingSpin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Chapter II - Expansion */
+.chapter-expansion {
+  background: #000;
+}
+.expansion-grid {
+  max-width: 1200px;
+  padding: 0 60px;
+  width: 100%;
+}
+.expansion-header {
+  text-align: center;
+  margin-bottom: 100px;
+}
+.expansion-items {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 40px;
+}
+.expansion-card {
+  padding: 50px 36px;
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 2px;
+  background: rgba(255,255,255,0.02);
+  backdrop-filter: blur(10px);
+  transition: border-color 0.5s, background 0.5s;
+  position: relative;
+  overflow: hidden;
+}
+.expansion-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(247,201,72,0.4), transparent);
+  opacity: 0;
+  transition: opacity 0.5s;
+}
+.expansion-card:hover::before { opacity: 1; }
+.expansion-card:hover {
+  border-color: rgba(255,200,100,0.15);
+  background: rgba(255,200,100,0.03);
+}
+.card-icon {
+  font-size: 2.5rem;
+  margin-bottom: 24px;
+  display: block;
+}
+.card-title {
+  font-size: 1.4rem;
+  font-weight: 400;
+  margin-bottom: 16px;
+  color: #f7c948;
+}
+.card-desc {
+  font-size: 0.95rem;
+  line-height: 1.8;
+  color: rgba(255,255,255,0.45);
+  font-weight: 300;
+}
+
+/* Chapter III - Spectrum */
+.chapter-spectrum {
+  background: radial-gradient(ellipse at 70% 40%, #0a0008 0%, #000 60%);
+  min-height: 100vh;
+}
+.spectrum-content {
+  max-width: 900px;
+  padding: 0 60px;
+  text-align: center;
+}
+.spectrum-quote {
+  font-size: clamp(2rem, 4.5vw, 3.5rem);
+  font-weight: 300;
+  line-height: 1.4;
+  font-style: italic;
+  margin-bottom: 40px;
+}
+.spectrum-quote .highlight {
+  background: linear-gradient(90deg, #ff6b35, #f7c948, #4ecdc4, #6c5ce7);
+  background-size: 300% 300%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: spectrumShift 8s ease-in-out infinite;
+}
+@keyframes spectrumShift {
+  0%, 100% { background-position: 0% 50%; }
+  33% { background-position: 100% 0%; }
+  66% { background-position: 50% 100%; }
+}
+.spectrum-author {
+  font-family: 'Space Mono', monospace;
+  font-size: 12px;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.3);
+}
+.spectrum-bars {
+  display: flex;
+  justify-content: center;
+  gap: 3px;
+  margin-top: 80px;
+  height: 120px;
+  align-items: flex-end;
+}
+.spectrum-bar {
+  width: 3px;
+  background: linear-gradient(to top, rgba(255,107,53,0.3), rgba(247,201,72,0.6));
+  border-radius: 2px;
+  transform-origin: bottom;
+}
+
+/* Chapter IV - Convergence */
+.chapter-convergence {
+  background: #000;
+}
+.convergence-wrap {
+  max-width: 1100px;
+  padding: 0 60px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 100px;
+  align-items: center;
+}
+.convergence-visual {
+  position: relative;
+  height: 400px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.convergence-circle {
+  width: 250px;
+  height: 250px;
+  border-radius: 50%;
+  position: relative;
+}
+.conv-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 1px solid rgba(255,255,255,0.08);
+}
+.conv-ring:nth-child(2) { inset: -40px; border-color: rgba(255,255,255,0.05); }
+.conv-ring:nth-child(3) { inset: -80px; border-color: rgba(255,255,255,0.03); }
+.conv-dot {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #f7c948;
+}
+.conv-center {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #fff;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 0 30px rgba(255,200,100,0.5), 0 0 60px rgba(255,200,100,0.2);
+}
+.convergence-text .chapter-title {
+  font-size: clamp(2rem, 4vw, 3rem);
+}
+.convergence-text .chapter-text {
+  margin-bottom: 30px;
+}
+.convergence-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.convergence-list li {
+  font-size: 0.95rem;
+  color: rgba(255,255,255,0.5);
+  padding-left: 20px;
+  position: relative;
+  font-weight: 300;
+}
+.convergence-list li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 6px;
+  height: 6px;
+  border: 1px solid #f7c948;
+  border-radius: 50%;
+}
+
+/* Chapter V - Transcend */
+.chapter-transcend {
+  background: radial-gradient(ellipse at 50% 50%, #0a0a1a 0%, #000 60%);
+  min-height: 100vh;
+}
+.transcend-content {
+  text-align: center;
+  max-width: 800px;
+  padding: 0 60px;
+}
+.transcend-big {
+  font-size: clamp(5rem, 15vw, 14rem);
+  font-weight: 700;
+  line-height: 0.85;
+  letter-spacing: -0.04em;
+  background: linear-gradient(180deg, #fff 0%, rgba(255,255,255,0.1) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 40px;
+}
+.transcend-sub {
+  font-size: 1.1rem;
+  color: rgba(255,255,255,0.35);
+  font-weight: 300;
+  line-height: 1.8;
+  max-width: 500px;
+  margin: 0 auto;
+  font-style: italic;
+}
+
+/* Finale */
+.finale {
+  position: relative;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+  background: radial-gradient(ellipse at 50% 50%, #0a0a0a 0%, #000 60%);
+}
+.finale-content {
+  text-align: center;
+}
+.finale-title {
+  font-size: clamp(3rem, 8vw, 7rem);
+  font-weight: 300;
+  letter-spacing: -0.02em;
+  margin-bottom: 20px;
+}
+.finale-chinese {
+  font-family: 'Noto Serif SC', serif;
+  font-size: clamp(1.5rem, 3vw, 2.2rem);
+  font-weight: 200;
+  color: rgba(255,200,100,0.5);
+  letter-spacing: 16px;
+}
+.finale-line {
+  width: 60px;
+  height: 1px;
+  background: rgba(255,255,255,0.2);
+  margin: 30px auto;
+}
+.finale-credit {
+  font-family: 'Space Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.2);
+}
+
+/* Grain overlay */
+.grain {
+  position: fixed;
+  inset: 0;
+  z-index: 9998;
+  pointer-events: none;
+  opacity: 0.035;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 256px 256px;
+}
+
+/* Horizontal divider */
+.h-divider {
+  width: 100%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent);
+  z-index: 2;
+  position: relative;
+}
+
+/* Section counter */
+.section-counter {
+  position: fixed;
+  right: 40px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 100;
+  font-family: 'Space Mono', monospace;
+  font-size: 11px;
+  color: rgba(255,255,255,0.2);
+  writing-mode: vertical-lr;
+  letter-spacing: 4px;
+  mix-blend-mode: difference;
+}
+</style>
+</head>
+<body>
+
+<div class="custom-cursor"></div>
+<div class="cursor-dot"></div>
+<canvas id="particles"></canvas>
+<div class="grain"></div>
+<div class="progress-bar" id="progressBar"></div>
+<div class="section-counter" id="sectionCounter">01 / 06</div>
+
+<div class="scroll-hint" id="scrollHint">
+  <span>Scroll</span>
+  <div class="scroll-line"></div>
+</div>
+
+<!-- HERO -->
+<section class="hero" id="hero">
+  <div class="hero-bg"></div>
+  <div class="hero-glow"></div>
+  <div class="hero-content">
+    <div class="hero-eyebrow">A Journey Through Light</div>
+    <h1 class="hero-title">光</h1>
+    <p class="hero-subtitle">The Story of Light</p>
+    <p class="hero-chinese">万物始于暗，光自裂隙中诞生</p>
+  </div>
+</section>
+
+<div class="h-divider"></div>
+
+<!-- CHAPTER I -->
+<section class="section chapter-genesis" id="chapter1">
+  <div class="content-wrap">
+    <div class="chapter-text-side">
+      <div class="chapter-num">Chapter I — Genesis</div>
+      <h2 class="chapter-title">在混沌的<br><em>黑暗</em>之中</h2>
+      <p class="chapter-text">
+        宇宙诞生之初，万物沉寂于无边的黑暗。没有时间，没有空间，只有无限的沉默等待被打破。在那片虚无之中，一个微弱的光点开始酝酿——它很小，却蕴含着改变一切的力量。
+      </p>
+    </div>
+    <div class="visual-block">
+      <div class="orb" id="orb">
+        <div class="orb-glow"></div>
+        <div class="orb-core"></div>
+        <div class="orb-ring"></div>
+        <div class="orb-ring"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="h-divider"></div>
+
+<!-- CHAPTER II -->
+<section class="section chapter-expansion" id="chapter2">
+  <div class="expansion-grid">
+    <div class="expansion-header">
+      <div class="chapter-num">Chapter II — Expansion</div>
+      <h2 class="chapter-title" style="font-size: clamp(2rem, 4vw, 3rem);">光的<em style="color:#f7c948;">三种</em>形态</h2>
+    </div>
+    <div class="expansion-items">
+      <div class="expansion-card">
+        <span class="card-icon">◈</span>
+        <h3 class="card-title">粒子</h3>
+        <p class="card-desc">光以光子的形态存在，每一个粒子都是宇宙最小的信使。它们穿越星系，携带数十亿年前恒星的温度，落在你的视网膜上。</p>
+      </div>
+      <div class="expansion-card">
+        <span class="card-icon">◇</span>
+        <h3 class="card-title">波动</h3>
+        <p class="card-desc">光也是一种波——电磁场的涟漪在真空中以每秒三十万公里的速度扩散。红移与蓝移记录着宇宙膨胀的节拍。</p>
+      </div>
+      <div class="expansion-card">
+        <span class="card-icon">◆</span>
+        <h3 class="card-title">意识</h3>
+        <p class="card-desc">当光进入你的眼睛，物理现象变成了感知。光是唯一一种能让我们看见宇宙的东西——没有光，一切都是永恒的黑暗。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="h-divider"></div>
+
+<!-- CHAPTER III -->
+<section class="section chapter-spectrum" id="chapter3">
+  <div class="spectrum-content">
+    <div class="chapter-num" style="text-align:center;">Chapter III — Spectrum</div>
+    <div class="spectrum-quote" id="spectrumQuote">
+      "我们都是星尘，<br>
+      <span class="highlight">在光谱中寻找</span><br>
+      自己的颜色。"
+    </div>
+    <div class="spectrum-author">— The Universe Speaks</div>
+    <div class="spectrum-bars" id="spectrumBars"></div>
+  </div>
+</section>
+
+<div class="h-divider"></div>
+
+<!-- CHAPTER IV -->
+<section class="section chapter-convergence" id="chapter4">
+  <div class="convergence-wrap">
+    <div class="convergence-visual" id="convergenceVis">
+      <div class="convergence-circle">
+        <div class="conv-ring"></div>
+        <div class="conv-ring"></div>
+        <div class="conv-ring"></div>
+        <div class="conv-center"></div>
+      </div>
+    </div>
+    <div class="convergence-text">
+      <div class="chapter-num">Chapter IV — Convergence</div>
+      <h2 class="chapter-title">当所有<br>光线<em>汇聚</em></h2>
+      <p class="chapter-text">
+        白光不是一种颜色，而是所有颜色的和弦。当彩虹的七种颜色重新合为一体，混沌变成了纯粹——这就是光最深的隐喻。
+      </p>
+      <ul class="convergence-list">
+        <li>分离让我们看见多样性</li>
+        <li>汇聚让我们理解统一性</li>
+        <li>光教会我们：复杂与简单本是一体</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<div class="h-divider"></div>
+
+<!-- CHAPTER V -->
+<section class="section chapter-transcend" id="chapter5">
+  <div class="transcend-content">
+    <div class="chapter-num" style="text-align:center;">Chapter V — Transcend</div>
+    <div class="transcend-big" id="transcendBig">光</div>
+    <p class="transcend-sub">
+      每一个日出都是一次宇宙对你说的"你好"。<br>
+      每一束光都携带着138亿年的旅程。<br>
+      你看到的星光，可能在你出生之前就已启程。
+    </p>
+  </div>
+</section>
+
+<div class="h-divider"></div>
+
+<!-- FINALE -->
+<section class="finale" id="finale">
+  <div class="finale-content">
+    <div class="finale-title" id="finaleTitle">The End</div>
+    <div class="finale-line"></div>
+    <div class="finale-chinese" id="finaleChinese">终章</div>
+    <div class="finale-line" style="margin-top:40px;"></div>
+    <div class="finale-credit">Built with GSAP · 2026</div>
+  </div>
+</section>
+
+<script>
+gsap.registerPlugin(ScrollTrigger);
+
+// ===== CUSTOM CURSOR =====
+const cursor = document.querySelector('.custom-cursor');
+const dot = document.querySelector('.cursor-dot');
+let mouseX = 0, mouseY = 0;
+let cursorX = 0, cursorY = 0;
+
+document.addEventListener('mousemove', e => {
+  mouseX = e.clientX;
+  mouseY = e.clientY;
+  gsap.to(dot, { x: mouseX, y: mouseY, duration: 0.1 });
+});
+
+function animateCursor() {
+  cursorX += (mouseX - cursorX) * 0.15;
+  cursorY += (mouseY - cursorY) * 0.15;
+  cursor.style.left = cursorX + 'px';
+  cursor.style.top = cursorY + 'px';
+  requestAnimationFrame(animateCursor);
+}
+animateCursor();
+
+document.querySelectorAll('a, .expansion-card, .finale-content').forEach(el => {
+  el.addEventListener('mouseenter', () => cursor.classList.add('active'));
+  el.addEventListener('mouseleave', () => cursor.classList.remove('active'));
+});
+
+// ===== PARTICLE CANVAS =====
+const canvas = document.getElementById('particles');
+const ctx = canvas.getContext('2d');
+let particles = [];
+
+function resizeCanvas() {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+}
+resizeCanvas();
+window.addEventListener('resize', resizeCanvas);
+
+class Particle {
+  constructor() {
+    this.reset();
+  }
+  reset() {
+    this.x = Math.random() * canvas.width;
+    this.y = Math.random() * canvas.height;
+    this.size = Math.random() * 1.5 + 0.3;
+    this.speedX = (Math.random() - 0.5) * 0.3;
+    this.speedY = (Math.random() - 0.5) * 0.3;
+    this.opacity = Math.random() * 0.5 + 0.1;
+    this.hue = Math.random() * 40 + 20;
+  }
+  update() {
+    this.x += this.speedX;
+    this.y += this.speedY;
+    if (this.x < 0 || this.x > canvas.width || this.y < 0 || this.y > canvas.height) {
+      this.reset();
+    }
+  }
+  draw() {
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+    ctx.fillStyle = `hsla(${this.hue}, 80%, 70%, ${this.opacity})`;
+    ctx.fill();
+  }
+}
+
+for (let i = 0; i < 80; i++) particles.push(new Particle());
+
+function animateParticles() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  particles.forEach(p => { p.update(); p.draw(); });
+  requestAnimationFrame(animateParticles);
+}
+animateParticles();
+
+// ===== PROGRESS BAR =====
+gsap.to('#progressBar', {
+  width: '100%',
+  ease: 'none',
+  scrollTrigger: {
+    trigger: 'body',
+    start: 'top top',
+    end: 'bottom bottom',
+    scrub: 0.3
+  }
+});
+
+// ===== SCROLL HINT FADE =====
+gsap.to('#scrollHint', {
+  autoAlpha: 0,
+  scrollTrigger: {
+    trigger: '#hero',
+    start: 'top top',
+    end: '+=200',
+    scrub: true
+  }
+});
+
+// ===== HERO ANIMATIONS =====
+const heroTl = gsap.timeline({ delay: 0.5 });
+heroTl
+  .from('.hero-eyebrow', { autoAlpha: 0, y: 30, duration: 1, ease: 'power3.out' })
+  .from('.hero-title', { autoAlpha: 0, scale: 0.8, duration: 1.4, ease: 'power3.out' }, '-=0.6')
+  .from('.hero-subtitle', { autoAlpha: 0, y: 20, duration: 0.8, ease: 'power3.out' }, '-=0.7')
+  .from('.hero-chinese', { autoAlpha: 0, y: 20, duration: 0.8, ease: 'power3.out' }, '-=0.5');
+
+// Hero parallax
+gsap.to('.hero-content', {
+  y: -100,
+  autoAlpha: 0,
+  scrollTrigger: {
+    trigger: '#hero',
+    start: 'top top',
+    end: 'bottom top',
+    scrub: 1
+  }
+});
+gsap.to('.hero-glow', {
+  scale: 2,
+  autoAlpha: 0,
+  scrollTrigger: {
+    trigger: '#hero',
+    start: 'top top',
+    end: 'bottom top',
+    scrub: 1
+  }
+});
+
+// ===== CHAPTER I =====
+const ch1Tl = gsap.timeline({
+  scrollTrigger: {
+    trigger: '#chapter1',
+    start: 'top 70%',
+    end: 'center center',
+    scrub: 0.5
+  }
+});
+ch1Tl
+  .from('.chapter-genesis .chapter-num', { autoAlpha: 0, x: -30, duration: 1 })
+  .from('.chapter-genesis .chapter-title', { autoAlpha: 0, y: 50, duration: 1 }, '-=0.6')
+  .from('.chapter-genesis .chapter-text', { autoAlpha: 0, y: 40, duration: 1 }, '-=0.5')
+  .from('#orb', { scale: 0, autoAlpha: 0, duration: 1.5, ease: 'back.out(1.4)' }, '-=1');
+
+// Orb pulse on scroll
+gsap.to('#orb .orb-core', {
+  scale: 1.15,
+  scrollTrigger: {
+    trigger: '#chapter1',
+    start: 'top center',
+    end: 'bottom center',
+    scrub: 2
+  }
+});
+
+// ===== CHAPTER II =====
+ScrollTrigger.batch('.expansion-card', {
+  onEnter: (elements) => {
+    gsap.from(elements, {
+      autoAlpha: 0,
+      y: 60,
+      stagger: 0.15,
+      duration: 1,
+      ease: 'power3.out'
+    });
+  },
+  start: 'top 80%',
+  once: true
+});
+gsap.from('.expansion-header', {
+  autoAlpha: 0,
+  y: 40,
+  duration: 1,
+  scrollTrigger: {
+    trigger: '.expansion-header',
+    start: 'top 80%',
+    toggleActions: 'play none none none'
+  }
+});
+
+// ===== CHAPTER III =====
+const barsContainer = document.getElementById('spectrumBars');
+for (let i = 0; i < 40; i++) {
+  const bar = document.createElement('div');
+  bar.className = 'spectrum-bar';
+  bar.style.height = (Math.random() * 80 + 20) + 'px';
+  barsContainer.appendChild(bar);
+}
+
+gsap.from('.spectrum-quote', {
+  autoAlpha: 0,
+  y: 60,
+  duration: 1.2,
+  scrollTrigger: {
+    trigger: '#chapter3',
+    start: 'top 60%',
+    toggleActions: 'play none none none'
+  }
+});
+gsap.from('.spectrum-author', {
+  autoAlpha: 0,
+  duration: 1,
+  delay: 0.3,
+  scrollTrigger: {
+    trigger: '#chapter3',
+    start: 'top 50%',
+    toggleActions: 'play none none none'
+  }
+});
+
+// Animate spectrum bars
+gsap.from('.spectrum-bar', {
+  scaleY: 0,
+  stagger: { each: 0.03, from: 'center' },
+  duration: 0.8,
+  ease: 'elastic.out(1, 0.5)',
+  scrollTrigger: {
+    trigger: '.spectrum-bars',
+    start: 'top 80%',
+    toggleActions: 'play none none none'
+  }
+});
+
+// Continuous bar animation
+function animateBars() {
+  document.querySelectorAll('.spectrum-bar').forEach((bar, i) => {
+    gsap.to(bar, {
+      height: () => Math.random() * 100 + 20,
+      duration: 0.8 + Math.random() * 0.5,
+      ease: 'power1.inOut',
+      delay: i * 0.02,
+      repeat: -1,
+      yoyo: true
+    });
+  });
+}
+animateBars();
+
+// ===== CHAPTER IV =====
+const ch4Tl = gsap.timeline({
+  scrollTrigger: {
+    trigger: '#chapter4',
+    start: 'top 60%',
+    end: 'center center',
+    scrub: 0.5
+  }
+});
+ch4Tl
+  .from('.chapter-convergence .chapter-num', { autoAlpha: 0, duration: 1 })
+  .from('.chapter-convergence .chapter-title', { autoAlpha: 0, x: 40, duration: 1 }, '-=0.5')
+  .from('.chapter-convergence .chapter-text', { autoAlpha: 0, x: 30, duration: 1 }, '-=0.5')
+  .from('.convergence-list li', { autoAlpha: 0, x: 20, stagger: 0.15, duration: 0.8 }, '-=0.3')
+  .from('#convergenceVis', { autoAlpha: 0, scale: 0.6, duration: 1.2, ease: 'power3.out' }, '-=1.2');
+
+// Convergence rings rotate
+gsap.to('.conv-ring', {
+  rotation: 360,
+  duration: 30,
+  repeat: -1,
+  ease: 'none'
+});
+gsap.to('.conv-ring:nth-child(2)', {
+  rotation: -360,
+  duration: 40,
+  repeat: -1,
+  ease: 'none'
+});
+
+// ===== CHAPTER V =====
+gsap.from('#transcendBig', {
+  scale: 3,
+  autoAlpha: 0,
+  filter: 'blur(20px)',
+  duration: 2,
+  ease: 'power4.out',
+  scrollTrigger: {
+    trigger: '#chapter5',
+    start: 'top 60%',
+    toggleActions: 'play none none none'
+  }
+});
+gsap.from('.transcend-sub', {
+  autoAlpha: 0,
+  y: 40,
+  duration: 1.2,
+  delay: 0.5,
+  scrollTrigger: {
+    trigger: '#chapter5',
+    start: 'top 50%',
+    toggleActions: 'play none none none'
+  }
+});
+
+// ===== FINALE =====
+gsap.from('#finaleTitle', {
+  autoAlpha: 0,
+  y: 50,
+  scale: 0.9,
+  duration: 1.5,
+  ease: 'power3.out',
+  scrollTrigger: {
+    trigger: '#finale',
+    start: 'top 60%',
+    toggleActions: 'play none none none'
+  }
+});
+gsap.from('#finaleChinese', {
+  autoAlpha: 0,
+  y: 20,
+  duration: 1,
+  delay: 0.3,
+  scrollTrigger: {
+    trigger: '#finale',
+    start: 'top 50%',
+    toggleActions: 'play none none none'
+  }
+});
+gsap.from('.finale-credit', {
+  autoAlpha: 0,
+  duration: 1,
+  delay: 0.6,
+  scrollTrigger: {
+    trigger: '#finale',
+    start: 'top 40%',
+    toggleActions: 'play none none none'
+  }
+});
+
+// ===== SECTION COUNTER =====
+const sections = ['hero', 'chapter1', 'chapter2', 'chapter3', 'chapter4', 'chapter5', 'finale'];
+sections.forEach((id, i) => {
+  ScrollTrigger.create({
+    trigger: '#' + id,
+    start: 'top center',
+    end: 'bottom center',
+    onEnter: () => {
+      gsap.to('#sectionCounter', {
+        autoAlpha: 0,
+        duration: 0.2,
+        onComplete: () => {
+          document.getElementById('sectionCounter').textContent =
+            String(i + 1).padStart(2, '0') + ' / 06';
+          gsap.to('#sectionCounter', { autoAlpha: 1, duration: 0.3 });
+        }
+      });
+    },
+    onEnterBack: () => {
+      gsap.to('#sectionCounter', {
+        autoAlpha: 0,
+        duration: 0.2,
+        onComplete: () => {
+          document.getElementById('sectionCounter').textContent =
+            String(i + 1).padStart(2, '0') + ' / 06';
+          gsap.to('#sectionCounter', { autoAlpha: 1, duration: 0.3 });
+        }
+      });
+    }
+  });
+});
+
+// ===== BACKGROUND COLOR TRANSITIONS =====
+const bgColors = ['#000', '#05000a', '#000', '#030008', '#000', '#050510', '#000'];
+sections.forEach((id, i) => {
+  ScrollTrigger.create({
+    trigger: '#' + id,
+    start: 'top bottom',
+    end: 'bottom top',
+    onEnter: () => gsap.to('body', { backgroundColor: bgColors[i], duration: 1.5 }),
+    onEnterBack: () => gsap.to('body', { backgroundColor: bgColors[i], duration: 1.5 })
+  });
+});
+
+// ===== PARALLAX H-DIVIDERS =====
+document.querySelectorAll('.h-divider').forEach(div => {
+  gsap.from(div, {
+    scaleX: 0,
+    duration: 1.5,
+    ease: 'power3.inOut',
+    scrollTrigger: {
+      trigger: div,
+      start: 'top 85%',
+      toggleActions: 'play none none none'
+    }
+  });
+});
+</script>
+</body>
+</html>

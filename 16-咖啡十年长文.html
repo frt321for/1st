@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>速溶之外 —— 中国精品咖啡的十年 · 咖啡志特稿</title>
+<style>
+:root{
+  --paper:#faf7f0;--paper2:#f2ecdf;--ink:#221c14;--ink2:#4c443a;
+  --dim:#847a68;--faint:#b3a890;--espresso:#5c3a24;--caramel:#b87f3f;
+  --line:#e4dcc9;--green:#5f6f52;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  background:
+    repeating-linear-gradient(0deg, rgba(120,100,70,.018) 0 1px, transparent 1px 4px),
+    radial-gradient(1300px 800px at 50% -200px, #fdfbf5, var(--paper) 55%, #f0e9da 100%);
+  color:var(--ink);
+  font-family:Georgia,"Songti SC","STSong","SimSun",serif;
+  font-size:17px;line-height:2;
+}
+.sans{font-family:"PingFang SC","Microsoft YaHei",sans-serif}
+::selection{background:rgba(184,127,63,.25)}
+/* 进度丝线 */
+#progress{position:fixed;top:0;left:0;height:2.5px;background:linear-gradient(90deg,var(--espresso),var(--caramel));width:0;z-index:99}
+/* ---------- 章节导航（桌面） ---------- */
+.rail{position:fixed;left:calc(50% - 520px);top:50%;transform:translateY(-50%);z-index:50;display:flex;flex-direction:column;gap:14px}
+.rail a{
+  display:flex;align-items:center;gap:9px;font-size:11px;letter-spacing:.22em;color:var(--faint);
+  font-family:"PingFang SC",sans-serif;transition:.2s;text-decoration:none;
+}
+.rail a i{width:7px;height:7px;border-radius:50%;border:1.5px solid var(--faint);transition:.2s;flex:0 0 auto;font-style:normal}
+.rail a.on{color:var(--espresso)}
+.rail a.on i{background:var(--espresso);border-color:var(--espresso)}
+@media (max-width:1160px){.rail{display:none}}
+
+.wrap{width:min(680px,88vw);margin:0 auto}
+
+/* ---------- 题头 ---------- */
+.masthead{padding:64px 0 0;text-align:center;border-bottom:1px solid var(--line)}
+.masthead .logo{font-size:13px;letter-spacing:.7em;text-indent:.7em;color:var(--espresso);font-weight:600}
+.masthead .cat{margin-top:14px;font-size:11px;letter-spacing:.44em;color:var(--faint);font-family:"PingFang SC",sans-serif}
+.masthead .cat b{color:var(--espresso)}
+.kicker{margin:74px auto 0;text-align:center;font-size:12px;letter-spacing:.5em;color:var(--caramel);font-family:"PingFang SC",sans-serif}
+h1{
+  text-align:center;font-size:clamp(34px,6.4vw,58px);line-height:1.5;font-weight:600;
+  letter-spacing:.06em;margin-top:22px;
+}
+h1 .thin{font-weight:400;color:var(--dim)}
+.standfirst{
+  margin:34px auto 0;max-width:560px;text-align:center;color:var(--ink2);font-size:16px;line-height:2.15;
+}
+.standfirst b{color:var(--espresso)}
+.byline{
+  margin:36px auto 0;display:flex;justify-content:center;gap:26px;flex-wrap:wrap;
+  font-size:12.5px;color:var(--dim);letter-spacing:.14em;font-family:"PingFang SC",sans-serif;
+}
+.byline b{color:var(--ink);font-weight:500}
+/* 题图 */
+.herovisual{margin:56px auto 0;width:min(680px,92vw);aspect-ratio:16/9;border-radius:6px;position:relative;overflow:hidden;
+  background:
+    radial-gradient(90% 70% at 70% 20%, #f6ead2, transparent 55%),
+    linear-gradient(165deg,#2b1d12,#3d2a1a 55%,#1c130c);
+  box-shadow:0 26px 60px rgba(60,40,20,.28);
+}
+.cup{
+  position:absolute;left:50%;bottom:18%;transform:translateX(-50%);width:34%;aspect-ratio:1.35;
+  border-radius:10% 10% 46% 46%/14% 14% 70% 70%;
+  background:
+    radial-gradient(80% 60% at 32% 20%, rgba(255,240,214,.4), transparent 50%),
+    linear-gradient(160deg,#f4ede0,#d9cdb8 60%,#b3a48a);
+  box-shadow:0 14px 30px rgba(10,6,3,.5);
+}
+.cup::before{content:"";position:absolute;left:10%;right:10%;top:12%;height:34%;border-radius:50%;background:radial-gradient(circle at 40% 35%,#6b4426,#3d2413 75%)}
+.cup::after{content:"";position:absolute;right:-16%;top:26%;width:26%;height:44%;border:8px solid #cbbc9f;border-radius:0 60% 60% 0/0 50% 50% 0;border-left:none}
+.steam2{position:absolute;left:42%;bottom:66%;width:40px;height:80px;opacity:.55}
+.steam2 i{position:absolute;bottom:0;left:50%;width:8px;height:70px;border-radius:50%;
+  background:radial-gradient(ellipse, rgba(250,240,220,.8), transparent 70%);
+  animation:steam 3s ease-in-out infinite;transform-origin:bottom}
+.steam2 i:nth-child(2){left:190%;animation-delay:-1.5s;height:52px}
+.steam2 i:nth-child(3){left:-90%;animation-delay:-.7s;height:44px}
+@keyframes steam{0%{transform:translateY(8px) scaleX(1);opacity:0}35%{opacity:.8}100%{transform:translateY(-46px) scaleX(2.2);opacity:0}}
+.herovisual .cap{
+  position:absolute;right:18px;bottom:14px;font-size:10px;letter-spacing:.3em;color:rgba(250,240,220,.5);
+  font-family:"PingFang SC",sans-serif;
+}
+/* 大数字带 */
+.bignum-band{margin:70px auto 0;display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--line);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.bignum-band .bn{background:transparent;text-align:center;padding:30px 10px 26px}
+.bignum-band .n{font-size:clamp(30px,4.6vw,46px);font-weight:600;color:var(--espresso);font-variant-numeric:tabular-nums}
+.bignum-band .n i{font-style:normal;font-size:.5em;color:var(--caramel)}
+.bignum-band .l{margin-top:6px;font-size:11.5px;letter-spacing:.24em;color:var(--dim);font-family:"PingFang SC",sans-serif}
+@media (max-width:560px){.bignum-band{grid-template-columns:1fr}.bignum-band .bn{border-bottom:1px solid var(--line)}.bignum-band .bn:last-child{border-bottom:none}}
+
+/* ---------- 正文 ---------- */
+article{padding:80px 0 0}
+article p{margin-top:30px;text-indent:2em;color:var(--ink2);text-align:justify}
+article p.noindent{text-indent:0}
+article p b{color:var(--ink)}
+.dropcap::first-letter{
+  float:left;font-size:76px;line-height:.9;padding:6px 12px 0 0;color:var(--espresso);font-weight:600;
+}
+/* 拉引 */
+.pull{
+  margin:56px 0;padding:0 26px;position:relative;text-align:center;
+}
+.pull::before{content:"";position:absolute;left:50%;top:-22px;transform:translateX(-50%);width:44px;height:1.5px;background:var(--caramel)}
+.pull p{font-size:clamp(20px,2.9vw,27px);line-height:1.9;color:var(--ink);text-indent:0;font-weight:600;letter-spacing:.04em}
+.pull small{display:block;margin-top:14px;font-size:12px;color:var(--faint);letter-spacing:.3em;font-family:"PingFang SC",sans-serif}
+
+/* ---------- 章节 ---------- */
+.chapter{margin-top:110px}
+.chaphead{display:flex;align-items:center;gap:18px;margin-bottom:10px}
+.chaphead .no{
+  font-size:46px;font-weight:600;color:transparent;-webkit-text-stroke:1.2px var(--caramel);
+  font-family:Georgia,serif;line-height:1;
+}
+.chaphead .t h2{font-size:clamp(22px,3.2vw,30px);font-weight:600;letter-spacing:.05em}
+.chaphead .t span{display:block;font-size:11.5px;letter-spacing:.3em;color:var(--faint);margin-top:4px;font-family:"PingFang SC",sans-serif}
+.datanote{font-size:11px;color:var(--faint);letter-spacing:.1em;margin:6px 0 6px;font-family:"PingFang SC",sans-serif}
+
+/* 图表卡 */
+.chart{margin:36px 0 8px;border:1px solid var(--line);border-radius:8px;background:#fffdf8;padding:26px 22px 18px;box-shadow:0 14px 34px rgba(92,58,36,.07)}
+.chart svg{width:100%;height:auto;display:block}
+.chart .ct{font-size:13.5px;font-weight:600;letter-spacing:.08em;font-family:"PingFang SC",sans-serif}
+.chart .cs{font-size:11px;color:var(--faint);margin-top:2px;font-family:"PingFang SC",sans-serif}
+.legend{display:flex;gap:18px;flex-wrap:wrap;margin-top:12px;font-size:11.5px;color:var(--dim);font-family:"PingFang SC",sans-serif}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+/* 拉引数字 */
+.hugenum{margin:50px 0;text-align:center}
+.hugenum .n{font-size:clamp(58px,11vw,110px);line-height:1;font-weight:600;color:var(--espresso);font-variant-numeric:tabular-nums;letter-spacing:.01em}
+.hugenum .n i{font-style:normal;font-size:.42em;color:var(--caramel)}
+.hugenum .l{margin-top:10px;font-size:13px;letter-spacing:.3em;color:var(--dim);font-family:"PingFang SC",sans-serif}
+
+/* 图表动画 */
+.reveal{opacity:0;transform:translateY(22px);transition:opacity .9s ease,transform .9s cubic-bezier(.2,.7,.3,1)}
+.reveal.in{opacity:1;transform:none}
+.bar-grow{transform:scaleY(0);transform-origin:bottom;transition:transform 1.1s cubic-bezier(.2,.8,.3,1)}
+.in .bar-grow{transform:scaleY(1)}
+.line-draw{stroke-dasharray:1400;stroke-dashoffset:1400}
+.in .line-draw{animation:draw 1.6s ease forwards}
+@keyframes draw{to{stroke-dashoffset:0}}
+.donut-seg-r{transition:opacity .2s}
+
+/* ---------- 尾声 / 脚注 ---------- */
+.epilogue{margin-top:100px;border-top:1px solid var(--line);padding-top:60px}
+.signature{
+  margin:70px auto 0;max-width:520px;text-align:center;font-size:13.5px;color:var(--dim);
+  line-height:2.3;letter-spacing:.06em;font-family:"PingFang SC",sans-serif;
+}
+.signature .seal{
+  display:inline-flex;width:44px;height:44px;background:var(--espresso);color:#f6efe2;border-radius:6px;
+  align-items:center;justify-content:center;font-size:15px;font-family:"STKaiti","KaiTi",serif;
+  transform:rotate(-3deg);margin-bottom:14px;line-height:1.1;text-align:center;
+}
+.endmark{display:flex;justify-content:center;margin-top:50px;color:var(--caramel);font-size:14px;letter-spacing:.6em}
+.footnotes{margin:80px 0 0;padding-top:26px;border-top:1px solid var(--line);font-size:12px;color:var(--dim);line-height:2.1;font-family:"PingFang SC",sans-serif}
+.footnotes b{color:var(--ink2);font-weight:500;letter-spacing:.16em}
+.footnotes ol{list-style:none;counter-reset:fn}
+.footnotes li{counter-increment:fn;padding-left:26px;position:relative}
+.footnotes li::before{content:"[" counter(fn) "]";position:absolute;left:0;color:var(--caramel)}
+.sitefoot{margin-top:60px;padding:26px 0 46px;border-top:1px solid var(--line);display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;font-size:11.5px;color:var(--faint);letter-spacing:.14em;font-family:"PingFang SC",sans-serif}
+@media (prefers-reduced-motion:reduce){
+  .reveal{opacity:1;transform:none;transition:none}
+  .bar-grow{transform:none}
+  .line-draw{animation:none;stroke-dashoffset:0}
+  .steam2 i{animation:none}
+  html{scroll-behavior:auto}
+}
+</style>
+</head>
+<body>
+
+<div id="progress" aria-hidden="true"></div>
+
+<!-- 章节导航 -->
+<nav class="rail" aria-label="章节导航">
+  <a href="#ch1" class="on" data-sec="ch1"><i></i>壹 · 长潮</a>
+  <a href="#ch2" data-sec="ch2"><i></i>贰 · 三分</a>
+  <a href="#ch3" data-sec="ch3"><i></i>叁 · 归处</a>
+</nav>
+
+<!-- 题头 -->
+<header class="masthead">
+  <div class="logo">咖啡志 KAFEI JOURNAL</div>
+  <div class="cat">特稿 · <b>SPECIAL REPORT</b> · 2026 年 9 月号 · 总第 47 期</div>
+  <div class="kicker">2015 — 2025 · 一场味觉的十年迁徙</div>
+  <h1>速溶之外<span class="thin">——</span><br>中国精品咖啡的十年</h1>
+  <p class="standfirst">十年前，咖啡在中国的默认形态是一小条速溶粉；十年后，云南豆的日晒处理法被写进国际买手的采购单。这不是一个品类的故事，<b>是一代人对"苦"的重新谈判。</b></p>
+  <div class="byline"><span>文 · <b>林晚</b></span><span>数据 · <b>脉搏数据组</b></span><span>视觉 · <b>陈墨</b></span><span>编辑 · <b>周衍</b></span></div>
+  <div class="herovisual" role="img" aria-label="题图：暗色背景下的一杯咖啡与升起的蒸汽">
+    <div class="cup"></div>
+    <div class="steam2" aria-hidden="true"><i></i><i></i><i></i></div>
+    <span class="cap">ILLUSTRATION · 咖啡志视觉组</span>
+  </div>
+</header>
+
+<!-- 大数字带 -->
+<div class="wrap">
+  <div class="bignum-band reveal">
+    <div class="bn"><div class="n">×19</div><div class="l">精品咖啡市场规模增长</div></div>
+    <div class="bn"><div class="n">12,000<i>+</i></div><div class="l">现制咖啡馆（2015 年为 8,400 家）</div></div>
+    <div class="bn"><div class="n">12.3<i> 杯</i></div><div class="l">年人均咖啡摄入量（2015：3.7 杯）</div></div>
+  </div>
+</div>
+
+<article>
+  <div class="wrap">
+    <p class="noindent dropcap reveal">二〇一五年的春天，昆明豆商老杨把一吨精心处理的卡蒂姆按速溶原料价卖给了贸易公司——那年头，"精品"两个字在云南的收购单上不值钱。同一年，上海南昌路开出一家只有八个座位的小店，手冲单品卖 38 元一杯，来的人要在门口排队四十分钟。</p>
+    <p class="reveal">十年过去，这两条线索终于长成了同一棵树：老杨的咖啡庄园连续三年被国际买手整支竞价买断；而那家小店背后的品牌，如今在中国有六百家门店。<b>精品咖啡在中国的十年，是一场从"尝鲜"到"日常"的长潮。</b></p>
+
+    <!-- ============ 章节一 · 长潮 ============ -->
+    <section class="chapter" id="ch1">
+      <div class="chaphead reveal">
+        <span class="no">壹</span>
+        <div class="t"><h2>长潮：市场规模的十年曲线</h2><span>TREND · 2015 — 2025</span></div>
+      </div>
+      <p class="datanote reveal">数据：脉搏数据组整理，规模为精品咖啡细分市场口径，单位亿元，<b style="color:var(--caramel)">示意数据</b>。</p>
+      <div class="chart reveal">
+        <div class="ct">中国精品咖啡市场规模（亿元）</div>
+        <div class="cs">2015 → 2025 · 曲线以下即十年增长</div>
+        <svg viewBox="0 0 640 300" role="img" aria-label="2015至2025年中国精品咖啡市场规模从20亿元增长至380亿元的折线图">
+          <g stroke="#eee7d8" stroke-width="1">
+            <line x1="46" y1="30" x2="610" y2="30"/><line x1="46" y1="90" x2="610" y2="90"/>
+            <line x1="46" y1="150" x2="610" y2="150"/><line x1="46" y1="210" x2="610" y2="210"/><line x1="46" y1="270" x2="610" y2="270"/>
+          </g>
+          <g font-size="11" fill="#b3a890" font-family="Consolas,monospace" text-anchor="end">
+            <text x="40" y="34">400</text><text x="40" y="94">300</text><text x="40" y="154">200</text><text x="40" y="214">100</text><text x="40" y="274">0</text>
+          </g>
+          <defs>
+            <linearGradient id="areaG" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="rgba(184,127,63,.4)"/><stop offset="1" stop-color="rgba(184,127,63,.03)"/>
+            </linearGradient>
+          </defs>
+          <path d="M60,265 L112,259 L164,252 L216,242 L268,226 L320,204 L372,178 L424,146 L476,110 L528,72 L580,32 L580,270 L60,270 Z" fill="url(#areaG)" class="bar-grow"/>
+          <path d="M60,265 L112,259 L164,252 L216,242 L268,226 L320,204 L372,178 L424,146 L476,110 L528,72 L580,32" fill="none" stroke="#b87f3f" stroke-width="3" stroke-linecap="round" class="line-draw"/>
+          <g font-size="11" fill="#847a68" font-family="Consolas,monospace" text-anchor="middle">
+            <text x="60" y="290">2015</text><text x="164" y="290">2017</text><text x="268" y="290">2019</text><text x="372" y="290">2021</text><text x="476" y="290">2023</text><text x="580" y="290">2025</text>
+          </g>
+          <circle cx="60" cy="265" r="4" fill="#5c3a24"/><circle cx="580" cy="32" r="4.5" fill="#5c3a24" stroke="#faf7f0" stroke-width="2"/>
+          <text x="60" y="248" font-size="12" fill="#5c3a24" font-family="Consolas,monospace">¥20亿</text>
+          <text x="576" y="20" font-size="12" fill="#5c3a24" font-family="Consolas,monospace" text-anchor="end">¥380亿</text>
+        </svg>
+      </div>
+      <div class="hugenum reveal"><div class="n">×19<i> 倍</i></div><div class="l">十年 · 精品咖啡市场规模增长</div></div>
+      <p class="reveal">曲线的形状比数字更值得读。2015 到 2018 是文人式的慢坡——独立咖啡馆在一二线城市缓慢生长；2019 到 2021 出现第一次陡升，<b>外卖咖啡与"9.9 元拿铁"把现制咖啡从社交货币变成日用品</b>；而 2023 年之后的加速，来自最意外的引擎：县城。</p>
+      <p class="reveal">脉搏数据组的口径里，2025 年新增咖啡馆有 61% 开在三线以下城市。精品不再是大城市的特权——当一杯手冲的价格低于一份烧腊饭，味觉的启蒙就完成了它的下沉。</p>
+
+      <!-- ============ 章节二 · 三分 ============ -->
+      <section class="chapter" id="ch2">
+        <div class="chaphead reveal">
+          <span class="no">贰</span>
+          <div class="t"><h2>三分：速溶、现磨与即饮的攻守</h2><span>COMPARISON · 2015 / 2020 / 2025</span></div>
+        </div>
+        <p class="datanote reveal">数据：三类咖啡形态在中国咖啡消费中的占比变化（估算口径，<b style="color:var(--caramel)">示意数据</b>）。</p>
+        <div class="chart reveal">
+          <div class="ct">咖啡消费形态占比（%）</div>
+          <div class="cs">速溶在退潮，但它退成了一座岛，而不是消失的海</div>
+          <svg viewBox="0 0 640 320" role="img" aria-label="2015、2020、2025年速溶、现磨、即饮咖啡占比分组条形图">
+            <g stroke="#eee7d8" stroke-width="1">
+              <line x1="70" y1="40" x2="620" y2="40"/><line x1="70" y1="110" x2="620" y2="110"/>
+              <line x1="70" y1="180" x2="620" y2="180"/><line x1="70" y1="250" x2="620" y2="250"/>
+            </g>
+            <g font-size="11" fill="#b3a890" font-family="Consolas,monospace" text-anchor="end">
+              <text x="64" y="44">100%</text><text x="64" y="114">60%</text><text x="64" y="184">20%</text><text x="64" y="254">0%</text>
+            </g>
+            <!-- 2015 -->
+            <g class="bar-g">
+              <rect class="bar-grow" x="86"  y="64"  width="42" height="186" rx="3" fill="#5c3a24"/>
+              <rect class="bar-grow" x="132" y="221" width="42" height="29"  rx="3" fill="#b87f3f" style="transition-delay:.1s"/>
+              <rect class="bar-grow" x="178" y="235" width="42" height="15"  rx="3" fill="#9fae8f" style="transition-delay:.2s"/>
+              <text x="153" y="278" font-size="12" fill="#847a68" text-anchor="middle" font-family="PingFang SC">2015</text>
+            </g>
+            <!-- 2020 -->
+            <g>
+              <rect class="bar-grow" x="286" y="129" width="42" height="121" rx="3" fill="#5c3a24" style="transition-delay:.15s"/>
+              <rect class="bar-grow" x="332" y="141" width="42" height="109" rx="3" fill="#b87f3f" style="transition-delay:.25s"/>
+              <rect class="bar-grow" x="378" y="221" width="42" height="29"  rx="3" fill="#9fae8f" style="transition-delay:.35s"/>
+              <text x="353" y="278" font-size="12" fill="#847a68" text-anchor="middle" font-family="PingFang SC">2020</text>
+            </g>
+            <!-- 2025 -->
+            <g>
+              <rect class="bar-grow" x="486" y="171" width="42" height="79"  rx="3" fill="#5c3a24" style="transition-delay:.3s"/>
+              <rect class="bar-grow" x="532" y="128" width="42" height="122" rx="3" fill="#b87f3f" style="transition-delay:.4s"/>
+              <rect class="bar-grow" x="578" y="214" width="42" height="36"  rx="3" fill="#9fae8f" style="transition-delay:.5s"/>
+              <text x="553" y="278" font-size="12" fill="#847a68" text-anchor="middle" font-family="PingFang SC">2025</text>
+            </g>
+            <!-- 数值 -->
+            <g font-size="10.5" fill="#847a68" font-family="Consolas,monospace" text-anchor="middle">
+              <text x="107" y="58">65</text><text x="153" y="215">14</text><text x="199" y="229">7</text>
+              <text x="307" y="123">41</text><text x="353" y="135">37</text><text x="399" y="215">14</text>
+              <text x="507" y="165">27</text><text x="553" y="122">42</text><text x="599" y="208">18</text>
+            </g>
+          </svg>
+          <div class="legend">
+            <span><i style="background:#5c3a24"></i>速溶（含胶囊）</span>
+            <span><i style="background:#b87f3f"></i>现磨（门店 + 自制）</span>
+            <span><i style="background:#9fae8f"></i>即饮（瓶装 / 罐装）</span>
+          </div>
+        </div>
+        <p class="reveal">十年前，速溶以 65% 的份额定义着这个市场；十年后，现磨以 42% 完成反超。但真正有趣的不是谁赢，<b>而是速溶没有死</b>——它退守到两个高地：一二线城市的精品冻干条，与下沉市场的口袋价。退潮之后的速溶，是一座更小但更硬的岛。</p>
+        <div class="pull reveal">
+          <p>消费者没有背叛速溶，<br>他们只是开始追问：苦，值不值这个价。</p>
+          <small>脉搏数据组 · 年度报告</small>
+        </div>
+      </section>
+
+      <!-- ============ 章节三 · 归处 ============ -->
+      <section class="chapter" id="ch3">
+          <div class="chaphead reveal">
+            <span class="no">叁</span>
+            <div class="t"><h2>归处：一杯精品咖啡的四种去处</h2><span>DISTRIBUTION · 2025</span></div>
+          </div>
+          <p class="datanote reveal">数据：2025 年现制精品咖啡消费场景占比（<b style="color:var(--caramel)">示意数据</b>）。</p>
+          <div class="chart reveal">
+            <div class="ct">消费渠道 / 场景占比</div>
+            <div class="cs">连锁退向效率，独立店退向体验，家变成第四空间</div>
+            <svg viewBox="0 0 640 280" role="img" aria-label="2025年精品咖啡渠道占比环形图">
+              <g transform="translate(150,140)">
+                <circle r="86" fill="none" stroke="#f0e9da" stroke-width="34"/>
+                <circle class="donut-seg-r" r="86" fill="none" stroke="#5c3a24" stroke-width="34" stroke-dasharray="237 540" stroke-dashoffset="0" transform="rotate(-90)"/>
+                <circle class="donut-seg-r" r="86" fill="none" stroke="#b87f3f" stroke-width="34" stroke-dasharray="167 613" stroke-dashoffset="-237" transform="rotate(-90)"/>
+                <circle class="donut-seg-r" r="86" fill="none" stroke="#5f6f52" stroke-width="34" stroke-dasharray="135 645" stroke-dashoffset="-404" transform="rotate(-90)"/>
+                <text y="8" text-anchor="middle" font-size="15" fill="#5c3a24" font-weight="600" font-family="Consolas,monospace">2025</text>
+              </g>
+              <g font-family="PingFang SC" font-size="13" fill="#4c443a">
+                <g transform="translate(330,78)">
+                  <rect width="12" height="12" rx="3" fill="#5c3a24"/><text x="22" y="11">连锁品牌 · 44%</text>
+                  <text x="22" y="34" font-size="11.5" fill="#847a68">万店时代的效率叙事：快取、外卖、自动化的咖啡师</text>
+                </g>
+                <g transform="translate(330,148)">
+                  <rect width="12" height="12" rx="3" fill="#b87f3f"/><text x="22" y="11">独立咖啡馆 · 31%</text>
+                  <text x="22" y="34" font-size="11.5" fill="#847a68">主理人叙事：豆单、手冲台、与熟客的长谈</text>
+                </g>
+                <g transform="translate(330,218)">
+                  <rect width="12" height="12" rx="3" fill="#5f6f52"/><text x="22" y="11">家用手冲 · 25%</text>
+                  <text x="22" y="34" font-size="11.5" fill="#847a68">十年前几乎为零：滤杯、磨豆机与云南豆的组合成为礼物</text>
+                </g>
+              </g>
+            </svg>
+          </div>
+          <p class="reveal">如果只能留下一个数字，我们想留下"25%"。家用手冲从近乎为零到四分之一，意味着精品咖啡完成了它最深的渗透：<b>它不再需要空间来卖给你体验，它住进了你的厨房。</b>老杨们种的豆子，如今一半的旅程发生在别人家的客厅里。</p>
+        </section>
+      </section>
+
+      <!-- 尾声 -->
+      <div class="epilogue">
+        <p class="noindent reveal">二〇二五年的秋天，老杨在自家庄园挂了一块木牌，写着"风味日历"：哪个地块的日晒批次在哪一天达到最佳赏味期，用粉笔随时更新。有客人从上海飞两千公里，就为了在山里喝那一杯。</p>
+        <p class="reveal">十年前，咖啡在中国是一桩关于效率的生意——快，浓，提神，五块钱一条。十年后，它至少部分地成了一桩关于<b>时间</b>的生意：一支豆子等三个月的发酵，一位客人等四十分钟的位子，一座山等十年才被世界尝到。</p>
+        <p class="noindent reveal"><b>速溶之外，是慢。</b></p>
+        <div class="endmark" aria-hidden="true">· 完 ·</div>
+        <div class="signature">
+          <span class="seal">咖<br>志</span><br>
+          文 / 林晚（咖啡志主笔） · 数据支持 / 脉搏数据组 · 视觉 / 陈墨<br>
+          编辑 / 周衍 · 校对 / 何雨眠 · 2026 年 9 月 12 日刊于咖啡志第 47 期
+        </div>
+        <div class="footnotes">
+          <b>脚注与数据来源</b>
+          <ol>
+            <li>市场规模与渠道占比均为脉搏数据组基于公开资料与行业访谈的估算口径，仅用于叙事示意，不构成投资依据。</li>
+            <li>人均摄入量按年中国咖啡协会年度报告口径折算；2015 年基数含速溶与即饮。</li>
+            <li>人物杨师傅、上海小店品牌均为化名与模糊化处理；山场地块信息经庄园授权发布。</li>
+            <li>本文采用"精品咖啡"宽口径：含单一产地豆、SCA 80 分以上生豆及主理人门店现制产品。</li>
+          </ol>
+        </div>
+      </div>
+    </div>
+</article>
+
+<footer class="sitefoot">
+  <div class="wrap" style="display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap">
+    <span>咖啡志 KAFEI JOURNAL · 每月一座山</span>
+    <span>© 2026 咖啡志编辑部 · 转载请联系</span>
+  </div>
+</footer>
+
+<script>
+"use strict";
+const RM=matchMedia('(prefers-reduced-motion: reduce)').matches;
+/* 渐入 */
+const io=new IntersectionObserver(es=>es.forEach(e=>{
+  if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target)}
+}),{threshold:.16});
+document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
+/* 进度丝线 */
+addEventListener('scroll',()=>{
+  const h=document.documentElement;
+  document.getElementById('progress').style.width=(h.scrollTop/(h.scrollHeight-h.clientHeight)*100)+'%';
+},{passive:true});
+/* 章节导航高亮 */
+const secs=['ch1','ch2','ch3'].map(id=>document.getElementById(id));
+const railLinks=[...document.querySelectorAll('.rail a')];
+addEventListener('scroll',()=>{
+  const y=scrollY+innerHeight*.4;
+  let cur=0;
+  secs.forEach((s,i)=>{if(s.offsetTop<=y)cur=i});
+  railLinks.forEach((a,i)=>a.classList.toggle('on',i===cur));
+},{passive:true});
+</script>
+</body>
+</html>

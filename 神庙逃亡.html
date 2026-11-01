@@ -1,0 +1,375 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#102b22">
+  <meta name="description" content="穿过丛林神庙，收集金币，躲避障碍。一场随时开始的无尽逃亡。">
+  <title>神庙逃亡 · 翡翠遗迹</title>
+  <style>
+    :root{color-scheme:dark;--ink:#f4edda;--muted:#b6c3ad;--gold:#edc477;--gold-dark:#bf9046;--forest:#102b22;--line:rgba(225,233,200,.18);font-family:"Segoe UI","Microsoft YaHei",sans-serif}
+    *{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden}body{background:var(--forest);color:var(--ink);overscroll-behavior:none;-webkit-tap-highlight-color:transparent}button{font:inherit;cursor:pointer;color:inherit}button:focus-visible{outline:2px solid var(--gold);outline-offset:5px}button:disabled{cursor:default}button,svg{-webkit-user-select:none;user-select:none}[hidden]{display:none!important}svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.65;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}button svg{pointer-events:none}button{touch-action:manipulation}
+    #scene{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none;outline:none}.vignette,.menu-shade{position:fixed;inset:0;pointer-events:none}.vignette{background:radial-gradient(ellipse at 57% 39%,transparent 27%,rgba(3,20,15,.18) 68%,rgba(3,17,13,.63) 110%);z-index:1}.menu-shade{z-index:2;background:linear-gradient(90deg,rgba(6,25,19,.92),rgba(6,25,19,.74) 25%,rgba(6,25,19,.13) 57%,transparent 75%);transition:opacity .65s}body:not([data-mode="menu"]) .menu-shade{opacity:0}
+    .topbar{position:fixed;top:0;left:0;right:0;z-index:12;padding:30px 42px;display:flex;align-items:center;justify-content:space-between;gap:20px;pointer-events:none}.brand,.tools{pointer-events:auto}.brand{display:flex;align-items:center;gap:13px;text-shadow:0 2px 10px #102b22}.brand-mark{width:43px;height:43px;color:var(--gold);padding:7px;border:1px solid rgba(237,196,119,.5);transform:rotate(-2deg);background:rgba(16,43,34,.22)}.brand-mark svg{width:100%;height:100%}.brand-name{font:600 15px Georgia,"Times New Roman",serif;letter-spacing:3px}.brand-sub{color:var(--muted);font-size:10px;letter-spacing:4px;margin-top:5px}.tools{display:flex;gap:9px}.icon-button{width:42px;height:42px;display:grid;place-items:center;border:1px solid rgba(227,231,208,.22);border-radius:50%;background:rgba(12,36,27,.46);backdrop-filter:blur(12px);transition:background .18s,transform .18s;color:#e0e4ca}.icon-button:hover{background:rgba(30,61,41,.85);transform:translateY(-2px)}.icon-button svg{width:19px;height:19px}
+    .hero{position:fixed;z-index:5;left:8%;top:50%;transform:translateY(-45%);width:410px;max-width:40vw}.eyebrow{display:flex;align-items:center;gap:12px;font-size:10px;letter-spacing:4px;color:var(--gold);margin-bottom:24px}.eyebrow:before{content:"";width:27px;height:1px;background:var(--gold)}h1{font-family:"STKaiti","KaiTi","Noto Serif SC","Songti SC",serif;font-weight:600;font-size:60px;line-height:1.18;letter-spacing:7px;margin:0 0 13px;text-shadow:0 3px 30px rgba(0,0,0,.2)}.english-title{font-family:Georgia,serif;letter-spacing:9px;font-size:15px;color:#d3d9bf;margin-bottom:28px}.intro{font-size:14px;color:#c2cbb7;line-height:1.95;letter-spacing:1px;margin:0 0 29px}.record{display:flex;gap:30px;margin:0 0 30px}.record-item{display:flex;align-items:center;gap:10px}.record-item svg{width:20px;height:20px;color:#c6aa6a}.record-value{font:500 18px "Consolas",monospace;letter-spacing:1px}.record-label{color:#a7b49e;font-size:10px;letter-spacing:1px;margin-top:4px}.record-divider{width:1px;background:var(--line);margin:3px 0}.primary{background:linear-gradient(110deg,#f0cf8d,#dca950);color:#233127;border:1px solid #f8d992;min-height:56px;border-radius:4px;padding:0 23px;font-weight:700;font-size:15px;letter-spacing:2px;display:flex;align-items:center;justify-content:center;gap:24px;box-shadow:0 7px 25px rgba(7,22,15,.22),inset 0 1px 0 rgba(255,255,255,.25);transition:filter .18s,transform .18s}.primary:hover{filter:brightness(1.08);transform:translateY(-2px)}.primary:active{transform:translateY(1px)}.hero .primary{width:254px;justify-content:space-between}.start-note{font-size:10px;color:#a0ad97;letter-spacing:1px;margin:11px 0 30px;width:254px;text-align:center}.start-note kbd{border:none;padding:0;color:#d7dec7;background:none}.controls-guide{border-top:1px solid var(--line);padding-top:22px;display:flex;gap:21px;width:max-content;max-width:100%}.control{display:flex;flex-direction:column;gap:10px}.keys{display:flex;gap:4px;height:25px;align-items:center}kbd{font-family:inherit;display:inline-flex;align-items:center;justify-content:center;border:1px solid rgba(214,226,190,.3);background:rgba(185,210,153,.06);border-radius:4px;min-width:25px;height:25px;font-size:12px;padding:0 6px;color:#dfe5ce}.control-label{font-size:10px;letter-spacing:.6px;color:#9eaf97}.control .key-word{font-size:10px;min-width:39px}
+    .footer{position:fixed;z-index:4;left:42px;right:42px;bottom:28px;display:flex;justify-content:space-between;align-items:flex-end;pointer-events:none}.location{font-size:11px;color:#cad4bd;letter-spacing:2px;display:flex;align-items:center;gap:8px}.location:before{content:"";width:5px;height:5px;background:#bbcd88;border-radius:50%;box-shadow:0 0 10px #adce85}.location-en{font:9px Georgia,serif;letter-spacing:2.2px;color:#8eab90;margin:7px 0 0 13px}.footer-note{font-size:10px;letter-spacing:1px;color:#b1c1a7;text-shadow:0 1px 6px #102b22}
+    .hud{position:fixed;z-index:6;inset:0;pointer-events:none}.hud-stats{position:absolute;top:29px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:26px;background:rgba(9,31,22,.57);border:1px solid rgba(224,232,195,.19);backdrop-filter:blur(12px);padding:12px 27px;border-radius:6px}.hud-label{font-size:9px;color:#bbc9af;letter-spacing:2px;margin-bottom:5px}.distance-value{font:600 31px/1 "Consolas",monospace;letter-spacing:2px;min-width:97px}.distance-value small{font:11px "Segoe UI",sans-serif;color:#bdc9ac;letter-spacing:0;margin-left:6px}.hud-separator{height:37px;width:1px;background:var(--line)}.coins-value{font:600 24px "Consolas",monospace;color:var(--gold);display:flex;align-items:center;gap:9px;min-width:60px}.coins-value svg{width:22px;height:22px}.health{position:absolute;top:95px;left:44px;display:flex;align-items:center;gap:7px}.health-label{font-size:10px;letter-spacing:2px;color:#c6d0b4;margin-right:5px}.health svg{width:17px;height:22px;color:var(--gold);fill:rgba(237,196,119,.12);transition:opacity .2s,transform .2s}.health svg.spent{opacity:.2;transform:scale(.85)}.pace{position:absolute;bottom:30px;left:42px;display:flex;align-items:center;gap:10px;font-size:10px;letter-spacing:2px;color:#c4d2b7}.pace-bars{display:flex;gap:3px;align-items:flex-end;height:15px}.pace-bars i{width:3px;background:#d8bf7d;opacity:.3}.pace-bars i:nth-child(1){height:5px}.pace-bars i:nth-child(2){height:8px}.pace-bars i:nth-child(3){height:11px}.pace-bars i:nth-child(4){height:14px}.pace-bars i.lit{opacity:1}.hint{position:absolute;bottom:39px;left:50%;transform:translateX(-50%);font-size:12px;line-height:1.7;letter-spacing:1px;text-align:center;padding:10px 19px;border-radius:5px;white-space:nowrap;color:#e8e8d0;background:rgba(10,35,25,.65);border:1px solid var(--line);backdrop-filter:blur(8px)}.pause-note{position:absolute;bottom:30px;right:42px;color:#aebfa3;font-size:10px;letter-spacing:1px}
+    .countdown{position:fixed;z-index:7;left:50%;top:42%;transform:translate(-50%,-50%);font:500 76px Georgia,serif;color:#f8dea3;text-shadow:0 5px 35px #183e26;pointer-events:none}.toast{position:fixed;z-index:15;top:137px;left:50%;transform:translate(-50%,0);max-width:90vw;white-space:nowrap;padding:11px 21px;border:1px solid rgba(234,204,138,.35);border-radius:5px;background:rgba(13,38,27,.87);color:#ead8ad;backdrop-filter:blur(12px);font-size:12px;letter-spacing:.5px;pointer-events:none;opacity:0;transition:opacity .2s}.toast.visible{opacity:1}.turn-prompt{position:fixed;top:24%;left:50%;transform:translateX(-50%);z-index:8;min-width:204px;background:rgba(14,37,26,.89);border:1px solid #c7aa68;border-radius:7px;overflow:hidden;pointer-events:none;box-shadow:0 8px 34px #0e271c55}.turn-content{padding:14px 23px;display:flex;align-items:center;gap:16px}.turn-arrow{font-size:40px;line-height:1;color:var(--gold)}.turn-title{font-size:14px;font-weight:600;letter-spacing:2px}.turn-distance{font-size:10px;color:#becbb0;margin-top:6px}.turn-progress{height:3px;background:rgba(237,196,119,.15)}.turn-progress i{display:block;background:var(--gold);height:100%;width:0;transition:width .1s}.turn-prompt.ready{border-color:#ffe1a0;box-shadow:0 0 30px #e4bd6c24}.turn-prompt.ready .turn-title{color:var(--gold)}
+    .modal{position:fixed;inset:0;z-index:40;background:rgba(5,23,17,.71);backdrop-filter:blur(12px);display:flex;align-items:center;justify-content:center;padding:24px}.modal-card{width:390px;max-width:100%;max-height:calc(100dvh - 48px);overflow:auto;border:1px solid rgba(215,202,151,.32);background:linear-gradient(145deg,rgba(31,58,40,.98),rgba(13,34,26,.99));border-radius:9px;padding:34px;box-shadow:0 25px 100px #03140e66;text-align:center;position:relative}.modal-ornament{width:46px;height:46px;color:var(--gold);margin:0 auto 17px;display:grid;place-items:center;border:1px solid #a4905755;transform:rotate(45deg)}.modal-ornament svg{transform:rotate(-45deg);width:25px;height:25px}.modal h2{font-family:"STKaiti","KaiTi","Noto Serif SC",serif;font-size:30px;font-weight:500;letter-spacing:4px;margin:0 0 11px}.modal p{font-size:12px;line-height:1.9;color:#bac8ac;margin:0 0 25px}.modal .primary{width:100%;min-height:49px;font-size:13px;gap:12px}.secondary{background:transparent;border:1px solid var(--line);border-radius:4px;min-height:45px;padding:0 18px;margin-top:11px;font-size:12px;letter-spacing:1px;width:100%;color:#c1ceb3;transition:background .2s}.secondary:hover{background:#d9e4c40c}.close-button{position:absolute;top:13px;right:13px;border:none;background:transparent;width:29px;height:29px;display:grid;place-items:center;color:#b9c7aa}.close-button svg{width:18px;height:18px}.help-list{padding:0;margin:25px 0;list-style:none;text-align:left}.help-list li{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 0;border-bottom:1px solid #d1dbbc12;font-size:12px;color:#d0dac1}.help-list li:last-child{border:0}.help-list .keys{flex-shrink:0}.help-footnote{text-align:left;font-size:11px!important;line-height:1.9!important;margin-bottom:20px!important}.result-distance{font:500 51px/1.2 "Consolas",monospace;color:#f1d397;letter-spacing:1px;margin:20px 0 7px}.result-distance small{font:13px "Segoe UI",sans-serif;color:#c8d2b9;margin-left:5px}.result-caption{font-size:10px;letter-spacing:2px;color:#acbd9e;margin-bottom:23px}.result-grid{display:grid;grid-template-columns:1fr 1fr;border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:17px 0;margin-bottom:24px}.result-grid>div+div{border-left:1px solid var(--line)}.result-grid strong{font:500 22px "Consolas",monospace;color:#e6dab8;display:block;margin-bottom:6px}.result-grid span{font-size:10px;color:#a7b89a;letter-spacing:1px}.new-best{font-size:10px;letter-spacing:2px;color:var(--gold);margin:0 0 17px}.touch-controls{position:fixed;inset:auto 18px 69px;z-index:10;display:none;justify-content:space-between;pointer-events:none}.touch-group{display:flex;gap:10px;align-items:flex-end}.touch-group:last-child{flex-direction:column-reverse;gap:9px}.touch-button{pointer-events:auto;display:grid;place-items:center;width:49px;height:49px;border:1px solid #e3e4bf50;border-radius:13px;background:#102f2470;backdrop-filter:blur(8px);color:#eee8c9}.touch-button:active{background:#d8b16f55}.touch-button svg{width:21px;height:21px}.damage-flash{position:fixed;inset:0;z-index:3;box-shadow:inset 0 0 140px 40px #a2372166;pointer-events:none;opacity:0;transition:opacity .15s}.damage-flash.active{opacity:1}.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+    @media(min-width:1600px){.hero{left:10%;width:440px}h1{font-size:66px}.intro{font-size:15px}.controls-guide{gap:28px}}
+    @media(max-height:740px) and (min-width:761px){.topbar{padding:22px 34px}.hero{transform:translateY(-43%)}h1{font-size:50px}.eyebrow{margin-bottom:15px}.english-title{margin-bottom:18px}.intro{margin-bottom:20px}.record{margin-bottom:21px}.start-note{margin-bottom:20px}.controls-guide{padding-top:16px}.footer{bottom:21px}.hero .primary{min-height:51px}}
+    @media(max-width:1000px) and (min-width:761px){.hero{left:6%;max-width:43vw}h1{font-size:51px;letter-spacing:5px}.controls-guide{gap:12px}.topbar{padding:24px 28px}.brand-sub{letter-spacing:3px}.brand-name{font-size:13px}.hud-stats{gap:16px;padding:11px 18px}.distance-value{font-size:26px;min-width:84px}.tools{gap:6px}.icon-button{width:37px;height:37px}}
+    @media(max-width:760px){.topbar{padding:22px 21px;align-items:flex-start}.brand{gap:9px}.brand-mark{width:37px;height:37px;padding:6px}.brand-name{font-size:11px;letter-spacing:2px}.brand-sub{font-size:9px;letter-spacing:2px;margin-top:4px}.tools{gap:6px}.icon-button{width:35px;height:35px}.icon-button svg{width:17px;height:17px}#fullscreenButton{display:none}.menu-shade{background:linear-gradient(180deg,rgba(5,25,18,.3),rgba(5,25,18,.52) 28%,rgba(5,25,18,.86) 58%,rgba(5,25,18,.35) 100%)}.hero{left:7%;top:40%;transform:translateY(-35%);width:86%;max-width:none;text-align:center}.eyebrow{justify-content:center;letter-spacing:3px;font-size:9px;margin-bottom:17px}.eyebrow:after{content:"";width:27px;height:1px;background:var(--gold)}h1{font-size:48px;letter-spacing:6px;margin-bottom:10px}.english-title{font-size:11px;letter-spacing:8px;margin-left:8px;margin-bottom:21px}.intro{font-size:12px;line-height:1.9;margin-bottom:21px}.record{justify-content:center;gap:24px;margin-bottom:24px}.record-value{font-size:17px}.record-label{font-size:9px}.hero .primary{width:245px;margin:auto;min-height:52px}.start-note{width:auto;margin:10px 0 23px}.controls-guide{justify-content:center;gap:28px;width:max-content;margin:auto;border-top-color:#e1e9c819;padding-top:18px}.control{align-items:center;gap:8px}.control-label{font-size:9px}.footer{left:22px;right:22px;bottom:22px}.footer-note{font-size:9px;max-width:115px;text-align:right;line-height:1.8}.location{font-size:10px}.location-en{font-size:8px;letter-spacing:1.3px}.hud-stats{top:82px;gap:20px;padding:11px 21px;min-width:228px;justify-content:center}.hud-label{font-size:8px}.distance-value{font-size:27px;min-width:82px}.coins-value{font-size:22px}.health{top:24px;left:50%;transform:translateX(-50%);gap:5px}.health-label{display:none}.health svg{width:13px;height:19px}body:not([data-mode="menu"]) .brand-text{display:none}.pace{left:22px;bottom:26px;font-size:9px}.pause-note{right:22px;bottom:27px;font-size:9px}.hint{bottom:28px;max-width:57vw;white-space:normal;font-size:10px;padding:7px 12px}.toast{top:170px;font-size:11px;padding:10px 15px;white-space:normal;text-align:center;width:max-content;max-width:88vw}.turn-prompt{top:28%;min-width:192px}.turn-content{padding:12px 18px}.turn-arrow{font-size:34px}.turn-title{font-size:13px}.modal-card{padding:30px 27px}.modal h2{font-size:27px}.countdown{top:43%;font-size:65px}.touch-controls{display:flex}}
+    @media(pointer:coarse){body[data-mode="playing"] .touch-controls{display:flex}.start-note .desktop-note{display:none}.start-note:after{content:"也可以在画面上滑动操作"}.pause-note{display:none}}
+    @media(max-height:640px) and (max-width:760px){.hero{top:45%;transform:translateY(-38%)}.eyebrow{margin-bottom:10px}h1{font-size:38px}.english-title{margin-bottom:13px}.intro{display:none}.record{margin-bottom:16px}.start-note{margin-bottom:15px}.controls-guide{padding-top:12px}.footer{bottom:15px}.hero .primary{min-height:46px}.topbar{padding:16px 20px}.control-label{font-size:9px}}
+    @media(max-height:480px) and (orientation:landscape){.hero{left:7%;top:51%;max-width:45%;text-align:left;transform:translateY(-41%)}h1{font-size:38px}.eyebrow{display:none}.english-title{font-size:10px;letter-spacing:6px;margin:0 0 14px}.record{justify-content:flex-start;gap:20px;margin-bottom:15px}.record-value{font-size:15px}.hero .primary{width:220px;min-height:43px;margin:0}.start-note{width:220px;margin:8px 0 0}.controls-guide{display:none}.intro{display:none}.footer{bottom:15px}.topbar{padding:16px 22px}.brand-sub{display:none}.menu-shade{background:linear-gradient(90deg,#071f17e8,#071f1766 48%,transparent)}.hud-stats{top:13px;padding:7px 15px;gap:18px;min-width:190px}.hud-label{font-size:7px}.distance-value{font-size:23px}.coins-value{font-size:20px}.health{top:70px;left:28px;transform:none}.toast{top:76px}.turn-prompt{top:27%}.touch-controls{bottom:42px}.hint{bottom:17px}.pace{bottom:18px}.modal-card{padding:22px;max-width:380px}.modal-ornament{display:none}.modal h2{font-size:24px}.modal p{margin-bottom:16px}.result-distance{font-size:36px;margin-top:10px}.result-caption{margin-bottom:15px}.result-grid{padding:11px 0;margin-bottom:15px}.help-list{margin:12px 0}.help-list li{padding:7px 0}.help-footnote{margin-bottom:10px!important}.new-best{margin-bottom:10px}}
+    @media(prefers-reduced-motion:reduce){*,*:before,*:after{transition:none!important;scroll-behavior:auto!important}}
+  </style>
+</head>
+<body data-mode="menu">
+  <svg aria-hidden="true" style="position:absolute;width:0;height:0;overflow:hidden"><defs>
+    <symbol id="i-temple" viewBox="0 0 24 24"><path d="M3 21h18M5 21V10h14v11M3 10h18L18 6H6zM8 6V3h8v3M9 21v-7h6v7M6 17h1m10 0h1M9 3V1m6 2V1"/></symbol>
+    <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M4 12h15M13 5l7 7-7 7"/></symbol>
+    <symbol id="i-up" viewBox="0 0 24 24"><path d="M12 20V4M5 11l7-7 7 7"/></symbol>
+    <symbol id="i-down" viewBox="0 0 24 24"><path d="M12 4v16M5 13l7 7 7-7"/></symbol>
+    <symbol id="i-left" viewBox="0 0 24 24"><path d="M20 12H4m7-7-7 7 7 7"/></symbol>
+    <symbol id="i-sound" viewBox="0 0 24 24"><path d="m11 4-6 5H2v6h3l6 5zM15 8a6 6 0 0 1 0 8m3-11a10 10 0 0 1 0 14"/></symbol>
+    <symbol id="i-muted" viewBox="0 0 24 24"><path d="m11 4-6 5H2v6h3l6 5zM16 9l6 6m0-6-6 6"/></symbol>
+    <symbol id="i-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 8.5a2.6 2.6 0 0 1 5 .9c0 1.9-2.5 2-2.5 4M12 17h.01"/></symbol>
+    <symbol id="i-expand" viewBox="0 0 24 24"><path d="M9 3H3v6m12-6h6v6M3 15v6h6m12-6v6h-6"/></symbol>
+    <symbol id="i-pause" viewBox="0 0 24 24"><path d="M8 5v14M16 5v14" stroke-width="3"/></symbol>
+    <symbol id="i-play" viewBox="0 0 24 24"><path d="m8 4 12 8-12 8z"/></symbol>
+    <symbol id="i-coin" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="6"/><path d="m12 8 3 4-3 4-3-4z"/></symbol>
+    <symbol id="i-trophy" viewBox="0 0 24 24"><path d="M7 3h10v5a5 5 0 0 1-10 0zM7 5H3v3a4 4 0 0 0 5 4m9-7h4v3a4 4 0 0 1-5 4M12 13v5m-4 3v-3h8v3M6 21h12"/></symbol>
+    <symbol id="i-charm" viewBox="0 0 24 24"><path d="m12 2 8 5v9l-8 6-8-6V7z"/><path d="m12 7 4 5-4 5-4-5z"/></symbol>
+    <symbol id="i-close" viewBox="0 0 24 24"><path d="m6 6 12 12M6 18 18 6"/></symbol>
+    <symbol id="i-retry" viewBox="0 0 24 24"><path d="M4 9a8 8 0 1 1 0 6M4 3v6h6"/></symbol>
+  </defs></svg>
+  <canvas id="scene" tabindex="-1" aria-label="神庙逃亡游戏场景。使用方向键或 WASD 移动，空格跳跃，P 暂停。">此游戏需要支持 WebGL 的现代浏览器。</canvas>
+  <div class="vignette"></div><div class="menu-shade"></div><div id="damageFlash" class="damage-flash"></div>
+  <header class="topbar">
+    <div class="brand"><div class="brand-mark"><svg><use href="#i-temple"/></svg></div><div class="brand-text"><div class="brand-name">TEMPLE RUN</div><div class="brand-sub">神庙逃亡 · 翡翠遗迹</div></div></div>
+    <nav class="tools" aria-label="游戏设置">
+      <button id="helpButton" class="icon-button" aria-label="玩法指南" title="玩法指南"><svg><use href="#i-help"/></svg></button>
+      <button id="soundButton" class="icon-button" aria-label="关闭声音" title="关闭声音" aria-pressed="true"><svg><use id="soundIcon" href="#i-sound"/></svg></button>
+      <button id="fullscreenButton" class="icon-button" aria-label="切换全屏" title="切换全屏"><svg><use href="#i-expand"/></svg></button>
+      <button id="pauseButton" class="icon-button" aria-label="暂停游戏" title="暂停游戏 · P / Esc" hidden><svg><use href="#i-pause"/></svg></button>
+    </nav>
+  </header>
+  <main id="hero" class="hero">
+    <div class="eyebrow">THE LOST TEMPLE</div>
+    <h1>神庙逃亡</h1><div class="english-title">TEMPLE RUN</div>
+    <p class="intro">古老的守护者已经苏醒。<br>带上金币，逃出这片丛林。</p>
+    <div class="record">
+      <div class="record-item"><svg><use href="#i-trophy"/></svg><div><div class="record-value"><span id="menuBest">0</span><small style="font-size:11px;margin-left:4px">m</small></div><div class="record-label" id="bestLabel">个人最佳</div></div></div>
+      <div class="record-divider"></div>
+      <div class="record-item"><svg><use href="#i-coin"/></svg><div><div class="record-value" id="menuCoins">0</div><div class="record-label">累计金币</div></div></div>
+    </div>
+    <button id="startButton" class="primary"><span>开始逃亡</span><svg><use href="#i-arrow"/></svg></button>
+    <div class="start-note"><span class="desktop-note">或按 <kbd>Enter</kbd> 开始冒险</span></div>
+    <div class="controls-guide" aria-label="操作速览">
+      <div class="control"><div class="keys"><kbd>←</kbd><kbd>→</kbd></div><div class="control-label">换道 / 弯道转向</div></div>
+      <div class="control"><div class="keys"><kbd>↑</kbd><kbd class="key-word">空格</kbd></div><div class="control-label">跳跃</div></div>
+      <div class="control"><div class="keys"><kbd>↓</kbd></div><div class="control-label">滑铲</div></div>
+    </div>
+  </main>
+  <div id="footer" class="footer"><div><div class="location">翡翠遗迹</div><div class="location-en">THE EMERALD RUINS</div></div><div class="footer-note">键盘与触屏，皆可启程</div></div>
+  <div id="hud" class="hud" hidden>
+    <div class="hud-stats"><div><div class="hud-label">奔跑距离</div><div class="distance-value"><span id="distanceValue">0</span><small>m</small></div></div><div class="hud-separator"></div><div><div class="hud-label">收集金币</div><div class="coins-value"><svg><use href="#i-coin"/></svg><span id="coinsValue">0</span></div></div></div>
+    <div class="health" id="health" aria-label="剩余 3 枚护符"><span class="health-label">守护符</span><svg><use href="#i-charm"/></svg><svg><use href="#i-charm"/></svg><svg><use href="#i-charm"/></svg></div>
+    <div class="pace"><span class="pace-bars" id="paceBars"><i class="lit"></i><i></i><i></i><i></i></span><span id="paceText">深入丛林</span></div>
+    <div id="hint" class="hint" hidden></div><div class="pause-note">P / ESC 暂停</div>
+  </div>
+  <div id="countdown" class="countdown" hidden>3</div>
+  <div id="toast" class="toast" role="status"></div>
+  <div id="turnPrompt" class="turn-prompt" hidden><div class="turn-content"><span id="turnArrow" class="turn-arrow">←</span><div><div id="turnTitle" class="turn-title">前方左转</div><div id="turnDistance" class="turn-distance"></div></div></div><div class="turn-progress"><i id="turnProgress"></i></div></div>
+  <div id="touchControls" class="touch-controls" aria-label="触屏操作" hidden><div class="touch-group"><button class="touch-button" data-action="left" aria-label="向左换道或转弯"><svg><use href="#i-left"/></svg></button><button class="touch-button" data-action="right" aria-label="向右换道或转弯"><svg><use href="#i-arrow"/></svg></button></div><div class="touch-group"><button class="touch-button" data-action="slide" aria-label="滑铲"><svg><use href="#i-down"/></svg></button><button class="touch-button" data-action="jump" aria-label="跳跃"><svg><use href="#i-up"/></svg></button></div></div>
+  <section id="pauseModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="pauseTitle" hidden><div class="modal-card"><div class="modal-ornament"><svg><use href="#i-pause"/></svg></div><h2 id="pauseTitle">暂歇片刻</h2><p>丛林在等你。准备好，再继续向前。</p><button id="resumeButton" class="primary"><svg><use href="#i-play"/></svg>继续奔跑</button><button id="pauseHomeButton" class="secondary">返回神庙</button></div></section>
+  <section id="overModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="overTitle" hidden><div class="modal-card"><div class="modal-ornament"><svg><use href="#i-temple"/></svg></div><h2 id="overTitle">旅途暂告一段落</h2><p id="overReason">守护者追上了你。</p><div id="resultDistance" class="result-distance">0<small>m</small></div><div class="result-caption">这一次，跑到了这里</div><div id="newBest" class="new-best" hidden>✦ 新的个人纪录 ✦</div><div class="result-grid"><div><strong id="resultCoins">0</strong><span>带回的金币</span></div><div><strong id="resultBest">0 m</strong><span>个人最佳</span></div></div><button id="retryButton" class="primary"><svg><use href="#i-retry"/></svg>再跑一次</button><button id="overHomeButton" class="secondary">返回神庙</button></div></section>
+  <section id="helpModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="helpTitle" hidden><div class="modal-card"><button id="closeHelpButton" class="close-button" aria-label="关闭玩法指南"><svg><use href="#i-close"/></svg></button><div class="modal-ornament"><svg><use href="#i-charm"/></svg></div><h2 id="helpTitle">逃亡生存指南</h2><p>向前的脚步不会停，选择交给你。</p><ul class="help-list"><li><span>左右换道</span><span class="keys"><kbd>←</kbd><kbd>→</kbd><span> / </span><kbd>A</kbd><kbd>D</kbd></span></li><li><span>跳过倒木与断桥</span><span class="keys"><kbd>↑</kbd><kbd>W</kbd><kbd>空格</kbd></span></li><li><span>滑过低矮石门</span><span class="keys"><kbd>↓</kbd><kbd>S</kbd></span></li><li><span>弯道亮起时转向</span><span class="keys"><kbd>←</kbd><kbd>→</kbd></span></li><li><span>暂停 / 继续</span><span class="keys"><kbd>P</kbd><kbd>Esc</kbd></span></li></ul><p class="help-footnote">触屏：向左右、上、下滑动，也可点击方向按钮。<br>每次失误消耗一枚护符，三枚耗尽时逃亡结束。金币越多越好，跑得越远，速度越快。弯道提示亮起后，按对应方向完成转弯。</p><button id="understoodButton" class="primary">记住了，出发</button></div></section>
+  <section id="errorModal" class="modal" role="alertdialog" aria-modal="true" aria-labelledby="errorTitle" hidden><div class="modal-card"><h2 id="errorTitle">画面暂时迷路了</h2><p id="errorMessage">浏览器未能开启 3D 画面。请启用硬件加速后重新打开，或使用新版 Chrome、Edge、Firefox。</p><button id="reloadButton" class="primary">重新载入</button></div></section>
+  <div id="announcer" class="sr-only" aria-live="polite"></div>
+  <script>
+  (() => {
+    'use strict';
+    const $ = id => document.getElementById(id);
+    const canvas = $('scene');
+    $('reloadButton').addEventListener('click', () => location.reload());
+    const gl = canvas.getContext('webgl', {alpha:false, antialias:true, powerPreference:'high-performance'});
+    if (!gl) { $('hero').hidden = true; $('errorModal').hidden = false; return; }
+    const TAU = Math.PI * 2;
+    const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
+    const mix = (a, b, t) => a + (b - a) * t;
+    const smooth = t => { t = clamp(t, 0, 1); return t * t * (3 - 2 * t); };
+    const color = hex => [parseInt(hex.slice(1,3),16)/255,parseInt(hex.slice(3,5),16)/255,parseInt(hex.slice(5,7),16)/255];
+    const tint = (c, t) => c.map(v => clamp(v * t, 0, 1));
+    function random(seed) { let n = seed >>> 0; return () => { n += 0x6D2B79F5; let t = n; t = Math.imul(t ^ t >>> 15, t | 1); t ^= t + Math.imul(t ^ t >>> 7, t | 61); return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+    const palette = {stone:color('#aaa98a'),light:color('#bfc1a0'),dark:color('#687c60'),moss:color('#667b42'),bark:color('#574f35'),leaf:color('#52784a'),leafLight:color('#749655'),gold:color('#f6c65b'),goldDark:color('#c58c31')};
+    function program(vertex, fragment) {
+      const p = gl.createProgram();
+      for (const [kind,source] of [[gl.VERTEX_SHADER,vertex],[gl.FRAGMENT_SHADER,fragment]]) {
+        const s = gl.createShader(kind); gl.shaderSource(s, source); gl.compileShader(s);
+        if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s));
+        gl.attachShader(p, s); gl.deleteShader(s);
+      }
+      gl.linkProgram(p);
+      if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(p));
+      return p;
+    }
+    let sceneProgram, skyProgram;
+    try {
+      sceneProgram = program(`
+        attribute vec3 aPosition; attribute vec3 aNormal; attribute vec3 aColor;
+        uniform mat4 uViewProjection; uniform mat4 uModel; uniform mat3 uNormal;
+        uniform vec3 uEye; varying vec3 vColor; varying float vDepth;
+        void main(){vec4 world=uModel*vec4(aPosition,1.0);vec3 n=normalize(uNormal*aNormal);
+          float light=max(dot(n,normalize(vec3(-0.55,0.95,0.45))),0.0);
+          float sky=max(n.y,0.0)*0.12;vColor=aColor*(0.48+light*0.61+sky);
+          vDepth=length(world.xyz-uEye);gl_Position=uViewProjection*world;}`,
+        `precision mediump float;varying vec3 vColor;varying float vDepth;uniform vec3 uFog;uniform float uAlpha;
+        void main(){float fog=smoothstep(34.0,174.0,vDepth);vec3 c=mix(vColor,uFog,fog*0.97);gl_FragColor=vec4(c,uAlpha);}`);
+      skyProgram = program(`attribute vec2 aPosition;varying vec2 vUv;void main(){vUv=aPosition*0.5+0.5;gl_Position=vec4(aPosition,0.999,1.0);}`,
+        `precision mediump float;varying vec2 vUv;uniform float uAspect;uniform float uTime;uniform float uBias;
+        float noise(vec2 p){return sin(p.x*1.31+sin(p.y*1.2))*sin(p.y*0.87+cos(p.x*0.72));}
+        void main(){vec2 uv=vUv;vec3 low=vec3(0.29,0.43,0.32);vec3 high=vec3(0.57,0.66,0.48);vec3 c=mix(low,high,smoothstep(0.25,1.0,uv.y));
+          vec2 sun=vec2(0.55+uBias*0.28,0.8);float d=length((uv-sun)*vec2(uAspect,1.0));
+          c+=vec3(0.30,0.24,0.12)*exp(-d*4.8);c+=vec3(0.22,0.18,0.10)*(1.0-smoothstep(0.035,0.052,d));
+          float clouds=noise(uv*vec2(12.0,22.0)+vec2(uTime*0.007,0.0));c+=clouds*0.018;
+          float rays=sin(atan((uv.x-sun.x)*uAspect,uv.y-sun.y)*29.0+uTime*0.01);c+=vec3(0.027,0.024,0.012)*max(rays,0.0)*exp(-d*1.5);
+          gl_FragColor=vec4(c,1.0);}`);
+    } catch (error) {
+      console.error('Unable to initialize the renderer:', error);
+      $('hero').hidden = true; $('errorModal').hidden = false; return;
+    }
+    const attributes = Object.fromEntries(['aPosition','aNormal','aColor'].map(n => [n,gl.getAttribLocation(sceneProgram,n)]));
+    const uniforms = Object.fromEntries(['uViewProjection','uModel','uNormal','uEye','uFog','uAlpha'].map(n => [n,gl.getUniformLocation(sceneProgram,n)]));
+    const skyAttr = gl.getAttribLocation(skyProgram,'aPosition');
+    const skyUniforms = Object.fromEntries(['uAspect','uTime','uBias'].map(n => [n,gl.getUniformLocation(skyProgram,n)]));
+    const skyBuffer = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER,skyBuffer); gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,-1,1,1,-1,1,1]),gl.STATIC_DRAW);
+    class Geometry {
+      constructor(){this.vertices=[];}
+      triangle(a,b,c,shade){const u=b.map((v,i)=>v-a[i]),v=c.map((n,i)=>n-a[i]);let n=[u[1]*v[2]-u[2]*v[1],u[2]*v[0]-u[0]*v[2],u[0]*v[1]-u[1]*v[0]];const len=Math.hypot(...n)||1;n=n.map(t=>t/len);for(const p of [a,b,c])this.vertices.push(...p,...n,...shade);}
+      quad(a,b,c,d,shade){this.triangle(a,b,c,shade);this.triangle(a,c,d,shade);}
+      box(x,y,z,w,h,d,shade){const a=x-w/2,b=x+w/2,c=y-h/2,e=y+h/2,f=z-d/2,g=z+d/2;
+        this.quad([a,e,f],[a,e,g],[b,e,g],[b,e,f],shade);this.quad([a,c,g],[a,c,f],[b,c,f],[b,c,g],shade);
+        this.quad([a,c,g],[b,c,g],[b,e,g],[a,e,g],shade);this.quad([b,c,f],[a,c,f],[a,e,f],[b,e,f],shade);
+        this.quad([a,c,f],[a,c,g],[a,e,g],[a,e,f],shade);this.quad([b,c,g],[b,c,f],[b,e,f],[b,e,g],shade);return this;}
+      cylinder(x,y,z,rt,rb,h,shade,sides=8){for(let i=0;i<sides;i++){const a=i*TAU/sides,b=(i+1)*TAU/sides;const p=[x+Math.cos(a)*rb,y-h/2,z+Math.sin(a)*rb],q=[x+Math.cos(b)*rb,y-h/2,z+Math.sin(b)*rb],r=[x+Math.cos(b)*rt,y+h/2,z+Math.sin(b)*rt],s=[x+Math.cos(a)*rt,y+h/2,z+Math.sin(a)*rt];this.quad(p,s,r,q,shade);this.triangle([x,y+h/2,z],r,s,tint(shade,1.05));this.triangle([x,y-h/2,z],p,q,shade);}return this;}
+      ellipsoid(x,y,z,rx,ry,rz,shade,sides=7,rings=4){const point=(i,j)=>{const a=i*Math.PI/rings,b=j*TAU/sides;return[x+rx*Math.sin(a)*Math.cos(b),y+ry*Math.cos(a),z+rz*Math.sin(a)*Math.sin(b)];};for(let i=0;i<rings;i++)for(let j=0;j<sides;j++)this.quad(point(i,j),point(i,j+1),point(i+1,j+1),point(i+1,j),tint(shade,.93+((i*3+j*7)%9)*.015));return this;}
+      branch(a,b,r1,r2,shade,sides=6){let axis=b.map((v,i)=>v-a[i]),len=Math.hypot(...axis);axis=axis.map(v=>v/len);let u=Math.abs(axis[1])>.95?[1,0,0]:[-axis[2],0,axis[0]];len=Math.hypot(...u);u=u.map(v=>v/len);const v=[axis[1]*u[2]-axis[2]*u[1],axis[2]*u[0]-axis[0]*u[2],axis[0]*u[1]-axis[1]*u[0]];const ring=(p,r,t)=>p.map((n,i)=>n+r*(u[i]*Math.cos(t)+v[i]*Math.sin(t)));for(let i=0;i<sides;i++){const t=i*TAU/sides,q=(i+1)*TAU/sides;this.quad(ring(a,r1,t),ring(a,r1,q),ring(b,r2,q),ring(b,r2,t),shade);}return this;}
+      finish(){const buffer=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,buffer);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(this.vertices),gl.STATIC_DRAW);return{buffer,count:this.vertices.length/9};}
+    }
+    const modelMatrix=new Float32Array(16),normalMatrix=new Float32Array(9);
+    function draw(mesh,x=0,y=0,z=0,ry=0,sx=1,sy=1,sz=1,rx=0,rz=0){
+      const a=Math.cos(ry),b=Math.sin(ry),c=Math.cos(rx),d=Math.sin(rx),e=Math.cos(rz),f=Math.sin(rz);
+      const r=[a*e+b*d*f,c*f,-b*e+a*d*f,-a*f+b*d*e,c*e,b*f+a*d*e,b*c,-d,a*c];
+      modelMatrix.set([r[0]*sx,r[1]*sx,r[2]*sx,0,r[3]*sy,r[4]*sy,r[5]*sy,0,r[6]*sz,r[7]*sz,r[8]*sz,0,x,y,z,1]);
+      normalMatrix.set([r[0]/sx,r[1]/sx,r[2]/sx,r[3]/sy,r[4]/sy,r[5]/sy,r[6]/sz,r[7]/sz,r[8]/sz]);
+      gl.uniformMatrix4fv(uniforms.uModel,false,modelMatrix);gl.uniformMatrix3fv(uniforms.uNormal,false,normalMatrix);gl.bindBuffer(gl.ARRAY_BUFFER,mesh.buffer);
+      gl.vertexAttribPointer(attributes.aPosition,3,gl.FLOAT,false,36,0);gl.vertexAttribPointer(attributes.aNormal,3,gl.FLOAT,false,36,12);gl.vertexAttribPointer(attributes.aColor,3,gl.FLOAT,false,36,24);gl.drawArrays(gl.TRIANGLES,0,mesh.count);
+    }
+    function multiply(a,b){const o=new Float32Array(16);for(let c=0;c<4;c++)for(let r=0;r<4;r++)o[c*4+r]=a[r]*b[c*4]+a[4+r]*b[c*4+1]+a[8+r]*b[c*4+2]+a[12+r]*b[c*4+3];return o;}
+    function viewMatrix(eye,target){let z=eye.map((v,i)=>v-target[i]);let n=Math.hypot(...z);z=z.map(v=>v/n);let x=[z[2],0,-z[0]];n=Math.hypot(...x);x=x.map(v=>v/n);const y=[z[1]*x[2]-z[2]*x[1],z[2]*x[0]-z[0]*x[2],z[0]*x[1]-z[1]*x[0]];const dot=(a,b)=>a.reduce((s,v,i)=>s+v*b[i],0);return new Float32Array([x[0],y[0],z[0],0,x[1],y[1],z[1],0,x[2],y[2],z[2],0,-dot(x,eye),-dot(y,eye),-dot(z,eye),1]);}
+    function projection(aspect,bias){const f=1/Math.tan((aspect<.85?68:59)*Math.PI/360),near=.15,far=250;return new Float32Array([f/aspect,0,0,0,0,f,0,0,-bias,0,(far+near)/(near-far),-1,0,0,2*far*near/(near-far),0]);}
+
+    // Geometry is generated once and reused along the route.
+    const meshes={};
+    meshes.ground=new Geometry().box(0,-.2,0,1,.4,1,color('#305947')).finish();
+    meshes.shadow=new Geometry().cylinder(0,0,0,.65,.65,.012,color('#4d6043'),18).finish();
+    meshes.spark=new Geometry().ellipsoid(0,0,0,.085,.085,.085,color('#ffe2a0'),4,2).finish();
+    meshes.firefly=new Geometry().ellipsoid(0,0,0,.038,.06,.038,color('#f4e8a0'),4,2).finish();
+    meshes.roads=Array.from({length:5},(_,index)=>{const g=new Geometry(),r=random(index*79+8);g.box(0,-.67,0,9.8,.58,3,palette.dark);for(let lane=-1;lane<=1;lane++)for(let row=-1;row<=1;row+=2){const shade=tint(palette.light,.86+r()*.17);g.box(lane*3.04,-.27+(r()-.5)*.035,row*.75,3,.44,1.45,shade);if(r()>.73)g.box(lane*3.04+(r()-.5)*1.9,-.043,row*.75,.45+r()*.65,.018,.28+r()*.3,palette.moss);}for(const side of [-1,1]){g.box(side*4.78,-.15,0,.48,.65,2.98,palette.stone);g.box(side*4.78,.195,0,.54,.08,2.98,palette.moss);}return g.finish();});
+    {const g=new Geometry();g.box(0,-.4,0,9.8,.75,9.8,palette.stone);for(let x=-1;x<=1;x++)for(let z=-1;z<=1;z++)g.box(x*3.22,.005,z*3.22,3.15,.1,3.15,tint(palette.light,.95+(x+z)*.025));meshes.junction=g.finish();}
+    {const g=new Geometry();for(const s of [-1,1]){g.box(s*3.72,-4.4,0,1.18,7.8,1.8,palette.dark);g.box(s*3.72,-1.35,0,1.8,.5,2.3,palette.stone);g.box(s*3.72,-6.8,0,2,.8,2.5,palette.moss);g.box(s*4.78,.63,0,.72,1.05,.72,palette.stone);g.box(s*4.78,1.21,0,.95,.17,.95,palette.light);g.box(s*4.78,.66,.372,.32,.39,.05,palette.moss);}g.box(0,-4.9,0,7.5,.6,1.55,palette.dark);meshes.support=g.finish();}
+    function palm(g,x,z,h,lean,shade,r){let prev=[x,0,z];for(let i=1;i<=5;i++){const next=[x+lean*(i/5)**2,h*i/5,z+.5*Math.sin(i*.5)];g.branch(prev,next,.45-(i-1)*.035,.45-i*.035,palette.bark);if(i<5)g.cylinder(next[0],next[1],next[2],.34,.39,.16,tint(palette.bark,1.2),7);prev=next;}const crown=prev;for(let k=0;k<9;k++){const a=k*TAU/9+r()*.2,L=4.6+r()*2.1,w=.70+r()*.33;let p=crown;for(let j=1;j<=4;j++){const t=j/4,dist=L*t,q=[crown[0]+Math.cos(a)*dist,crown[1]+Math.sin(t*Math.PI)*1.55-t*2,crown[2]+Math.sin(a)*dist];const width=Math.sin(t*Math.PI)*w+.035,pa=[p[0]-Math.sin(a)*width,p[1]-.18,p[2]+Math.cos(a)*width],pb=[p[0]+Math.sin(a)*width,p[1]-.18,p[2]-Math.cos(a)*width];g.triangle(pa,q,p,tint(shade,1.02));g.triangle(p,q,pb,tint(shade,.86));p=q;}}g.ellipsoid(crown[0],crown[1]-.15,crown[2],.55,.55,.55,palette.bark,6,3);}
+    function fern(g,x,z,size,r){for(let i=0;i<7;i++){const a=i*TAU/7+r()*.3,p=[x,0,z],q=[x+Math.cos(a)*size,1+size*.28,z+Math.sin(a)*size],end=[x+Math.cos(a)*size*1.65,.18,z+Math.sin(a)*size*1.65];const w=size*.28;g.triangle(p,[q[0]+Math.sin(a)*w,q[1],q[2]-Math.cos(a)*w],end,palette.leaf);g.triangle(p,end,[q[0]-Math.sin(a)*w,q[1]+.1,q[2]+Math.cos(a)*w],palette.leafLight);}}
+    function idol(g,x,y,z,s){g.box(x,y+.35*s,z,1.5*s,.7*s,1.3*s,palette.dark);g.box(x,y+1.12*s,z,1.04*s,.96*s,.82*s,palette.stone);g.box(x,y+1.9*s,z,1.38*s,.9*s,.95*s,palette.light);g.box(x,y+2.38*s,z,1.7*s,.25*s,1.18*s,palette.moss);for(const side of [-1,1]){g.box(x+side*.32*s,y+2.01*s,z+.49*s,.29*s,.16*s,.055*s,palette.dark);g.box(x+side*.31*s,y+2.02*s,z+.526*s,.13*s,.075*s,.03*s,palette.goldDark);g.box(x+side*.76*s,y+1.87*s,z,.23*s,.5*s,.45*s,palette.dark);}g.box(x,y+1.89*s,z+.59*s,.2*s,.3*s,.25*s,palette.stone);g.box(x,y+1.65*s,z+.515*s,.55*s,.10*s,.05*s,palette.dark);}
+    meshes.environments=Array.from({length:5},(_,i)=>{const g=new Geometry(),r=random(772+i*151);for(const side of [-1,1]){g.ellipsoid(side*22,-6,-1,15,7.2,15,color('#3f5d40'),7,4);g.ellipsoid(side*11.6,-5.6,4,4.9,5.6,6.2,palette.dark,6,4);for(let j=0;j<4;j++){const x=side*(12+r()*21),z=(r()-.5)*23,h=12+r()*12;if(j<3)palm(g,x,z,h,side*(1+r()*2),tint(palette.leaf,.83+r()*.45),r);else{g.branch([x,0,z],[x+side*1.2,h*.8,z],.9,.3,palette.bark);for(let q=0;q<4;q++)g.ellipsoid(x+(r()-.5)*7,h*.76+r()*3,z+(r()-.5)*6,4+r()*3,2.2+r()*2,4+r()*2,tint(palette.leaf,.8+r()*.3));}}for(let j=0;j<7;j++){const x=side*(7.2+r()*9),z=(r()-.5)*19;fern(g,x,z,.8+r()*.8,r);}if(i%2===0)idol(g,side*7.3,0,2,1.1);g.ellipsoid(side*10,-.3,-5,2,1.6,2.4,palette.moss,6,3);}return g.finish();});
+    {const g=new Geometry();for(const side of [-1,1]){const x=side*5.75;g.box(x,.35,0,2.6,.8,2.9,palette.dark);g.box(x,3.6,0,1.7,6.2,2,palette.stone);for(let i=0;i<5;i++){g.box(x,1.1+i*1.25,0,1.94,.18,2.2,palette.light);g.box(x,1.62+i*1.25,1.025,.75,.55,.08,palette.moss);}g.box(x,6.85,0,2.65,.65,2.8,palette.light);idol(g,x,7.15,0,.65);}g.box(0,7.45,0,14.7,1.1,3.5,palette.stone);g.box(0,8.12,0,15.3,.3,3.8,palette.moss);g.box(0,8.6,-.15,12.6,.65,3.5,palette.light);g.box(0,9.12,-.4,10.4,.42,3.1,palette.moss);g.box(0,9.55,-.6,7.3,.48,2.7,palette.stone);for(let i=-5;i<=5;i++)g.box(i*1.15,7.5,1.79,.37,.53,.10,palette.dark);idol(g,0,8.25,1.8,1.5);meshes.gate=g.finish();}
+    {const g=new Geometry();for(let i=0;i<6;i++)g.box(0,i*.65,0,15-i*1.55,.65,12-i*1.15,i%2?palette.stone:palette.dark);g.box(0,5.3,0,6,4.3,5,palette.stone);g.box(0,7.6,0,7.1,.5,6,palette.moss);g.box(0,8.15,0,5.8,.6,4.8,palette.light);g.box(0,5.1,2.55,2.1,3.4,.08,color('#273d2b'));for(const side of [-1,1])idol(g,side*2.1,3.5,2.2,.65);meshes.ruin=g.finish();}
+    {const g=new Geometry();g.ellipsoid(0,.65,0,1.35,.83,1.01,palette.stone,6,3);g.box(-.45,.39,.28,1.65,.7,1.45,palette.dark);g.box(.21,1.03,-.1,1.5,.54,1.15,palette.light);g.box(.3,1.325,-.08,1.32,.05,.92,palette.moss);g.box(.27,.7,.61,.44,.49,.08,palette.moss);meshes.block=g.finish();}
+    {const g=new Geometry();g.branch([-4.15,.65,0],[4.15,.65,0],.63,.52,palette.bark,10);g.branch([-1.5,.95,0],[-2.2,1.38,-.45],.16,.1,palette.bark);g.branch([2,.85,0],[2.7,1.18,.16],.14,.065,palette.bark);for(let i=0;i<7;i++)g.box(-3.5+i*1.1,1.15,.02,.14,.07,.43,palette.moss);g.box(-3.2,.64,.55,.28,.38,.09,color('#bc6e43'));g.box(3.2,.64,.51,.28,.38,.09,color('#bc6e43'));meshes.log=g.finish();}
+    {const g=new Geometry();for(const side of [-1,1]){g.box(side*4.22,1.28,0,.76,2.6,1.16,palette.dark);g.box(side*4.22,2.65,0,1.14,.28,1.6,palette.moss);}g.box(0,2.14,0,8.95,1.62,1.25,palette.stone);g.box(0,3.03,0,9.4,.23,1.65,palette.moss);for(let i=-3;i<=3;i++){g.box(i*1.05,2.14,.646,.53,.68,.08,palette.dark);g.box(i*1.05,1.39,.68,.36,.13,.12,palette.goldDark);}g.box(0,3.31,0,5.9,.34,1.3,palette.light);meshes.arch=g.finish();}
+    {const g=new Geometry();g.cylinder(0,0,0,.39,.39,.14,palette.goldDark,16);g.cylinder(0,.082,0,.325,.325,.04,palette.gold,16);g.cylinder(0,-.082,0,.325,.325,.04,palette.gold,16);for(const s of [-1,1]){g.box(0,s*.114,0,.11,.012,.37,color('#fff0a5'));g.box(0,s*.115,0,.28,.015,.105,color('#fff0a5'));}meshes.coin=g.finish();}
+    {const g=new Geometry();g.box(0,1.01,0,.22,2,.22,palette.bark);g.cylinder(0,1.85,0,.34,.14,.46,palette.goldDark,6);g.box(0,1.57,0,.53,.12,.45,palette.dark);meshes.torch=g.finish();const f=new Geometry();f.ellipsoid(0,.25,0,.2,.49,.2,color('#ed893b'),5,3);f.ellipsoid(0,.17,.05,.12,.31,.13,color('#ffe599'),5,3);meshes.flame=f.finish();}
+    {const g=new Geometry(),shirt=color('#e4c28b'),leather=color('#96583b'),skin=color('#c68f61');g.box(0,1.33,0,.69,.74,.45,shirt);g.box(0,.96,0,.72,.12,.49,color('#644731'));g.box(0,1.32,.30,.57,.55,.25,leather);g.box(0,1.50,.335,.61,.15,.29,color('#b17648'));g.box(0,1.2,.438,.13,.16,.03,palette.goldDark);for(const s of [-1,1])g.box(s*.25,1.38,.239,.10,.74,.07,color('#6e4931'));g.box(0,1.82,0,.28,.22,.27,skin);g.box(0,2.05,0,.48,.45,.45,skin);g.box(0,2.18,.17,.51,.24,.16,color('#4b3626'));g.box(0,1.79,0,.43,.11,.4,color('#b85b39'));g.box(.24,1.57,.26,.13,.45,.08,color('#b85b39'));g.cylinder(0,2.34,0,.53,.54,.07,color('#d2b878'),12);g.cylinder(0,2.49,0,.32,.38,.26,color('#d7bd80'),10);g.cylinder(0,2.39,0,.381,.389,.10,color('#7c5b35'),10);meshes.runner=g.finish();const leg=new Geometry();leg.box(0,-.34,0,.255,.67,.29,color('#405b4c'));leg.box(0,-.73,-.03,.28,.24,.34,color('#574330'));leg.box(0,-.82,-.11,.30,.13,.47,color('#4a392a'));meshes.leg=leg.finish();const arm=new Geometry();arm.box(0,-.18,0,.23,.39,.26,shirt);arm.box(0,-.46,.02,.19,.25,.21,skin);arm.box(0,-.60,-.015,.21,.14,.23,skin);meshes.arm=arm.finish();}
+    {const g=new Geometry(),fur=color('#26392b');g.ellipsoid(0,1.22,0,1.08,.78,.86,fur,7,4);g.ellipsoid(0,1.78,-.42,.68,.62,.59,color('#334032'),6,3);g.box(0,1.48,-.91,.72,.55,.48,color('#4c513c'));for(const side of [-1,1]){g.ellipsoid(side*1.03,.98,-.13,.45,.91,.47,fur,6,3);g.box(side*.30,1.85,-.953,.18,.10,.06,palette.gold);g.box(side*.49,.35,.3,.51,.68,.55,fur);}meshes.guardian=g.finish();}
+    {const g=new Geometry();g.box(0,0,0,2.2,1.5,.2,palette.dark);g.box(0,.82,0,2.42,.18,.3,palette.goldDark);g.box(0,-.82,0,2.42,.18,.3,palette.goldDark);g.box(0,0,.13,1.25,.18,.05,palette.gold);g.triangle([-.85,0,.17],[-.18,.49,.17],[-.18,-.49,.17],palette.gold);meshes.sign=g.finish();}
+
+    const storageKey='emerald-temple-run';
+    let storageAvailable=true;
+    const records={best:0,coins:0,sound:true};
+    try {const saved=JSON.parse(localStorage.getItem(storageKey)||'null');if(saved&&typeof saved==='object'){if(Number.isFinite(saved.best)&&saved.best>=0)records.best=Math.floor(saved.best);if(Number.isFinite(saved.coins)&&saved.coins>=0)records.coins=Math.floor(saved.coins);if(typeof saved.sound==='boolean')records.sound=saved.sound;}}
+    catch(error){storageAvailable=false;$('bestLabel').textContent='本次最佳';}
+    function saveRecords(){if(!storageAvailable)return;try{localStorage.setItem(storageKey,JSON.stringify(records));}catch(error){storageAvailable=false;$('bestLabel').textContent='本次最佳';}}
+    const format=n=>Math.floor(n).toLocaleString('zh-CN');
+    function updateMenuRecords(){$('menuBest').textContent=format(records.best);$('menuCoins').textContent=format(records.coins);}
+
+    // Sound is synthesized locally and starts only after a user gesture.
+    let audioContext=null,masterGain=null,windGain=null;
+    function syncSoundButton(){$('soundIcon').setAttribute('href',records.sound?'#i-sound':'#i-muted');$('soundButton').setAttribute('aria-label',records.sound?'关闭声音':'开启声音');$('soundButton').title=records.sound?'关闭声音':'开启声音';$('soundButton').setAttribute('aria-pressed',String(records.sound));if(masterGain)masterGain.gain.setTargetAtTime(records.sound?.34:0,audioContext.currentTime,.08);}
+    function initSound(){
+      if(!records.sound)return;
+      if(!audioContext){const Audio=window.AudioContext||window.webkitAudioContext;if(!Audio){records.sound=false;syncSoundButton();return;}
+        try{audioContext=new Audio();masterGain=audioContext.createGain();masterGain.gain.value=.34;masterGain.connect(audioContext.destination);
+          const buffer=audioContext.createBuffer(1,audioContext.sampleRate*3,audioContext.sampleRate),data=buffer.getChannelData(0),r=random(822);let sample=0;for(let i=0;i<data.length;i++){sample=(sample+(r()*2-1)*.04)/1.02;data[i]=sample*2.7;}
+          const wind=audioContext.createBufferSource(),filter=audioContext.createBiquadFilter();wind.buffer=buffer;wind.loop=true;filter.type='lowpass';filter.frequency.value=550;windGain=audioContext.createGain();windGain.gain.value=0;wind.connect(filter);filter.connect(windGain);windGain.connect(masterGain);wind.start();
+        }catch(error){records.sound=false;syncSoundButton();return;}
+      }
+      if(audioContext.state==='suspended')audioContext.resume().catch(()=>{records.sound=false;syncSoundButton();});
+    }
+    function tone(frequency,duration=.12,type='sine',volume=.13,endFrequency=frequency,delay=0){if(!records.sound||!audioContext||audioContext.state!=='running')return;const t=audioContext.currentTime+delay,osc=audioContext.createOscillator(),gain=audioContext.createGain();osc.type=type;osc.frequency.setValueAtTime(frequency,t);osc.frequency.exponentialRampToValueAtTime(Math.max(20,endFrequency),t+duration);gain.gain.setValueAtTime(.0001,t);gain.gain.exponentialRampToValueAtTime(volume,t+.012);gain.gain.exponentialRampToValueAtTime(.0001,t+duration);osc.connect(gain);gain.connect(masterGain);osc.start(t);osc.stop(t+duration+.03);osc.onended=()=>{osc.disconnect();gain.disconnect();};}
+    function sound(name){switch(name){case'coin':tone(1047,.1,'sine',.11);tone(1568,.16,'sine',.08,1568,.055);break;case'jump':tone(190,.19,'triangle',.15,530);break;case'slide':tone(290,.16,'triangle',.12,80);break;case'hit':tone(95,.36,'sawtooth',.13,32);tone(52,.45,'sine',.22,28);break;case'turn':tone(523,.16,'triangle',.12);tone(784,.2,'triangle',.11,784,.09);break;case'start':tone(392,.18,'triangle',.1);tone(523,.2,'triangle',.12,523,.1);tone(784,.35,'sine',.12,784,.22);break;case'end':tone(294,.25,'triangle',.1);tone(220,.3,'triangle',.1,220,.18);tone(147,.55,'triangle',.12,147,.4);break;}}
+
+    const state={mode:'menu',distance:0,lane:0,x:0,speed:13.2,coins:0,health:3,jumpTime:0,jumping:false,jumpY:0,slideTime:0,invincible:0,shake:0,countdown:2.5,deathTime:0,reason:'',settled:false,cameraAngle:0,runnerAngle:0,screenBias:innerWidth>760?.52:0};
+    let route=[],obstacles=[],coins=[],particles=[],contentCursor=350,rng=random(93),resumeMode='playing',helpShouldResume=false;
+    let worldTime=0,toastLeft=0,hudClock=0,lastStep=0,lastCountdown=0,previousFrame=0,animationId=0;
+    const reducedMotion=matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const laneWidth=2.85;
+    function extendRoute(until){while(route[route.length-1].end<until){const prev=route[route.length-1],direction=rng()>.5?1:-1,angle=prev.angle-direction*Math.PI/2,length=(30+Math.floor(rng()*9))*12;prev.turn={at:prev.end,direction,accepted:false,resolved:false};route.push({start:prev.end,end:prev.end+length,x:prev.x-Math.sin(prev.angle)*(prev.end-prev.start),z:prev.z-Math.cos(prev.angle)*(prev.end-prev.start),angle});}}
+    function poseAt(s){let segment=route[0];for(let i=route.length-1;i>=0;i--)if(s>=route[i].start){segment=route[i];break;}const local=s-segment.start;return{x:segment.x-Math.sin(segment.angle)*local,z:segment.z-Math.cos(segment.angle)*local,angle:segment.angle};}
+    function atLane(s,x=0,y=0){const p=poseAt(s);return{x:p.x+Math.cos(p.angle)*x,y,z:p.z-Math.sin(p.angle)*x,angle:p.angle};}
+    function nearbyTurn(){for(const segment of route){const turn=segment.turn;if(turn&&!turn.resolved&&turn.at>=state.distance-1)return turn;}return null;}
+    function nearCorner(s,range){return route.some(segment=>segment.turn&&Math.abs(segment.end-s)<range);}
+    function addLine(at,lane,count=7,step=3.3){for(let i=0;i<count;i++)coins.push({at:at+i*step,lane,y:1.16,got:false});}
+    function addObstacle(type,at,lane=0){const obstacle={type,at:Math.round(at/3)*3,lane,hit:false,passed:false};obstacles.push(obstacle);if(type==='gap'||type==='log'){for(let i=0;i<5;i++)coins.push({at:obstacle.at-8+i*4,lane:0,y:1.2+Math.sin(i/4*Math.PI)*2.25,got:false});}return obstacle;}
+    function extendContent(until){extendRoute(until+450);while(contentCursor<until){const at=Math.round(contentCursor/3)*3;if(!nearCorner(at,43)){const n=rng(),type=n<.34?'block':n<.61?'log':n<.85?'arch':'gap',lane=Math.floor(rng()*3)-1;addObstacle(type,at,lane);addLine(at-24,type==='block'?(lane===0?(rng()>.5?1:-1):0):Math.floor(rng()*3)-1,5,3.25);}contentCursor+=39+Math.floor(rng()*6)*3;}}
+    function resetWorld(preview=false){
+      rng=random(preview?2309:(Date.now()>>>0));route=[{start:0,end:300,x:0,z:0,angle:0}];obstacles=[];coins=[];particles=[];contentCursor=354;extendRoute(1000);
+      addLine(19,0,8,3.5);addObstacle('log',69);addLine(86,-1,7,3.4);addObstacle('block',120,-1);addLine(132,1,5,3.6);addObstacle('arch',165);addLine(184,0,5,3.4);addObstacle('gap',222);addLine(239,0,6,3.4);extendContent(550);
+      Object.assign(state,{mode:preview?'menu':'countdown',distance:0,lane:0,x:0,speed:13.2,coins:0,health:3,jumpTime:0,jumping:false,jumpY:0,slideTime:0,invincible:0,shake:0,countdown:2.5,deathTime:0,reason:'',settled:false,cameraAngle:0,runnerAngle:0});
+      hudClock=0;lastStep=0;lastCountdown=0;toastLeft=0;$('toast').classList.remove('visible');$('turnPrompt').hidden=true;$('hint').hidden=true;$('damageFlash').classList.remove('active');updateHud();
+    }
+    function setMode(mode){state.mode=mode;document.body.dataset.mode=mode;$('hero').hidden=mode!=='menu';$('footer').hidden=mode!=='menu';$('hud').hidden=mode==='menu'||mode==='over';$('pauseButton').hidden=!['playing','countdown','paused'].includes(mode);$('touchControls').hidden=mode!=='playing';$('countdown').hidden=mode!=='countdown';$('pauseModal').hidden=mode!=='paused';$('overModal').hidden=mode!=='over';$('helpButton').disabled=mode==='dying';if(windGain)windGain.gain.setTargetAtTime(mode==='playing'?.19:0,audioContext.currentTime,.4);}
+    function announce(text){$('announcer').textContent=text;}
+    function toast(text,duration=2.6){$('toast').textContent=text;$('toast').classList.add('visible');toastLeft=duration;announce(text);}
+    function startGame(){if(!$('errorModal').hidden)return;initSound();$('helpModal').hidden=true;resetWorld();setMode('countdown');$('countdown').textContent='3';$('scene').focus({preventScroll:true});sound('start');}
+    function finishRun(){if(state.settled)return;state.settled=true;const meters=Math.floor(state.distance*2),isBest=meters>records.best;records.best=Math.max(records.best,meters);records.coins+=state.coins;saveRecords();updateMenuRecords();$('newBest').hidden=!isBest;$('resultDistance').replaceChildren(document.createTextNode(format(meters)));const unit=document.createElement('small');unit.textContent='m';$('resultDistance').append(unit);$('resultCoins').textContent=format(state.coins);$('resultBest').textContent=format(records.best)+' m';$('overReason').textContent=state.reason||'守护者追上了你。';$('turnPrompt').hidden=true;$('hint').hidden=true;$('toast').classList.remove('visible');setMode('over');sound('end');$('retryButton').focus({preventScroll:true});announce(`旅途结束。奔跑 ${meters} 米，收集 ${state.coins} 枚金币。`);}
+    function returnHome(){if(state.distance>0&&!state.settled){state.settled=true;records.best=Math.max(records.best,Math.floor(state.distance*2));records.coins+=state.coins;saveRecords();}resetWorld(true);setMode('menu');updateMenuRecords();$('startButton').focus({preventScroll:true});}
+    function pauseGame(showPanel=true){if(!['playing','countdown'].includes(state.mode))return;resumeMode=state.mode;setMode('paused');$('turnPrompt').hidden=true;if(showPanel)$('resumeButton').focus({preventScroll:true});else $('pauseModal').hidden=true;}
+    function resumeGame(){if(state.mode!=='paused')return;initSound();setMode(resumeMode);$('scene').focus({preventScroll:true});previousFrame=performance.now();}
+    function openHelp(){if(state.mode==='dying')return;helpShouldResume=['playing','countdown'].includes(state.mode);if(helpShouldResume)pauseGame(false);else $('pauseModal').hidden=true;$('helpModal').hidden=false;$('understoodButton').focus({preventScroll:true});}
+    function closeHelp(){$('helpModal').hidden=true;if(helpShouldResume)resumeGame();else if(state.mode==='paused'){$('pauseModal').hidden=false;$('resumeButton').focus({preventScroll:true});}else $('helpButton').focus({preventScroll:true});helpShouldResume=false;}
+    function emit(s,x,y,count=7){const p=atLane(s,x,y);for(let i=0;i<count;i++){const a=rng()*TAU,velocity=1+rng()*3;particles.push({x:p.x,y,z:p.z,vx:Math.cos(a)*velocity,vy:2+rng()*3,vz:Math.sin(a)*velocity,life:.55+rng()*.3,max:.85});}if(particles.length>100)particles.splice(0,particles.length-100);}
+    function hit(reason,obstacle){if(state.invincible>0||state.mode!=='playing')return;if(obstacle)obstacle.hit=true;state.health--;state.shake=.48;state.invincible=2.1;sound('hit');emit(state.distance,state.x,1.2,16);$('damageFlash').classList.add('active');updateHud();if(state.health<=0){state.reason=reason;state.deathTime=0;setMode('dying');$('turnPrompt').hidden=true;$('hint').hidden=true;announce(reason);}else toast(`${reason} · 护符替你挡住了一击`,2.5);}
+    function action(name){
+      if(state.mode!=='playing'||!$('helpModal').hidden)return;
+      if(name==='left'||name==='right'){const direction=name==='left'?-1:1,turn=nearbyTurn();if(turn&&turn.at-state.distance<=24&&!turn.accepted){if(direction===turn.direction){turn.accepted=true;state.lane=0;sound('turn');toast('转向就绪，继续向前！',1.4);emit(state.distance,state.x,1.6,8);}else{toast(turn.direction<0?'这里需要左转 ←':'这里需要右转 →',1.2);}return;}state.lane=clamp(state.lane+direction,-1,1);}
+      if(name==='jump'&&!state.jumping&&state.slideTime<=0){state.jumping=true;state.jumpTime=0;sound('jump');}
+      if(name==='slide'&&!state.jumping&&state.slideTime<=0){state.slideTime=.95;sound('slide');}
+    }
+    function updateHud(){
+      $('distanceValue').textContent=format(state.distance*2);$('coinsValue').textContent=format(state.coins);$('health').setAttribute('aria-label',`剩余 ${state.health} 枚护符`);$('health').querySelectorAll('svg').forEach((el,i)=>el.classList.toggle('spent',i>=state.health));
+      const pace=clamp(Math.floor((state.speed-13)/3)+1,1,4);$('paceBars').querySelectorAll('i').forEach((el,i)=>el.classList.toggle('lit',i<pace));$('paceText').textContent=['深入丛林','脚步加快','疾速逃亡','全速冲刺'][pace-1];
+      if(state.mode!=='playing')return;const turn=nearbyTurn(),ahead=turn?turn.at-state.distance:Infinity;
+      if(turn&&ahead<62&&!turn.accepted){$('turnPrompt').hidden=false;$('turnArrow').textContent=turn.direction<0?'←':'→';$('turnTitle').textContent=ahead<=24?(turn.direction<0?'现在左转':'现在右转'):(turn.direction<0?'前方左转':'前方右转');$('turnDistance').textContent=ahead<=24?'按方向键，或向对应方向滑动':`${Math.max(0,Math.ceil(ahead*2))} m 后到达弯道`;$('turnPrompt').classList.toggle('ready',ahead<=24);$('turnProgress').style.width=`${clamp((62-ahead)/62,0,1)*100}%`;$('hint').hidden=true;}
+      else{$('turnPrompt').hidden=true;const next=obstacles.find(o=>!o.passed&&o.at>state.distance&&o.at-state.distance<37);if(next){const hints={log:'↑ / 空格  跳过倒木',block:'←  →  换道躲开碎石',arch:'↓  滑过低矮石门',gap:'↑ / 空格  越过断桥'};$('hint').textContent=hints[next.type];$('hint').hidden=false;}else if(state.distance<36){$('hint').textContent='←  → 换道 · ↑ 跳跃 · ↓ 滑铲';$('hint').hidden=false;}else $('hint').hidden=true;}
+    }
+    function update(dt){
+      if(!['paused','over'].includes(state.mode))worldTime+=dt;
+      if(toastLeft>0){toastLeft-=dt;if(toastLeft<=0)$('toast').classList.remove('visible');}
+      state.shake=Math.max(0,state.shake-dt);if(state.shake<.18)$('damageFlash').classList.remove('active');
+      const targetBias=state.mode==='menu'&&(innerWidth>760||innerWidth>innerHeight)?.52:0;state.screenBias=mix(state.screenBias,targetBias,1-Math.exp(-dt*3));
+      if(state.mode==='paused'||state.mode==='over'||state.mode==='menu')return;
+      if(state.mode==='countdown'){state.countdown-=dt;const n=Math.ceil(state.countdown/.84);$('countdown').textContent=Math.max(1,n);if(n!==lastCountdown&&n>0){lastCountdown=n;tone(n===1?660:440,.1,'sine',.09);}if(state.countdown<=0){setMode('playing');toast('守护者醒了，快跑！',2);tone(880,.25,'triangle',.12);}return;}
+      for(const p of particles){p.life-=dt;p.x+=p.vx*dt;p.y+=p.vy*dt;p.z+=p.vz*dt;p.vy-=7*dt;}particles=particles.filter(p=>p.life>0);
+      if(state.mode==='dying'){state.deathTime+=dt;if(state.deathTime>1.05)finishRun();return;}
+      const previousDistance=state.distance;
+      state.speed=13.2+Math.min(11,state.distance*.0053);state.distance+=state.speed*dt;state.x=mix(state.x,state.lane*laneWidth,1-Math.exp(-dt*15));state.invincible=Math.max(0,state.invincible-dt);state.slideTime=Math.max(0,state.slideTime-dt);
+      if(state.jumping){state.jumpTime+=dt;state.jumpY=Math.sin(clamp(state.jumpTime/.98,0,1)*Math.PI)*2.7;if(state.jumpTime>=.98){state.jumping=false;state.jumpY=0;}}else state.jumpY=0;
+      const angle=poseAt(state.distance).angle;state.runnerAngle=mix(state.runnerAngle,angle,1-Math.exp(-dt*10));
+      extendContent(state.distance+220);
+      for(const segment of route){const turn=segment.turn;if(turn&&!turn.resolved&&previousDistance<turn.at&&state.distance>=turn.at){turn.resolved=true;if(!turn.accepted)hit('错过了弯道');else toast('漂亮的转弯！',1.4);}}
+      for(const obstacle of obstacles){if(obstacle.passed||obstacle.hit)continue;const width=obstacle.type==='gap'?2.95:1.05,ahead=obstacle.at-state.distance;const overlapping=previousDistance<obstacle.at+width&&state.distance>obstacle.at-width;
+        if(overlapping&&state.invincible<=0){let collision=false,reason='';switch(obstacle.type){case'block':collision=Math.abs(state.x-obstacle.lane*laneWidth)<1.38&&state.jumpY<1.45;reason='撞上了遗迹碎石';break;case'log':collision=state.jumpY<1.12;reason='没能跳过倒木';break;case'arch':collision=state.slideTime<=0;reason='撞上了低矮石门';break;case'gap':collision=state.jumpY<.72;reason='没能越过断桥';break;}if(collision)hit(reason,obstacle);}
+        if(ahead<-(width+1))obstacle.passed=true;
+      }
+      if(state.mode!=='playing')return;
+      for(const coin of coins){if(coin.got)continue;if(previousDistance<coin.at+1&&state.distance>coin.at-1&&Math.abs(state.x-coin.lane*laneWidth)<1.14&&Math.abs(state.jumpY+(state.slideTime>0?.55:1.1)-coin.y)<1.32){coin.got=true;state.coins++;sound('coin');emit(coin.at,coin.lane*laneWidth,coin.y,5);}}
+      if(state.distance>contentCursor-120)extendContent(state.distance+300);
+      obstacles=obstacles.filter(o=>o.at>state.distance-22);coins=coins.filter(c=>c.at>state.distance-8&&!c.got);
+      if(state.distance-lastStep>3.1&&state.jumpY<.1&&state.slideTime<=0){lastStep=state.distance;tone(64,.055,'triangle',.055,38);}
+      hudClock+=dt;if(hudClock>.075){hudClock=0;updateHud();}
+    }
+
+    function headingAt(s){for(let i=0;i<route.length-1;i++){const turn=route[i].turn;if(turn&&Math.abs(s-turn.at)<13)return mix(route[i].angle,route[i+1].angle,smooth((s-turn.at+13)/26));}return poseAt(s).angle;}
+    function drawAt(mesh,s,x=0,y=0,scale=1,rotation=0){const p=atLane(s,x,y);draw(mesh,p.x,y,p.z,p.angle+rotation,scale,scale,scale);}
+    function drawRunner(){
+      const p=atLane(state.distance,state.x),running=state.mode==='playing',sliding=state.slideTime>0,dying=state.mode==='dying'||state.mode==='over';
+      const phase=worldTime*(15.8+state.speed*.18),bounce=running&&!state.jumping&&!sliding?Math.abs(Math.sin(phase))*.065:Math.sin(worldTime*2)*.013;
+      const rootY=state.jumpY+bounce,angle=state.runnerAngle,ca=Math.cos(angle),sa=Math.sin(angle);
+      draw(meshes.shadow,p.x,.067,p.z,angle,1+state.jumpY*.12,1,.76+state.jumpY*.1);
+      if(state.invincible>0&&state.mode==='playing'&&Math.floor(state.invincible*12)%3===0)return;
+      const part=(mesh,x,y,z,rx=0,sy=1,rz=0)=>draw(mesh,p.x+ca*x+sa*z,rootY+y,p.z-sa*x+ca*z,angle,1,sy,1,rx,rz);
+      if(sliding){part(meshes.runner,0,-.03,.1,-.13,.43);part(meshes.leg,-.2,.42,0,1.25);part(meshes.leg,.2,.42,.16,1.04);part(meshes.arm,-.41,.68,.02,1.0);part(meshes.arm,.41,.68,.02,1.0);}
+      else if(dying){const t=smooth(state.deathTime);part(meshes.runner,0,-t*.28,0,.25*t,1,-t*.75);part(meshes.leg,-.21,.91,0,-t*.8);part(meshes.leg,.21,.91,0,t*.7);part(meshes.arm,-.44,1.60,0,-t*1.9);part(meshes.arm,.44,1.60,0,-t*1.2);}
+      else{const swing=running&&!state.jumping?Math.sin(phase)*.68:state.jumping?-.34:Math.sin(worldTime*1.8)*.035;part(meshes.runner,0,0,0,state.jumping?-.055:0);part(meshes.leg,-.21,.93,0,swing);part(meshes.leg,.21,.93,0,state.jumping?.42:-swing);part(meshes.arm,-.44,1.61,0,-swing*.85-.07);part(meshes.arm,.44,1.61,0,swing*.85-.07);}
+    }
+    function render(dt){
+      const w=canvas.width,h=canvas.height,aspect=w/h,base=poseAt(state.distance);
+      const desiredAngle=headingAt(state.distance);state.cameraAngle=mix(state.cameraAngle,desiredAngle,1-Math.exp(-dt*6));
+      const angle=state.cameraAngle,sa=Math.sin(angle),ca=Math.cos(angle),side=state.x*.12;
+      const shake=!reducedMotion&&state.shake>0?state.shake:0;
+      const eye=[base.x+sa*10.5+ca*side+Math.sin(worldTime*69)*shake*.14,5.2+state.jumpY*.055+Math.cos(worldTime*57)*shake*.1,base.z+ca*10.5-sa*side];
+      const target=[base.x-sa*20+ca*side,1.4,base.z-ca*20-sa*side];
+      const vp=multiply(projection(aspect,state.screenBias),viewMatrix(eye,target));
+      gl.viewport(0,0,w,h);gl.depthMask(true);gl.clearColor(.35,.48,.36,1);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
+      gl.disable(gl.DEPTH_TEST);gl.disable(gl.BLEND);gl.depthMask(false);gl.useProgram(skyProgram);
+      for(const loc of Object.values(attributes))gl.disableVertexAttribArray(loc);
+      gl.enableVertexAttribArray(skyAttr);gl.bindBuffer(gl.ARRAY_BUFFER,skyBuffer);gl.vertexAttribPointer(skyAttr,2,gl.FLOAT,false,0,0);gl.uniform1f(skyUniforms.uAspect,aspect);gl.uniform1f(skyUniforms.uTime,reducedMotion?0:worldTime);gl.uniform1f(skyUniforms.uBias,state.screenBias);gl.drawArrays(gl.TRIANGLES,0,6);
+      gl.enable(gl.DEPTH_TEST);gl.depthMask(true);gl.useProgram(sceneProgram);for(const loc of Object.values(attributes))gl.enableVertexAttribArray(loc);
+      gl.uniformMatrix4fv(uniforms.uViewProjection,false,vp);gl.uniform3f(uniforms.uEye,...eye);gl.uniform3f(uniforms.uFog,.47,.58,.42);gl.uniform1f(uniforms.uAlpha,1);
+      draw(meshes.ground,base.x,-8.8,base.z,0,700,1,700);
+      const start=state.distance-24,end=state.distance+185;
+      for(let i=Math.floor(start/18);i<=Math.ceil(end/18);i++){const s=i*18,p=poseAt(s),index=((i%5)+5)%5;draw(meshes.environments[index],p.x,0,p.z,p.angle);}
+      for(let i=Math.floor(start/72);i<=Math.ceil(end/72);i++){const side=i%2===0?-1:1;drawAt(meshes.ruin,i*72+28,side*23,-.3,.83+(Math.abs(i)%3)*.10,side*.16);}
+      const gaps=obstacles.filter(o=>o.type==='gap');
+      for(let i=Math.floor(start/3);i<=Math.ceil(end/3);i++){const s=i*3+1.5;if(nearCorner(s,4.95)||gaps.some(o=>Math.abs(s-o.at)<3))continue;drawAt(meshes.roads[((i%5)+5)%5],s);}
+      for(const segment of route){if(!segment.turn||segment.end<start-8||segment.end>end)continue;const p=poseAt(segment.end);draw(meshes.junction,p.x,-.065,p.z,segment.angle);}
+      for(let i=Math.floor(start/12);i<=Math.ceil(end/12);i++){const s=i*12;if(nearCorner(s,6.5)||gaps.some(o=>Math.abs(s-o.at)<6))continue;drawAt(meshes.support,s);}
+      for(let i=Math.max(0,Math.floor((start-84)/444));i<=Math.ceil((end-84)/444);i++){const s=84+i*444;if(s>=start&&s<=end&&!nearCorner(s,15))drawAt(meshes.gate,s);}
+      for(let i=Math.floor(start/30);i<=Math.ceil((end-20)/30);i++){const s=i*30+15;if(nearCorner(s,6)||gaps.some(o=>Math.abs(s-o.at)<5))continue;for(const side of [-1,1]){const p=atLane(s,side*5.42);draw(meshes.torch,p.x,0,p.z,p.angle);draw(meshes.flame,p.x,2.04,p.z,worldTime*.3,1,.87+Math.sin(worldTime*8+i*7)*.14,1);}}
+      for(const obstacle of obstacles){if(obstacle.at<start||obstacle.at>end)continue;if(obstacle.type==='gap'){const p=atLane(obstacle.at,1.6);draw(meshes.block,p.x,-4.4,p.z,p.angle+.5,1.2,1.2,1.2,.4,.3);continue;}const mesh=obstacle.type==='block'?meshes.block:obstacle.type==='arch'?meshes.arch:meshes.log;drawAt(mesh,obstacle.at,obstacle.type==='block'?obstacle.lane*laneWidth:0);}
+      for(const segment of route){const turn=segment.turn;if(!turn||turn.at<state.distance-2||turn.at>end-15)continue;const p=atLane(turn.at-7);draw(meshes.sign,p.x,3.9,p.z,p.angle,turn.direction<0?1:-1,1,1);}
+      for(const coin of coins){if(coin.got||coin.at<state.distance-4||coin.at>end-30)continue;const p=atLane(coin.at,coin.lane*laneWidth),float=reducedMotion?0:Math.sin(worldTime*3+coin.at)*.095;draw(meshes.coin,p.x,coin.y+float,p.z,p.angle+worldTime*2.2+coin.at*.17,1,1,1,Math.PI/2);}
+      if(!reducedMotion){for(let i=0;i<32;i++){const s=state.distance+((i*17.3+worldTime*.4)%140)-5,x=Math.sin(i*23.1)*11,y=1.2+(Math.sin(i*13.6)*.5+.5)*5;const p=atLane(s,x);draw(meshes.firefly,p.x+Math.sin(worldTime+i)*.5,y+Math.sin(worldTime*.7+i)*.4,p.z,0,1,1,1);}}
+      for(const p of particles){const size=clamp(p.life/p.max,.15,1);draw(meshes.spark,p.x,p.y,p.z,worldTime*4,size,size,size);}
+      drawRunner();
+      if(['playing','dying','over'].includes(state.mode)&&state.health<3){const behind=state.mode==='dying'||state.mode==='over'?mix(7,2.3,smooth(state.deathTime)):4+state.health*3;const p=atLane(state.distance-behind,Math.sin(worldTime*2)*.5),bob=Math.abs(Math.sin(worldTime*10))*.15;draw(meshes.guardian,p.x,bob,p.z,p.angle,1.1,1.1,1.1);}
+    }
+    function resize(){const dpr=Math.min(window.devicePixelRatio||1,innerWidth<760?1.6:1.8);canvas.width=Math.max(1,Math.round(innerWidth*dpr));canvas.height=Math.max(1,Math.round(innerHeight*dpr));}
+    function frame(time){const dt=previousFrame?Math.min((time-previousFrame)/1000,.05):1/60;previousFrame=time;update(dt);render(dt);animationId=requestAnimationFrame(frame);}
+
+    $('startButton').addEventListener('click',startGame);$('retryButton').addEventListener('click',startGame);
+    $('resumeButton').addEventListener('click',resumeGame);$('pauseHomeButton').addEventListener('click',returnHome);$('overHomeButton').addEventListener('click',returnHome);
+    $('pauseButton').addEventListener('click',()=>state.mode==='paused'?resumeGame():pauseGame());
+    $('helpButton').addEventListener('click',openHelp);$('closeHelpButton').addEventListener('click',closeHelp);$('understoodButton').addEventListener('click',closeHelp);
+    $('soundButton').addEventListener('click',()=>{records.sound=!records.sound;initSound();syncSoundButton();saveRecords();});
+    $('fullscreenButton').addEventListener('click',async()=>{try{if(document.fullscreenElement)await document.exitFullscreen();else await document.documentElement.requestFullscreen();}catch(error){toast('当前浏览器不支持全屏，可使用浏览器的全屏菜单。');}});
+    document.addEventListener('fullscreenchange',()=>{$('fullscreenButton').setAttribute('aria-label',document.fullscreenElement?'退出全屏':'切换全屏');$('fullscreenButton').title=document.fullscreenElement?'退出全屏':'切换全屏';});
+    document.querySelectorAll('[data-action]').forEach(button=>button.addEventListener('click',()=>action(button.dataset.action)));
+    document.addEventListener('keydown',event=>{
+      if(event.ctrlKey||event.metaKey||event.altKey)return;
+      const modal=[...document.querySelectorAll('.modal')].find(el=>!el.hidden);
+      if(event.code==='Tab'&&modal){const buttons=[...modal.querySelectorAll('button')].filter(button=>!button.disabled),first=buttons[0],last=buttons[buttons.length-1];if(event.shiftKey&&(document.activeElement===first||!modal.contains(document.activeElement))){event.preventDefault();last?.focus();}else if(!event.shiftKey&&(document.activeElement===last||!modal.contains(document.activeElement))){event.preventDefault();first?.focus();}return;}
+      if(event.repeat)return;
+      if(event.code==='Escape'||event.code==='KeyP'){event.preventDefault();if(!$('helpModal').hidden)closeHelp();else if(state.mode==='paused')resumeGame();else pauseGame();return;}
+      if(modal)return;
+      if(state.mode==='menu'&&(event.code==='Enter'||event.code==='Space')){if(event.target.closest('button')&&event.target!==$('startButton'))return;event.preventDefault();startGame();return;}
+      const bindings={ArrowLeft:'left',KeyA:'left',ArrowRight:'right',KeyD:'right',ArrowUp:'jump',KeyW:'jump',Space:'jump',ArrowDown:'slide',KeyS:'slide'};
+      if(bindings[event.code]&&state.mode==='playing'){event.preventDefault();action(bindings[event.code]);}
+    });
+    let gesture=null;
+    canvas.addEventListener('pointerdown',event=>{if(state.mode!=='playing'||event.button>0)return;gesture={id:event.pointerId,x:event.clientX,y:event.clientY,done:false};canvas.setPointerCapture(event.pointerId);});
+    function swipe(event){if(!gesture||gesture.id!==event.pointerId||gesture.done)return;const dx=event.clientX-gesture.x,dy=event.clientY-gesture.y;if(Math.max(Math.abs(dx),Math.abs(dy))<27)return;gesture.done=true;action(Math.abs(dx)>Math.abs(dy)?(dx<0?'left':'right'):(dy<0?'jump':'slide'));}
+    canvas.addEventListener('pointermove',swipe);
+    canvas.addEventListener('pointerup',event=>{swipe(event);if(gesture?.id===event.pointerId){gesture=null;if(canvas.hasPointerCapture(event.pointerId))canvas.releasePointerCapture(event.pointerId);}});
+    canvas.addEventListener('pointercancel',()=>{gesture=null;});
+    window.addEventListener('blur',()=>pauseGame());document.addEventListener('visibilitychange',()=>{if(document.hidden)pauseGame();});
+    window.addEventListener('resize',resize);
+    canvas.addEventListener('webglcontextlost',event=>{event.preventDefault();cancelAnimationFrame(animationId);pauseGame(false);$('pauseModal').hidden=true;$('helpModal').hidden=true;$('errorMessage').textContent='3D 画面已中断。请重新载入游戏；若问题持续，可关闭其他占用显卡的页面后再试。';$('errorModal').hidden=false;$('reloadButton').focus();});
+    updateMenuRecords();syncSoundButton();resetWorld(true);setMode('menu');resize();animationId=requestAnimationFrame(frame);
+  })();
+  </script>
+</body>
+</html>

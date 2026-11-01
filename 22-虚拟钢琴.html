@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>流光钢琴 LUMIÈRE · 可演奏虚拟钢琴</title>
+<style>
+:root{
+  --stage:#12100e;--stage2:#1c1815;--gold:#d4b06a;--gold-dk:#8a6f3c;
+  --felt:#8a2430;--ink:#efe9dc;--dim:#9a9184;--faint:#6a6258;
+}
+*{margin:0;padding:0;box-sizing:border-box;user-select:none}
+body{
+  min-height:100vh;overflow-x:hidden;
+  background:
+    radial-gradient(1100px 620px at 50% 18%, #241f19, var(--stage) 58%, #0a0908 100%);
+  color:var(--ink);font-family:"PingFang SC","Microsoft YaHei",sans-serif;
+  display:flex;flex-direction:column;align-items:center;padding:34px 16px 70px;
+}
+.serif{font-family:Georgia,"Songti SC",serif}
+button{font:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent;border:none;background:none;color:inherit}
+button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+
+/* ---------- 题头 ---------- */
+.mast{text-align:center;margin-bottom:22px}
+.mast h1{font-size:clamp(20px,3.4vw,30px);letter-spacing:.5em;text-indent:.5em;color:var(--gold);font-weight:600}
+.mast p{margin-top:8px;font-size:11px;letter-spacing:.34em;color:var(--dim)}
+
+/* ---------- 曲库 ---------- */
+.songs{display:flex;gap:9px;flex-wrap:wrap;justify-content:center;margin-bottom:26px;max-width:860px}
+.song{
+  display:flex;align-items:center;gap:9px;border:1px solid rgba(212,176,106,.25);border-radius:999px;
+  padding:9px 17px;font-size:12.5px;letter-spacing:.08em;color:var(--dim);transition:.18s;background:rgba(255,255,255,.02);
+}
+.song .no{font-family:Consolas,monospace;font-size:10px;color:var(--faint)}
+.song:hover{color:var(--ink);border-color:rgba(212,176,106,.55)}
+.song.on{background:linear-gradient(135deg,var(--gold),var(--gold-dk));color:#1c1508;font-weight:600;border-color:transparent;box-shadow:0 6px 20px rgba(212,176,106,.3)}
+.song.on .no{color:rgba(28,21,8,.6)}
+.song .stop{display:none;font-size:11px}
+.song.on.playing .stop{display:inline}
+
+/* ---------- 琴体 ---------- */
+.piano{
+  width:min(1060px,96vw);border-radius:18px;padding:16px 18px 20px;position:relative;
+  background:
+    linear-gradient(180deg,#2b241d 0%,#1c1712 8%,#191410 90%,#100d0a 100%);
+  box-shadow:
+    0 40px 90px rgba(0,0,0,.7),
+    inset 0 1px 0 rgba(255,255,255,.08),
+    inset 0 -6px 18px rgba(0,0,0,.6),
+    0 0 0 1px rgba(212,176,106,.14);
+}
+/* 谱架金属铭牌 */
+.nameplate{
+  position:absolute;top:-13px;left:50%;transform:translateX(-50%);
+  background:linear-gradient(180deg,var(--gold),var(--gold-dk));color:#241c0c;
+  font-size:10.5px;letter-spacing:.4em;text-indent:.4em;font-weight:700;
+  padding:5px 22px;border-radius:999px;box-shadow:0 6px 16px rgba(0,0,0,.5);
+}
+/* 控制条 */
+.controls{
+  display:flex;align-items:center;gap:14px;flex-wrap:wrap;
+  padding:6px 8px 14px;font-size:11.5px;color:var(--dim);
+}
+.controls .grp{display:flex;align-items:center;gap:7px}
+.ctlbtn{
+  border:1px solid rgba(212,176,106,.3);border-radius:8px;padding:6px 13px;color:var(--dim);
+  font-size:11.5px;letter-spacing:.1em;transition:.16s;background:rgba(255,255,255,.02);
+}
+.ctlbtn:hover{color:var(--ink);border-color:rgba(212,176,106,.6)}
+.ctlbtn.on{background:var(--gold);color:#241c0c;font-weight:700;border-color:transparent}
+#volume{width:110px;-webkit-appearance:none;appearance:none;height:4px;border-radius:2px;
+  background:linear-gradient(90deg,var(--gold) var(--p,70%),rgba(255,255,255,.12) var(--p,70%));outline-offset:4px}
+#volume::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:var(--gold);cursor:grab}
+.pedal-ind{display:inline-flex;align-items:center;gap:6px}
+.pedal-ind i{width:7px;height:7px;border-radius:50%;background:#4a4038;transition:.15s}
+.pedal-ind.on i{background:#e8654a;box-shadow:0 0 8px #e8654a}
+.status{margin-left:auto;font-family:Consolas,monospace;font-size:10.5px;letter-spacing:.14em;color:var(--faint)}
+/* 红毡 */
+.felt{height:9px;border-radius:3px 3px 0 0;background:linear-gradient(180deg,#a03240,var(--felt) 60%,#6e1824);box-shadow:0 2px 6px rgba(0,0,0,.5)}
+/* ---------- 键盘 ---------- */
+.kb{
+  position:relative;height:min(200px,26vh);border-radius:0 0 8px 8px;overflow:hidden;
+  box-shadow:inset 0 -10px 22px rgba(0,0,0,.4), 0 1px 0 rgba(255,255,255,.06);
+  touch-action:none;
+}
+.wkey{
+  position:absolute;top:0;bottom:0;border-radius:0 0 5px 5px;
+  background:linear-gradient(180deg,#fbf8f0 0%,#f4efe2 82%,#e2dac6 100%);
+  box-shadow:inset 0 -5px 0 rgba(120,105,80,.35), inset 0 2px 3px rgba(255,255,255,.9), 1px 0 0 rgba(40,32,20,.35);
+  cursor:pointer;transition:transform .05s,background .06s;
+  display:flex;align-items:flex-end;justify-content:center;padding-bottom:9px;
+}
+.wkey .nm{font-size:9px;color:#b3a88e;letter-spacing:.04em;font-family:Consolas,monospace;pointer-events:none}
+.wkey .kmap{position:absolute;top:8px;left:50%;transform:translateX(-50%);font-size:9px;color:#cabf9f;
+  border:1px solid rgba(120,105,80,.3);border-radius:4px;padding:1px 5px;font-family:Consolas,monospace;pointer-events:none}
+.wkey.down{transform:translateY(2px);background:linear-gradient(180deg,#efe7d2,#ddd2b8 90%);box-shadow:inset 0 -2px 0 rgba(120,105,80,.4)}
+.wkey.lit{background:linear-gradient(180deg,#fff3d0,#f2d38a 85%);box-shadow:inset 0 -5px 0 rgba(180,140,60,.5), 0 0 18px rgba(232,200,120,.55)}
+/* 黑键 */
+.bkey{
+  position:absolute;top:0;height:60%;border-radius:0 0 4px 4px;z-index:3;
+  background:linear-gradient(180deg,#3a3a3e 0%,#161618 70%,#000 100%);
+  box-shadow:inset 0 -4px 0 rgba(255,255,255,.06), inset 0 2px 2px rgba(255,255,255,.14), 2px 3px 6px rgba(0,0,0,.6);
+  cursor:pointer;transition:transform .05s;
+  display:flex;align-items:flex-end;justify-content:center;padding-bottom:6px;
+}
+.bkey .nm{font-size:8px;color:#77706a;font-family:Consolas,monospace;pointer-events:none}
+.bkey.down{transform:translateY(2px);background:linear-gradient(180deg,#26262a,#0a0a0c)}
+.bkey.lit{background:linear-gradient(180deg,#8a6f3c,#5c4520);box-shadow:0 0 16px rgba(212,176,106,.5)}
+/* 琴键底座 */
+.kbbase{height:14px;border-radius:0 0 10px 10px;background:linear-gradient(180deg,#241d15,#151009);box-shadow:inset 0 3px 6px rgba(0,0,0,.6)}
+/* 踏板 */
+.pedals{display:flex;justify-content:center;gap:14px;padding-top:13px}
+.pedal{
+  width:44px;height:9px;border-radius:3px 3px 5px 5px;cursor:pointer;
+  background:linear-gradient(180deg,#e8cf98,#8a6f3c 70%,#5c4520);
+  box-shadow:0 3px 6px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.5);
+  transition:transform .1s;
+}
+.pedal.down{transform:translateY(2px);box-shadow:0 1px 3px rgba(0,0,0,.5)}
+.pedal-label{font-size:9px;color:var(--faint);letter-spacing:.2em;text-align:center;margin-top:5px}
+/* 键盘映射说明 */
+.kbdnote{margin-top:18px;text-align:center;font-size:10.5px;color:var(--faint);letter-spacing:.16em;line-height:2}
+.kbdnote b{color:var(--dim);font-weight:500;border:1px solid rgba(212,176,106,.25);border-radius:4px;padding:1px 6px;font-family:Consolas,monospace}
+@media (max-width:700px){
+  .kb{height:150px}
+  .wkey .kmap{display:none}
+}
+@media (prefers-reduced-motion:reduce){
+  .wkey,.bkey{transition:none}
+}
+</style>
+</head>
+<body>
+
+<div class="mast">
+  <h1 class="serif">流光钢琴</h1>
+  <p>LUMIÈRE · 点击琴键或用键盘演奏 · 内置五首经典曲目</p>
+</div>
+
+<div class="songs" id="songs" aria-label="内置曲目"></div>
+
+<div class="piano">
+  <div class="nameplate">LUMIÈRE · 流光 37</div>
+  <div class="controls">
+    <div class="grp">
+      <button class="ctlbtn" id="octDown">八度 −</button>
+      <span id="octLabel">C3 — C6</span>
+      <button class="ctlbtn" id="octUp">八度 +</button>
+    </div>
+    <div class="grp">
+      <button class="ctlbtn" id="labelBtn">音名 · 关</button>
+      <button class="ctlbtn" id="mapBtn">键位 · 开</button>
+    </div>
+    <div class="grp pedal-ind" id="pedalInd"><i></i><span>延音踏板 <b style="color:var(--faint)">SPACE</b></span></div>
+    <div class="grp">
+      <span>音量</span><input type="range" id="volume" min="0" max="100" value="70" aria-label="音量">
+    </div>
+    <span class="status" id="status">READY · 请触键</span>
+  </div>
+  <div class="felt"></div>
+  <div class="kb" id="kb"></div>
+  <div class="kbbase"></div>
+  <div class="pedals">
+    <div style="text-align:center"><div class="pedal" id="pedalEl"></div><div class="pedal-label">延音</div></div>
+    <div style="text-align:center"><div class="pedal" id="pedalSoft"></div><div class="pedal-label">弱音</div></div>
+  </div>
+</div>
+
+<p class="kbdnote">
+  键盘演奏：<b>A</b><b>S</b><b>D</b><b>F</b><b>G</b><b>H</b><b>J</b><b>K</b><b>L</b> 为白键，<b>W</b><b>E</b><b>T</b><b>Y</b><b>U</b><b>O</b><b>P</b> 为黑键（下行一排为低八度 <b>Z X C V B N M</b>）· 按住 <b>空格</b> 延音
+</p>
+
+<script>
+"use strict";
+/* ==================================================================
+   流光钢琴 —— WebAudio 合成钢琴音色 + 37 键 + 5 首内置曲
+   ================================================================== */
+const $=id=>document.getElementById(id);
+let AC=null,master=null,reverb=null,volNode=null;
+function ensureAudio(){
+  if(AC){AC.resume();return AC}
+  AC=new (window.AudioContext||window.webkitAudioContext)();
+  volNode=AC.createGain();volNode.gain.value=+$('volume').value/100||.7;
+  const dry=AC.createGain();dry.gain.value=.82;
+  reverb=AC.createConvolver();
+  /* 程序生成混响脉冲 */
+  const len=AC.sampleRate*2.1;
+  const buf=AC.createBuffer(2,len,AC.sampleRate);
+  for(let ch=0;ch<2;ch++){
+    const d=buf.getChannelData(ch);
+    for(let i=0;i<len;i++){
+      d[i]=(Math.random()*2-1)*Math.pow(1-i/len,2.6)*.5;
+    }
+  }
+  reverb.buffer=buf;
+  const wet=AC.createGain();wet.gain.value=.3;
+  volNode.connect(dry).connect(AC.destination);
+  volNode.connect(reverb);reverb.connect(wet).connect(AC.destination);
+}
+const m2f=m=>440*Math.pow(2,(m-69)/12);
+/* 音名 */
+const NAMES=['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+const noteName=m=>NAMES[m%12]+(Math.floor(m/12)-1);
+/* 合成琴音 */
+const activeNotes={};
+function playNote(midi,vel=1,dur=1.8){
+  ensureAudio();
+  const t=AC.currentTime,f=m2f(midi);
+  const lp=AC.createBiquadFilter();lp.type='lowpass';
+  lp.frequency.setValueAtTime(Math.min(f*9,12000),t);
+  lp.frequency.exponentialRampToValueAtTime(Math.max(f*2,300),t+dur*.85);
+  const g=AC.createGain();
+  g.gain.setValueAtTime(0,t);
+  g.gain.linearRampToValueAtTime(.42*vel,t+.006);
+  g.gain.exponentialRampToValueAtTime(.36*vel*.35+ .0001,t+.4);
+  g.gain.exponentialRampToValueAtTime(.0001,t+dur);
+  g.connect(lp).connect(volNode);
+  const oscs=[];
+  [[1,1,'triangle'],[2,.4,'sine'],[3,.15,'sine'],[4.01,.07,'sine'],[.5,.18,'sine']].forEach(([mul,amp,type])=>{
+    const o=AC.createOscillator();o.type=type;
+    o.frequency.value=f*mul;
+    o.detune.value=(Math.random()-.5)*5;
+    const og=AC.createGain();og.gain.value=amp;
+    o.connect(og).connect(g);
+    o.start(t);o.stop(t+dur+.1);
+    oscs.push(o);
+  });
+  /* 记录延音：同一键重按先止旧音 */
+  if(activeNotes[midi])try{activeNotes[midi].forEach(o=>o.stop())}catch(e){}
+  activeNotes[midi]=oscs;
+  setTimeout(()=>{if(activeNotes[midi]===oscs)delete activeNotes[midi]},dur*1000+150);
+  return oscs;
+}
+
+/* ==================================================================
+   键盘构建：C3(48) — C6(84)，37 键
+   ================================================================== */
+const LO=48,HI=84;
+let octaveShift=0;
+let showLabels=false,showMaps=true;
+/* 计算机键盘映射（基于 C4 起）——须在 buildKeys 前定义 */
+const KEYMAP={
+  'z':60,'s':61,'x':62,'d':63,'c':64,'v':65,'g':66,'b':67,'h':68,'n':69,'j':70,'m':71,',':72,
+  'q':72,'2':73,'w':74,'3':75,'e':76,'r':77,'5':78,'t':79,'6':80,'y':81,'7':82,'u':83,'i':84,
+};
+const KEYMAP_INV={};
+for(const k in KEYMAP){const m=KEYMAP[k]+octaveShift*12;if(!KEYMAP_INV[m])KEYMAP_INV[m]=k}
+const kb=$('kb');
+const keyEls={};
+(function buildKeys(){
+  let whiteIndex=0;
+  const whiteWidth=100/22;                       /* 22 个白键 */
+  const blackPos=[];                             /* {midi, leftPct} */
+  for(let m=LO;m<=HI;m++){
+    const pc=m%12, isBlack=[1,3,6,8,10].includes(pc);
+    if(!isBlack){
+      const el=document.createElement('div');
+      el.className='wkey';el.dataset.midi=m;
+      el.style.left=(whiteIndex*whiteWidth)+'%';el.style.width=whiteWidth+'%';
+      kb.appendChild(el);
+      keyEls[m]=el;
+      whiteIndex++;
+    }else{
+      blackPos.push({m,left:(whiteIndex-1)*whiteWidth+whiteWidth*.62,w:whiteWidth*.58});
+    }
+  }
+  blackPos.forEach(({m,left,w})=>{
+    const el=document.createElement('div');
+    el.className='bkey';el.dataset.midi=m;
+    el.style.left=left+'%';el.style.width=w+'%';
+    kb.appendChild(el);
+    keyEls[m]=el;
+  });
+  refreshKeyLabels();
+})();
+function refreshKeyLabels(){
+  for(const m in keyEls){
+    const el=keyEls[m];
+    const shifted=+m+octaveShift*12;
+    let nm=el.querySelector('.nm');
+    if(showLabels){if(!nm){nm=document.createElement('span');nm.className='nm';el.appendChild(nm)}nm.textContent=noteName(shifted)}
+    else if(nm)nm.remove();
+    let km=el.querySelector('.kmap');
+    const map=KEYMAP_INV[+m];
+    if(showMaps&&map){if(!km){km=document.createElement('span');km.className='kmap';el.appendChild(km)}km.textContent=map.toUpperCase()}
+    else if(km)km.remove();
+  }
+}
+/* 键位反查表由上方 KEYMAP 生成（updateOct 时随八度重建） */
+function pressKey(midi,vel=1,fromUser=true){
+  const el=keyEls[midi];
+  if(el){el.classList.add('down');setTimeout(()=>el.classList.remove('down'),220)}
+  playNote(midi,vel);
+  if(fromUser)$('status').textContent='NOTE · '+noteName(midi+octaveShift*12);
+}
+function lightKey(midi,ms=380){
+  const el=keyEls[midi];
+  if(!el)return;
+  el.classList.add('lit');
+  setTimeout(()=>el.classList.remove('lit'),ms);
+}
+/* 鼠标/触摸（支持滑奏：用 elementFromPoint，绕开指针捕获） */
+let gliding=false,lastGlide=0;
+kb.addEventListener('pointerdown',e=>{
+  gliding=true;
+  const k=document.elementFromPoint(e.clientX,e.clientY)?.closest?.('[data-midi]');
+  if(k)pressKey(+k.dataset.midi);
+  kb.setPointerCapture(e.pointerId);
+});
+kb.addEventListener('pointermove',e=>{
+  if(!gliding)return;
+  const now=performance.now();
+  if(now-lastGlide<40)return;          /* 限制滑奏触发频率 */
+  const k=document.elementFromPoint(e.clientX,e.clientY)?.closest?.('[data-midi]');
+  if(k&&+k.dataset.midi!==lastGlide){lastGlide=+k.dataset.midi;pressKey(+k.dataset.midi,.8)}
+});
+addEventListener('pointerup',()=>{gliding=false;lastGlide=0});
+/* 计算机键盘 */
+const heldKeys={};
+addEventListener('keydown',e=>{
+  if(e.repeat)return;
+  if(e.code==='Space'){e.preventDefault();setPedal(true);return}
+  const m=KEYMAP[e.key.toLowerCase()];
+  if(m!=null){
+    const midi=m+octaveShift*12;
+    heldKeys[e.key]=midi;
+    pressKey(midi);
+  }
+});
+addEventListener('keyup',e=>{
+  if(e.code==='Space'){setPedal(false);return}
+  delete heldKeys[e.key];
+});
+/* 延音踏板 */
+let pedalOn=false;
+function setPedal(on){
+  pedalOn=on;
+  $('pedalInd').classList.toggle('on',on);
+  $('pedalEl').classList.toggle('down',on);
+}
+$('pedalEl').addEventListener('pointerdown',()=>setPedal(!pedalOn));
+$('pedalSoft').addEventListener('pointerdown',e=>{
+  e.currentTarget.classList.toggle('down');
+  if(!AC)return;
+  volNode.gain.value=+$('volume').value/100*(e.currentTarget.classList.contains('down')?.5:1);
+});
+/* 控件 */
+$('volume').addEventListener('input',e=>{
+  e.target.style.setProperty('--p',e.target.value+'%');
+  if(!AC){return}
+  volNode.gain.value=e.target.value/100;
+});
+$('octDown').addEventListener('click',()=>{octaveShift=Math.max(-2,octaveShift-1);updateOct()});
+$('octUp').addEventListener('click',()=>{octaveShift=Math.min(2,octaveShift+1);updateOct()});
+function updateOct(){
+  const base=3+octaveShift;
+  $('octLabel').textContent=`C${base} — C${base+3}`;
+  for(const k in KEYMAP_INV)delete KEYMAP_INV[k];
+  for(const k in KEYMAP){const m=KEYMAP[k]+octaveShift*12;if(!KEYMAP_INV[m])KEYMAP_INV[m]=k}
+  refreshKeyLabels();
+}
+$('labelBtn').addEventListener('click',e=>{showLabels=!showLabels;e.currentTarget.classList.toggle('on',showLabels);e.currentTarget.textContent=`音名 · ${showLabels?'开':'关'}`;refreshKeyLabels()});
+$('mapBtn').addEventListener('click',e=>{showMaps=!showMaps;e.currentTarget.classList.toggle('on',showMaps);e.currentTarget.textContent=`键位 · ${showMaps?'开':'关'}`;refreshKeyLabels()});
+$('mapBtn').classList.add('on');
+
+/* ==================================================================
+   五首内置曲（midi, 拍数）—— 节奏近似原曲，可读即可听
+   ================================================================== */
+const q=(m,b=1)=>[m,b];
+const SONGS=[
+  {name:'致爱丽丝',comp:'贝多芬',tempo:.28,notes:(()=> {
+    const s=[];
+    [76,75,76,75,76,71,74,72].forEach(m=>s.push(q(m,.5)));
+    s.push(q(69,1));s.push(q(60,.5),q(64,.5),q(69,.5),q(71,1));
+    s.push(q(64,.5),q(68,.5),q(71,.5),q(72,1));
+    s.push(q(64,.5));
+    [76,75,76,75,76,71,74,72].forEach(m=>s.push(q(m,.5)));
+    s.push(q(69,1));s.push(q(60,.5),q(64,.5),q(69,.5),q(71,1));
+    s.push(q(64,.5),q(72,.5),q(71,.5),q(69,1.5));
+    return s;
+  })()},
+  {name:'欢乐颂',comp:'贝多芬',tempo:.4,notes:[
+    q(64),q(64),q(65),q(67),q(67),q(65),q(64),q(62),q(60),q(60),q(62),q(64),q(64,1.5),q(62,.5),q(62,2),
+    q(64),q(64),q(65),q(67),q(67),q(65),q(64),q(62),q(60),q(60),q(62),q(64),q(62,1.5),q(60,.5),q(60,2),
+  ]},
+  {name:'卡农 · D 调',comp:'帕赫贝尔',tempo:.55,notes:[
+    q(74,2),q(76,2),q(78,2),q(76,2),q(73,2),q(71,2),q(73,2),q(69,2),
+    q(74,2),q(73,2),q(71,2),q(69,2),q(67,2),q(66,2),q(67,2),q(64,2),
+  ]},
+  {name:'小星星变奏',comp:'莫扎特',tempo:.42,notes:[
+    q(60),q(60),q(67),q(67),q(69),q(69),q(67,2),
+    q(65),q(65),q(64),q(64),q(62),q(62),q(60,2),
+    q(67),q(67),q(65),q(65),q(64),q(64),q(62,2),
+    q(67),q(67),q(65),q(65),q(64),q(64),q(62,2),
+    q(60),q(60),q(67),q(67),q(69),q(69),q(67,2),
+    q(65),q(65),q(64),q(64),q(62),q(62),q(60,2),
+  ]},
+  {name:'土耳其进行曲',comp:'莫扎特',tempo:.22,notes:[
+    q(71,.5),q(69,.5),q(68,.5),q(69,.5),q(72,1.5),q(0,.5),
+    q(74,.5),q(72,.5),q(71,.5),q(72,.5),q(76,1.5),q(0,.5),
+    q(77,.5),q(76,.5),q(75,.5),q(76,.5),q(83,1.5),q(0,.5),
+    q(81,.5),q(79,.5),q(77,.5),q(76,.5),q(74,.5),q(72,.5),q(71,.5),q(69,1.5),
+  ]},
+];
+/* 曲目 UI */
+let playing=false,playToken=0;
+const songsBox=$('songs');
+SONGS.forEach((s,i)=>{
+  const b=document.createElement('button');
+  b.className='song';
+  b.innerHTML=`<span class="no">0${i+1}</span>${s.name}<span style="opacity:.5;font-size:10.5px">· ${s.comp}</span><span class="stop">■ 停止</span>`;
+  b.addEventListener('click',()=>togglePlay(i,b));
+  songsBox.appendChild(b);
+});
+async function togglePlay(i,btn){
+  if(playing&&btn.classList.contains('playing')){stopPlay();return}
+  stopPlay();
+  playing=true;const token=++playToken;
+  btn.classList.add('playing','on');
+  $('status').textContent='PLAYING · '+SONGS[i].name;
+  const s=SONGS[i];
+  ensureAudio();
+  for(const[m,b]of s.notes){
+    if(token!==playToken)return;
+    if(m>0){
+      lightKey(m+octaveShift*12,Math.max(220,b*s.tempo*1000*.9));
+      playNote(m+octaveShift*12,.95,Math.max(1.2,b*s.tempo*2.4));
+    }
+    await new Promise(r=>setTimeout(r,b*s.tempo*1000));
+  }
+  if(token===playToken)stopPlay();
+}
+function stopPlay(){
+  playToken++;playing=false;
+  document.querySelectorAll('.song').forEach(x=>x.classList.remove('playing','on'));
+  $('status').textContent='READY · 请触键';
+}
+/* 键位反查表初始 */
+updateOct();
+</script>
+</body>
+</html>

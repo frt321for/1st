@@ -1,0 +1,1715 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>COSMOS: The Silent Odyssey</title>
+  
+  <!-- SEO Meta Tags -->
+  <meta name="description" content="An immersive scroll-driven cosmic odyssey. Experience procedural web audio synthesis, canvas-based particle simulations, and gravity-warping visual narratives with GSAP and ScrollTrigger.">
+  <meta name="keywords" content="GSAP, ScrollTrigger, Web Audio API, Canvas, WebGL, Creative Coding, Immersive Storytelling, Web Design">
+  
+  <!-- Typography & Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700;900&family=Outfit:wght@200;400;600&family=Space+Grotesk:wght@300;500;700&display=swap" rel="stylesheet">
+
+  <!-- GSAP & ScrollTrigger CDNs -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+
+  <style>
+    /* ==========================================
+       1. DESIGN SYSTEM & RESET
+       ========================================== */
+    :root {
+      --bg-dark: #03030d;
+      --primary: #7d5fff;
+      --primary-glow: rgba(125, 95, 255, 0.4);
+      --secondary: #18dcff;
+      --secondary-glow: rgba(24, 220, 255, 0.4);
+      --accent: #ff3f34;
+      --accent-glow: rgba(255, 63, 52, 0.4);
+      --gold: #ffb8b8;
+      --text-white: #f5f6fa;
+      --text-gray: #a5b1c2;
+      
+      --font-serif: 'Cinzel Decorative', Georgia, serif;
+      --font-sans: 'Space Grotesk', system-ui, sans-serif;
+      --font-body: 'Outfit', sans-serif;
+      
+      --transition-smooth: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text-white);
+      font-family: var(--font-body);
+      overflow-x: hidden;
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: rgba(3, 3, 13, 0.8);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(125, 95, 255, 0.3);
+      border-radius: 3px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(125, 95, 255, 0.6);
+    }
+
+    /* ==========================================
+       2. GLOBAL CANVAS & SOUND & CURSOR
+       ========================================== */
+    #cosmic-canvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+      pointer-events: none;
+    }
+
+    /* Custom Cursor */
+    .custom-cursor {
+      width: 8px;
+      height: 8px;
+      background-color: var(--secondary);
+      border-radius: 50%;
+      position: fixed;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+      z-index: 9999;
+      mix-blend-mode: screen;
+      transition: width 0.2s, height 0.2s, background-color 0.3s;
+    }
+
+    .custom-cursor-ring {
+      width: 40px;
+      height: 40px;
+      border: 1px solid rgba(24, 220, 255, 0.3);
+      border-radius: 50%;
+      position: fixed;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+      z-index: 9998;
+      transition: width 0.3s, height 0.3s, border-color 0.3s, transform 0.1s ease-out;
+    }
+
+    .custom-cursor.hover {
+      width: 12px;
+      height: 12px;
+      background-color: var(--primary);
+    }
+
+    .custom-cursor-ring.hover {
+      width: 60px;
+      height: 60px;
+      border-color: var(--primary);
+      animation: spin 10s linear infinite;
+    }
+
+    @keyframes spin {
+      100% { transform: translate(-50%, -50%) rotate(360deg); }
+    }
+
+    /* Audio Indicator Controls */
+    .audio-control-container {
+      position: fixed;
+      top: 40px;
+      right: 40px;
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      background: rgba(255, 255, 255, 0.03);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      padding: 10px 20px;
+      border-radius: 50px;
+      cursor: pointer;
+      transition: var(--transition-smooth);
+    }
+
+    .audio-control-container:hover {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: var(--secondary-glow);
+      box-shadow: 0 0 25px rgba(24, 220, 255, 0.15);
+    }
+
+    .audio-text {
+      font-family: var(--font-sans);
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--text-white);
+      transition: var(--transition-smooth);
+    }
+
+    .audio-waves {
+      display: flex;
+      align-items: flex-end;
+      gap: 3px;
+      height: 14px;
+      width: 25px;
+    }
+
+    .audio-wave-bar {
+      width: 3px;
+      height: 3px;
+      background-color: var(--secondary);
+      border-radius: 3px;
+      transition: var(--transition-smooth);
+    }
+
+    .audio-control-container.playing .audio-wave-bar {
+      animation: bounce 0.8s ease-in-out infinite alternate;
+      background-color: var(--primary);
+    }
+
+    .audio-control-container.playing .audio-wave-bar:nth-child(1) { animation-delay: 0.1s; }
+    .audio-control-container.playing .audio-wave-bar:nth-child(2) { animation-delay: 0.3s; }
+    .audio-control-container.playing .audio-wave-bar:nth-child(3) { animation-delay: 0.0s; }
+    .audio-control-container.playing .audio-wave-bar:nth-child(4) { animation-delay: 0.4s; }
+    .audio-control-container.playing .audio-wave-bar:nth-child(5) { animation-delay: 0.2s; }
+
+    @keyframes bounce {
+      0% { height: 3px; }
+      100% { height: 14px; }
+    }
+
+    /* Floating Header Logo */
+    .brand-logo {
+      position: fixed;
+      top: 40px;
+      left: 40px;
+      z-index: 1000;
+      font-family: var(--font-sans);
+      font-weight: 700;
+      font-size: 16px;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      color: var(--text-white);
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .brand-logo span {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      background: var(--secondary);
+      border-radius: 50%;
+      box-shadow: 0 0 10px var(--secondary);
+    }
+
+    /* Vertical Navigation Progress */
+    .side-nav {
+      position: fixed;
+      left: 45px;
+      top: 50%;
+      transform: translateY(-50%);
+      z-index: 1000;
+      display: flex;
+      flex-direction: column;
+      gap: 30px;
+    }
+
+    .side-nav-item {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      cursor: pointer;
+      position: relative;
+    }
+
+    .side-nav-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background-color: rgba(255, 255, 255, 0.2);
+      transition: var(--transition-smooth);
+      position: relative;
+    }
+
+    .side-nav-dot::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) scale(0);
+      width: 16px;
+      height: 16px;
+      border: 1px solid var(--secondary);
+      border-radius: 50%;
+      transition: var(--transition-smooth);
+    }
+
+    .side-nav-label {
+      font-family: var(--font-sans);
+      font-size: 10px;
+      font-weight: 500;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: rgba(255, 255, 255, 0.3);
+      opacity: 0;
+      transform: translateX(-10px);
+      transition: var(--transition-smooth);
+      pointer-events: none;
+      position: absolute;
+      left: 20px;
+      white-space: nowrap;
+    }
+
+    .side-nav-item:hover .side-nav-label {
+      opacity: 1;
+      transform: translateX(0);
+      color: var(--text-white);
+    }
+
+    .side-nav-item:hover .side-nav-dot {
+      background-color: var(--secondary);
+    }
+
+    .side-nav-item.active .side-nav-dot {
+      background-color: var(--secondary);
+    }
+
+    .side-nav-item.active .side-nav-dot::after {
+      transform: translate(-50%, -50%) scale(1);
+    }
+
+    .side-nav-item.active .side-nav-label {
+      opacity: 0.7;
+      transform: translateX(0);
+      color: var(--secondary);
+    }
+
+    /* Ambient Lighting */
+    .ambient-glow {
+      position: fixed;
+      width: 60vw;
+      height: 60vw;
+      border-radius: 50%;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: radial-gradient(circle, var(--primary-glow) 0%, rgba(3, 3, 13, 0) 70%);
+      pointer-events: none;
+      z-index: 0;
+      mix-blend-mode: screen;
+      opacity: 0.5;
+      filter: blur(80px);
+      transition: background 1.5s ease;
+    }
+
+    /* ==========================================
+       3. NARRATIVE LAYOUT STRUCTURE (SCROLL PINNED)
+       ========================================== */
+    .narrative-container {
+      position: relative;
+      z-index: 5;
+    }
+
+    section {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      padding: 0 10%;
+    }
+
+    .section-content {
+      width: 100%;
+      max-width: 1200px;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      z-index: 10;
+    }
+
+    /* Glow utility styles */
+    .neon-text-cyan {
+      text-shadow: 0 0 15px var(--secondary-glow), 0 0 30px rgba(24, 220, 255, 0.2);
+    }
+    .neon-text-purple {
+      text-shadow: 0 0 15px var(--primary-glow), 0 0 30px rgba(125, 95, 255, 0.2);
+    }
+    .neon-text-pink {
+      text-shadow: 0 0 15px var(--accent-glow), 0 0 30px rgba(255, 63, 52, 0.2);
+    }
+
+    /* ==========================================
+       SECTION 1: THE LAUNCH (THRESHOLD)
+       ========================================== */
+    #section-launch {
+      background: transparent;
+    }
+
+    .intro-title-wrapper {
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .intro-meta {
+      font-family: var(--font-sans);
+      font-size: 13px;
+      font-weight: 500;
+      letter-spacing: 0.4em;
+      text-transform: uppercase;
+      color: var(--secondary);
+      margin-bottom: 25px;
+      opacity: 0;
+      transform: translateY(20px);
+    }
+
+    .main-cinematic-title {
+      font-family: var(--font-serif);
+      font-size: clamp(3rem, 7vw, 9rem);
+      font-weight: 900;
+      text-transform: uppercase;
+      line-height: 0.9;
+      letter-spacing: -0.02em;
+      margin-bottom: 30px;
+      display: flex;
+      gap: 15px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .title-part {
+      display: inline-block;
+      position: relative;
+    }
+
+    .intro-desc {
+      font-size: 18px;
+      max-width: 600px;
+      color: var(--text-gray);
+      line-height: 1.6;
+      font-weight: 300;
+      opacity: 0;
+      transform: translateY(20px);
+      margin-bottom: 40px;
+    }
+
+    .scroll-hint {
+      position: absolute;
+      bottom: 50px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      opacity: 0;
+    }
+
+    .scroll-hint-text {
+      font-family: var(--font-sans);
+      font-size: 9px;
+      font-weight: 500;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      color: rgba(255, 255, 255, 0.4);
+    }
+
+    .scroll-hint-icon {
+      width: 20px;
+      height: 32px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 10px;
+      position: relative;
+    }
+
+    .scroll-hint-wheel {
+      width: 2px;
+      height: 6px;
+      background-color: var(--secondary);
+      border-radius: 1px;
+      position: absolute;
+      top: 6px;
+      left: 50%;
+      transform: translateX(-50%);
+      animation: scrollWheel 1.5s ease-in-out infinite;
+    }
+
+    @keyframes scrollWheel {
+      0% { top: 6px; opacity: 1; }
+      100% { top: 20px; opacity: 0; }
+    }
+
+    /* SVG Portal wireframe */
+    .portal-wireframe {
+      position: absolute;
+      width: 70vh;
+      height: 70vh;
+      border-radius: 50%;
+      border: 1px dashed rgba(24, 220, 255, 0.1);
+      z-index: 2;
+      opacity: 0;
+      transform: scale(0.6) rotate(0deg);
+      pointer-events: none;
+    }
+
+    .portal-wireframe-inner {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      border: 1px solid rgba(125, 95, 255, 0.05);
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .portal-wireframe-inner::before {
+      content: '';
+      position: absolute;
+      width: 90%;
+      height: 90%;
+      border-radius: 50%;
+      border: 1px dashed rgba(24, 220, 255, 0.05);
+      animation: spin 30s linear infinite reverse;
+    }
+
+    /* ==========================================
+       SECTION 2: NEBULA PASSAGE
+       ========================================== */
+    #section-nebula {
+      justify-content: flex-start;
+    }
+
+    .nebula-grid {
+      display: grid;
+      grid-template-columns: 1.2fr 0.8fr;
+      gap: 50px;
+      align-items: center;
+      width: 100%;
+    }
+
+    .nebula-text-card {
+      background: rgba(255, 255, 255, 0.01);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(15px);
+      -webkit-backdrop-filter: blur(15px);
+      padding: 50px;
+      border-radius: 24px;
+      box-shadow: 0 30px 60px rgba(0, 0, 0, 0.4);
+      transform: translateX(-100px);
+      opacity: 0;
+    }
+
+    .nebula-step {
+      font-family: var(--font-sans);
+      font-size: 12px;
+      color: var(--secondary);
+      font-weight: 700;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      margin-bottom: 20px;
+    }
+
+    .nebula-h2 {
+      font-family: var(--font-serif);
+      font-size: clamp(2rem, 3.5vw, 4.5rem);
+      font-weight: 700;
+      line-height: 1.1;
+      margin-bottom: 25px;
+      color: var(--text-white);
+    }
+
+    .nebula-desc {
+      font-size: 16px;
+      color: var(--text-gray);
+      line-height: 1.7;
+      margin-bottom: 30px;
+      font-weight: 300;
+    }
+
+    .space-telemetry {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      padding-top: 25px;
+    }
+
+    .telemetry-item {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .telemetry-label {
+      font-family: var(--font-sans);
+      font-size: 9px;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: rgba(255, 255, 255, 0.4);
+    }
+
+    .telemetry-val {
+      font-family: var(--font-sans);
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--secondary);
+    }
+
+    /* Floating abstract visual */
+    .nebula-graphic-wrapper {
+      position: relative;
+      height: 400px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transform: translateX(100px);
+      opacity: 0;
+    }
+
+    .nebula-orb {
+      width: 250px;
+      height: 250px;
+      border-radius: 50%;
+      background: radial-gradient(circle, var(--primary) 0%, rgba(3, 3, 13, 0) 70%);
+      filter: blur(10px);
+      opacity: 0.7;
+      animation: pulse 8s ease-in-out infinite alternate;
+    }
+
+    .nebula-constellation {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(0.9); opacity: 0.5; }
+      100% { transform: scale(1.1); opacity: 0.8; }
+    }
+
+    /* ==========================================
+       SECTION 3: THE SINGULARITY (BLACK HOLE)
+       ========================================== */
+    #section-singularity {
+      justify-content: center;
+    }
+
+    .singularity-container {
+      text-align: center;
+      max-width: 800px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .singularity-step {
+      font-family: var(--font-sans);
+      font-size: 12px;
+      color: var(--accent);
+      font-weight: 700;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      margin-bottom: 25px;
+      opacity: 0;
+      transform: translateY(20px);
+    }
+
+    /* Warp text subject to SVG filter */
+    .warp-text-container {
+      filter: url(#gravity-warp);
+      margin-bottom: 30px;
+    }
+
+    .singularity-title {
+      font-family: var(--font-serif);
+      font-size: clamp(2.5rem, 5.5vw, 6.5rem);
+      font-weight: 900;
+      text-transform: uppercase;
+      line-height: 1;
+      color: var(--text-white);
+      letter-spacing: 0.05em;
+    }
+
+    .singularity-desc {
+      font-size: 18px;
+      color: var(--text-gray);
+      line-height: 1.7;
+      max-width: 600px;
+      font-weight: 300;
+      opacity: 0;
+      transform: translateY(30px);
+    }
+
+    /* Radial Singularity Ring */
+    .singularity-vortex-ring {
+      position: absolute;
+      width: 300px;
+      height: 300px;
+      border-radius: 50%;
+      background: transparent;
+      border: 2px solid rgba(255, 63, 52, 0.15);
+      z-index: 1;
+      pointer-events: none;
+      box-shadow: 0 0 50px rgba(255, 63, 52, 0.05), inset 0 0 50px rgba(255, 63, 52, 0.05);
+      opacity: 0;
+      transform: scale(0.5);
+    }
+
+    .singularity-vortex-ring::after {
+      content: '';
+      position: absolute;
+      top: -10px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 20px var(--accent), 0 0 40px var(--accent);
+    }
+
+    /* ==========================================
+       SECTION 4: QUANTUM GENESIS
+       ========================================== */
+    #section-rebirth {
+      background: transparent;
+    }
+
+    .rebirth-card {
+      background: rgba(255, 255, 255, 0.01);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      backdrop-filter: blur(25px);
+      -webkit-backdrop-filter: blur(25px);
+      padding: 70px 80px;
+      border-radius: 32px;
+      text-align: center;
+      max-width: 800px;
+      box-shadow: 0 40px 100px rgba(0, 0, 0, 0.6), 
+                  0 0 100px rgba(125, 95, 255, 0.05);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      transform: scale(0.85) translateY(50px);
+      opacity: 0;
+    }
+
+    .rebirth-step {
+      font-family: var(--font-sans);
+      font-size: 11px;
+      color: var(--gold);
+      font-weight: 700;
+      letter-spacing: 0.4em;
+      text-transform: uppercase;
+      margin-bottom: 25px;
+    }
+
+    .rebirth-title {
+      font-family: var(--font-serif);
+      font-size: clamp(2.5rem, 5vw, 5.5rem);
+      font-weight: 900;
+      text-transform: uppercase;
+      line-height: 1.1;
+      margin-bottom: 30px;
+      background: linear-gradient(135deg, #fff 30%, var(--secondary) 70%, var(--primary) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .rebirth-desc {
+      font-size: 17px;
+      color: var(--text-gray);
+      line-height: 1.8;
+      font-weight: 300;
+      margin-bottom: 45px;
+    }
+
+    .interactive-btn {
+      font-family: var(--font-sans);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      color: var(--bg-dark);
+      background-color: var(--text-white);
+      border: none;
+      padding: 18px 40px;
+      border-radius: 50px;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 15px 30px rgba(255, 255, 255, 0.1);
+      transition: var(--transition-smooth);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+    }
+
+    .interactive-btn::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, var(--secondary), var(--primary));
+      z-index: -1;
+      opacity: 0;
+      transition: var(--transition-smooth);
+    }
+
+    .interactive-btn:hover {
+      color: var(--text-white);
+      box-shadow: 0 20px 40px rgba(125, 95, 255, 0.3);
+      transform: translateY(-4px);
+    }
+
+    .interactive-btn:hover::before {
+      opacity: 1;
+    }
+
+    .interactive-btn svg {
+      transition: var(--transition-smooth);
+      fill: currentColor;
+    }
+
+    .interactive-btn:hover svg {
+      transform: translateX(5px);
+    }
+
+    /* Ethereal Footer inside Rebirth */
+    .genesis-footer {
+      margin-top: 100px;
+      font-family: var(--font-sans);
+      font-size: 10px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: rgba(255, 255, 255, 0.2);
+    }
+
+    /* ==========================================
+       4. MOBILE RESPONSIVENESS
+       ========================================== */
+    @media (max-width: 968px) {
+      .nebula-grid {
+        grid-template-columns: 1fr;
+        gap: 30px;
+      }
+      .nebula-text-card {
+        padding: 30px;
+      }
+      .nebula-graphic-wrapper {
+        height: 250px;
+      }
+      .nebula-orb {
+        width: 180px;
+        height: 180px;
+      }
+      .rebirth-card {
+        padding: 40px 30px;
+      }
+      .brand-logo {
+        top: 20px;
+        left: 20px;
+        font-size: 13px;
+      }
+      .audio-control-container {
+        top: 20px;
+        right: 20px;
+        padding: 8px 15px;
+      }
+      .side-nav {
+        display: none; /* Hide timeline navigation on mobile for simpler UI */
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Custom Cursor Elements -->
+  <div class="custom-cursor" id="cursor-dot"></div>
+  <div class="custom-cursor-ring" id="cursor-ring"></div>
+
+  <!-- Ambient Backdrop Glow -->
+  <div class="ambient-glow" id="bg-glow"></div>
+
+  <!-- High-Performance Background Canvas -->
+  <canvas id="cosmic-canvas"></canvas>
+
+  <!-- Live Dynamic SVG Distortion Filter -->
+  <svg class="svg-filters" style="position: absolute; width: 0; height: 0;">
+    <defs>
+      <filter id="gravity-warp">
+        <!-- Generates organic noise resembling warping waves -->
+        <feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" result="noise" />
+        <!-- Displaces pixels based on the red channel of the noise, dynamically scaled in JS -->
+        <feDisplacementMap in="SourceGraphic" in2="noise" scale="0" xChannelSelector="R" yChannelSelector="G" id="warp-displacement" />
+      </filter>
+    </defs>
+  </svg>
+
+  <!-- Brand logo -->
+  <a href="#" class="brand-logo hover-target">
+    <span></span>COSMOS
+  </a>
+
+  <!-- Floating Audio Engine Toggler -->
+  <div class="audio-control-container hover-target" id="audio-toggle">
+    <span class="audio-text" id="audio-status-text">Audio Engine Off</span>
+    <div class="audio-waves">
+      <div class="audio-wave-bar"></div>
+      <div class="audio-wave-bar"></div>
+      <div class="audio-wave-bar"></div>
+      <div class="audio-wave-bar"></div>
+      <div class="audio-wave-bar"></div>
+    </div>
+  </div>
+
+  <!-- Sleek Vertical Progress Indicators -->
+  <div class="side-nav">
+    <div class="side-nav-item active" data-section="0">
+      <div class="side-nav-dot"></div>
+      <div class="side-nav-label">The Threshold</div>
+    </div>
+    <div class="side-nav-item" data-section="1">
+      <div class="side-nav-dot"></div>
+      <div class="side-nav-label">Nebula Passage</div>
+    </div>
+    <div class="side-nav-item" data-section="2">
+      <div class="side-nav-dot"></div>
+      <div class="side-nav-label">Event Horizon</div>
+    </div>
+    <div class="side-nav-item" data-section="3">
+      <div class="side-nav-dot"></div>
+      <div class="side-nav-label">Quantum Genesis</div>
+    </div>
+  </div>
+
+  <!-- ==========================================
+       MAIN SCROLL NARRATIVE
+       ========================================== */ -->
+  <div class="narrative-container">
+    
+    <!-- Section 1: The Launch / The Threshold -->
+    <section id="section-launch">
+      <div class="section-content intro-title-wrapper">
+        <div class="intro-meta" id="launch-meta">Sector 00 // Prelude</div>
+        <h1 class="main-cinematic-title" id="launch-title">
+          <span class="title-part neon-text-cyan hover-target" style="color: var(--secondary);">SILENT</span>
+          <span class="title-part neon-text-purple" style="color: var(--primary);">ODYSSEY</span>
+        </h1>
+        <p class="intro-desc" id="launch-desc">
+          We left the dying echoes of Earth, charting vectors toward a silence that holds the secrets of our genesis. Scroll forward into the unknown.
+        </p>
+      </div>
+
+      <!-- Rotating Portal Rings that expand on scroll -->
+      <div class="portal-wireframe" id="launch-portal">
+        <div class="portal-wireframe-inner"></div>
+      </div>
+
+      <!-- Bottom Hint -->
+      <div class="scroll-hint" id="launch-hint">
+        <span class="scroll-hint-text">Scroll to initiate warp</span>
+        <div class="scroll-hint-icon">
+          <div class="scroll-hint-wheel"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Section 2: Nebula Passage -->
+    <section id="section-nebula">
+      <div class="section-content nebula-grid">
+        
+        <!-- Interactive Telemetry Glass Card -->
+        <div class="nebula-text-card hover-target" id="nebula-card">
+          <div class="nebula-step">Sector 01 // Spatial Drift</div>
+          <h2 class="nebula-h2 neon-text-purple">NEBULA<br>PASSAGE</h2>
+          <p class="nebula-desc">
+            Navigating the glowing gases of the Veil Nebula. Cosmic radiation illuminates our hull with deep purples and high-intensity cyans. Dust streams like rivers of stardust, bending to our gravitational draft.
+          </p>
+          <div class="space-telemetry">
+            <div class="telemetry-item">
+              <span class="telemetry-label">Stardust Density</span>
+              <span class="telemetry-val" id="telemetry-dust">43.2k μg/m³</span>
+            </div>
+            <div class="telemetry-item">
+              <span class="telemetry-label">Quantum Drift</span>
+              <span class="telemetry-val" id="telemetry-drift">1.402 ly/s</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Floating visual orb/constellation -->
+        <div class="nebula-graphic-wrapper" id="nebula-graphic">
+          <div class="nebula-orb"></div>
+          <!-- SVG abstract constellation outline -->
+          <svg class="nebula-constellation" viewBox="0 0 100 100">
+            <circle cx="20" cy="30" r="1" fill="#fff" />
+            <circle cx="80" cy="20" r="1.5" fill="#fff" />
+            <circle cx="50" cy="70" r="1" fill="#fff" />
+            <circle cx="65" cy="45" r="2" fill="var(--secondary)" />
+            <line x1="20" y1="30" x2="65" y2="45" stroke="rgba(255,255,255,0.15)" stroke-width="0.5" />
+            <line x1="80" y1="20" x2="65" y2="45" stroke="rgba(255,255,255,0.15)" stroke-width="0.5" />
+            <line x1="50" y1="70" x2="65" y2="45" stroke="rgba(255,255,255,0.15)" stroke-width="0.5" />
+          </svg>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- Section 3: Event Horizon -->
+    <section id="section-singularity">
+      
+      <!-- Spinning Event Horizon Ring behind text -->
+      <div class="singularity-vortex-ring" id="singularity-ring"></div>
+
+      <div class="section-content singularity-container">
+        <div class="singularity-step" id="singularity-meta">Sector 02 // Horizon Collapse</div>
+        <div class="warp-text-container">
+          <h2 class="singularity-title neon-text-pink" id="singularity-title">SINGULARITY</h2>
+        </div>
+        <p class="singularity-desc" id="singularity-desc">
+          Time dilates. Spacetime stretches like thread. The light of a billion stars bends into a glowing ring of pure compression. We are pulled into the absolute center—where physics collapses, and a new dimension begins.
+        </p>
+      </div>
+    </section>
+
+    <!-- Section 4: Quantum Rebirth -->
+    <section id="section-rebirth">
+      <div class="section-content" style="display: flex; align-items: center; justify-content: center; flex-direction: column;">
+        
+        <!-- Central Glassmorphism Card -->
+        <div class="rebirth-card hover-target" id="rebirth-card">
+          <div class="rebirth-step">Sector 03 // Infinite Loop</div>
+          <h2 class="rebirth-title">QUANTUM GENESIS</h2>
+          <p class="rebirth-desc">
+            Through the singularity, we did not find death. We found an explosion of infinite probability. Every particle we once were scatters across a brand new universe—resetting the infinite loop.
+          </p>
+          <a href="#" class="interactive-btn hover-target" id="btn-restart">
+            <span>Begin Next Loop</span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
+            </svg>
+          </a>
+        </div>
+
+        <div class="genesis-footer">
+          // project cosmos. complete immersion demo.
+        </div>
+
+      </div>
+    </section>
+
+  </div>
+
+  <!-- ==========================================
+       5. CORE INTERACTION SCRIPTS
+       ========================================== -->
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+
+      // Register ScrollTrigger plugin
+      gsap.registerPlugin(ScrollTrigger);
+
+      // Global parameters
+      let activeSectionIndex = 0;
+      let scrollProgress = 0; // 0 to 3 across the whole page
+      let scrollVelocity = 0;
+      let lastScrollTop = 0;
+      let isAudioRunning = false;
+
+      // Selectors
+      const cursorDot = document.getElementById("cursor-dot");
+      const cursorRing = document.getElementById("cursor-ring");
+      const bgGlow = document.getElementById("bg-glow");
+      const sideNavItems = document.querySelectorAll(".side-nav-item");
+
+      /* ==========================================
+         A. SMOOTH CUSTOM CURSOR
+         ========================================== */
+      let mouseX = window.innerWidth / 2;
+      let mouseY = window.innerHeight / 2;
+      let ringX = mouseX;
+      let ringY = mouseY;
+
+      window.addEventListener("mousemove", (e) => {
+        mouseX = e.clientX;
+        mouseY = e.clientY;
+
+        // Directly move dot
+        gsap.to(cursorDot, {
+          x: mouseX,
+          y: mouseY,
+          duration: 0.05
+        });
+      });
+
+      // Smooth lag for outer circle
+      function updateCursorRing() {
+        // Linear interpolation for smooth trailing effect
+        ringX += (mouseX - ringX) * 0.15;
+        ringY += (mouseY - ringY) * 0.15;
+        
+        cursorRing.style.left = `${ringX}px`;
+        cursorRing.style.top = `${ringY}px`;
+        
+        requestAnimationFrame(updateCursorRing);
+      }
+      updateCursorRing();
+
+      // Mouse Hover Effects
+      const hoverElements = document.querySelectorAll(".hover-target, button, a, .side-nav-item");
+      hoverElements.forEach(el => {
+        el.addEventListener("mouseenter", () => {
+          cursorDot.classList.add("hover");
+          cursorRing.classList.add("hover");
+        });
+        el.addEventListener("mouseleave", () => {
+          cursorDot.classList.remove("hover");
+          cursorRing.classList.remove("hover");
+        });
+      });
+
+      /* ==========================================
+         B. PROCEDURAL SYNTHESIZER (WEB AUDIO API)
+         ========================================== */
+      class CosmicSynth {
+        constructor() {
+          this.ctx = null;
+          this.droneOsc1 = null;
+          this.droneOsc2 = null;
+          this.filter = null;
+          this.delayNode = null;
+          this.arpInterval = null;
+          this.masterVolume = null;
+          
+          this.notes = [110, 130.81, 146.83, 164.81, 196.00, 220.00]; // Pentatonic space notes (A, C, D, E, G)
+          this.chordGenesis = [220.00, 261.63, 293.66, 329.63, 392.00, 440.00]; // Rebirth chords (higher pitch, brighter)
+        }
+
+        initialize() {
+          // Create browser audio context
+          const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+          this.ctx = new AudioContextClass();
+          
+          // Master Volume Control
+          this.masterVolume = this.ctx.createGain();
+          this.masterVolume.gain.setValueAtTime(0, this.ctx.currentTime);
+          this.masterVolume.connect(this.ctx.destination);
+
+          // Deep Drone: detuned sawtooth oscillators
+          this.droneOsc1 = this.ctx.createOscillator();
+          this.droneOsc2 = this.ctx.createOscillator();
+          const droneGain1 = this.ctx.createGain();
+          const droneGain2 = this.ctx.createGain();
+
+          this.droneOsc1.type = 'sawtooth';
+          this.droneOsc2.type = 'triangle';
+          
+          // Pitch: deep space low A
+          this.droneOsc1.frequency.setValueAtTime(55, this.ctx.currentTime); 
+          this.droneOsc2.frequency.setValueAtTime(55.5, this.ctx.currentTime); // detuned
+
+          droneGain1.gain.setValueAtTime(0.35, this.ctx.currentTime);
+          droneGain2.gain.setValueAtTime(0.45, this.ctx.currentTime);
+
+          // Filter for warm, cosmic sound
+          this.filter = this.ctx.createBiquadFilter();
+          this.filter.type = 'lowpass';
+          this.filter.frequency.setValueAtTime(250, this.ctx.currentTime);
+          this.filter.Q.setValueAtTime(4, this.ctx.currentTime);
+
+          // Connect Drone
+          this.droneOsc1.connect(droneGain1);
+          this.droneOsc2.connect(droneGain2);
+          droneGain1.connect(this.filter);
+          droneGain2.connect(this.filter);
+
+          // Create Delay/Echo Loop
+          this.delayNode = this.ctx.createDelay(1.0);
+          this.delayNode.delayTime.setValueAtTime(0.4, this.ctx.currentTime);
+          const feedback = this.ctx.createGain();
+          feedback.gain.setValueAtTime(0.6, this.ctx.currentTime);
+
+          this.delayNode.connect(feedback);
+          feedback.connect(this.delayNode); // feedback loop
+
+          this.filter.connect(this.masterVolume);
+          this.filter.connect(this.delayNode);
+          this.delayNode.connect(this.masterVolume);
+
+          // Start Oscillators
+          this.droneOsc1.start();
+          this.droneOsc2.start();
+
+          // Fade In master volume smoothly
+          this.masterVolume.gain.linearRampToValueAtTime(0.25, this.ctx.currentTime + 2.0);
+
+          // Launch cosmic arpeggiator loop
+          this.startArpeggiator();
+        }
+
+        startArpeggiator() {
+          let step = 0;
+          this.arpInterval = setInterval(() => {
+            if (!this.ctx || this.ctx.state === 'suspended') return;
+
+            // Arp speed based on scroll velocity
+            const scaleSpeed = Math.min(Math.max(scrollVelocity * 0.1, 1), 3);
+            
+            // Choose note set based on section
+            let notesList = this.notes;
+            if (scrollProgress > 2.5) {
+              notesList = this.chordGenesis; // quantum genesis: brighter notes
+            }
+
+            // Pick note procedurally
+            const baseFreq = notesList[step % notesList.length];
+            const multiplier = Math.random() > 0.75 ? 2 : 1; // octaves jumps
+            const freq = baseFreq * multiplier;
+
+            this.playCosmicSpark(freq);
+            step++;
+          }, 450); // Loop interval in ms
+        }
+
+        playCosmicSpark(freq) {
+          if (!this.ctx) return;
+
+          // Sound spark oscillator
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+
+          gain.gain.setValueAtTime(0, this.ctx.currentTime);
+          gain.gain.linearRampToValueAtTime(0.08, this.ctx.currentTime + 0.05); // quick attack
+          
+          // Exponential decay
+          gain.gain.exponentialRampToValueAtTime(0.0001, this.ctx.currentTime + 1.2); 
+
+          // Low-pass sweeping filter
+          const sparkFilter = this.ctx.createBiquadFilter();
+          sparkFilter.type = 'bandpass';
+          sparkFilter.frequency.setValueAtTime(freq * 1.5, this.ctx.currentTime);
+          sparkFilter.Q.setValueAtTime(2, this.ctx.currentTime);
+
+          osc.connect(sparkFilter);
+          sparkFilter.connect(gain);
+          gain.connect(this.masterVolume);
+          gain.connect(this.delayNode); // feed into main echoes
+
+          osc.start();
+          osc.stop(this.ctx.currentTime + 1.5);
+        }
+
+        // Dynamically modulate audio properties on scroll
+        updateParameters(progress, velocity) {
+          if (!this.ctx || this.ctx.state === 'suspended') return;
+
+          const time = this.ctx.currentTime;
+
+          // 1. Drone Frequency shifts as we go deeper
+          const baseFreq = 55 + (progress * 15); // Pitch increases as we fly forward
+          this.droneOsc1.frequency.setTargetAtTime(baseFreq, time, 0.2);
+          this.droneOsc2.frequency.setTargetAtTime(baseFreq + 0.5, time, 0.2);
+
+          // 2. Filter Cutoff frequency - expands in space, gets crushed in black hole
+          let cutoff = 250;
+          if (progress < 1) {
+            cutoff = 200 + (progress * 150); // opening up
+          } else if (progress >= 1 && progress < 2) {
+            cutoff = 350 + ((progress - 1) * 300); // glowing nebula bright
+          } else if (progress >= 2 && progress < 2.8) {
+            // Sucked into black hole: cutoff gets muffled and dark
+            const compressAmount = Math.max(0, 1 - (progress - 2) * 1.25);
+            cutoff = 650 * compressAmount + 80;
+          } else {
+            // Rebirth: massive explosion of frequency space
+            cutoff = 1000 + (progress - 2.8) * 1500;
+          }
+
+          // Bound limits
+          cutoff = Math.min(Math.max(80, cutoff), 4000);
+          this.filter.frequency.setTargetAtTime(cutoff, time, 0.1);
+
+          // Modulation index depending on velocity
+          const volumeScale = Math.min(Math.max(0.2 + (velocity * 0.05), 0.15), 0.45);
+          this.masterVolume.gain.setTargetAtTime(volumeScale, time, 0.3);
+        }
+
+        toggle(btnElement, textElement) {
+          if (!this.ctx) {
+            this.initialize();
+            isAudioRunning = true;
+            btnElement.classList.add("playing");
+            textElement.innerText = "Audio Engine Active";
+            
+            // Text visual glow on toggle
+            gsap.to(textElement, { color: "var(--secondary)", duration: 0.3 });
+          } else {
+            if (this.ctx.state === 'running') {
+              this.ctx.suspend();
+              isAudioRunning = false;
+              btnElement.classList.remove("playing");
+              textElement.innerText = "Audio Engine Suspended";
+              gsap.to(textElement, { color: "var(--text-white)", duration: 0.3 });
+            } else if (this.ctx.state === 'suspended') {
+              this.ctx.resume();
+              isAudioRunning = true;
+              btnElement.classList.add("playing");
+              textElement.innerText = "Audio Engine Active";
+              gsap.to(textElement, { color: "var(--secondary)", duration: 0.3 });
+            }
+          }
+        }
+      }
+
+      const synth = new CosmicSynth();
+      const audioToggle = document.getElementById("audio-toggle");
+      const audioStatusText = document.getElementById("audio-status-text");
+
+      audioToggle.addEventListener("click", () => {
+        synth.toggle(audioToggle, audioStatusText);
+      });
+
+
+      /* ==========================================
+         C. HIGH-PERFORMANCE CANVAS PARTICLE CONTROLLER
+         ========================================== */
+      const canvas = document.getElementById("cosmic-canvas");
+      const ctx = canvas.getContext("2d");
+
+      let width = canvas.width = window.innerWidth;
+      let height = canvas.height = window.innerHeight;
+
+      // Handle Resize
+      window.addEventListener("resize", () => {
+        width = canvas.width = window.innerWidth;
+        height = canvas.height = window.innerHeight;
+      });
+
+      class Particle {
+        constructor() {
+          this.reset(true);
+        }
+
+        reset(isInitial = false) {
+          this.x = Math.random() * width;
+          this.y = Math.random() * height;
+          this.z = isInitial ? Math.random() * width : width; // Depth variable
+
+          this.size = Math.random() * 2 + 0.5;
+          this.speed = Math.random() * 2 + 1;
+          
+          // Colors: Nebula-inspired palette
+          const colors = [
+            'rgba(125, 95, 255, ',  // Purple
+            'rgba(24, 220, 255, ',  // Cyan
+            'rgba(255, 63, 52, ',   // Red/Pink
+            'rgba(255, 255, 255, '  // Pure white star
+          ];
+          this.baseColor = colors[Math.floor(Math.random() * colors.length)];
+          this.alpha = Math.random() * 0.6 + 0.2;
+          this.angle = Math.random() * Math.PI * 2;
+          
+          // Orbit factors
+          this.orbitRadius = Math.random() * Math.min(width, height) * 0.4 + 30;
+          this.orbitSpeed = (Math.random() * 0.02 + 0.005) * (Math.random() > 0.5 ? 1 : -1);
+          
+          // Exploding factors
+          this.expAngle = Math.random() * Math.PI * 2;
+          this.expSpeed = Math.random() * 12 + 3;
+          this.friction = 0.95;
+          this.expLife = 1.0;
+        }
+
+        update(stage, progress, vel) {
+          // Base parameter interpolation
+          const speedMod = 1 + vel * 0.15;
+
+          if (stage === 0) {
+            // Stage 0: Classic Forward Space Warp Starfield
+            this.z -= this.speed * 3 * speedMod;
+            if (this.z <= 0) {
+              this.reset(false);
+            }
+          } 
+          else if (stage === 1) {
+            // Stage 1: Gravity Swarming / Nebula Flow
+            // Slow orbital movement
+            this.angle += this.orbitSpeed * speedMod;
+            const targetX = width / 2 + Math.cos(this.angle) * this.orbitRadius;
+            const targetY = height / 2 + Math.sin(this.angle) * this.orbitRadius;
+
+            this.x += (targetX - this.x) * 0.03;
+            this.y += (targetY - this.y) * 0.03;
+
+            // Attract slightly to mouse
+            const dx = mouseX - this.x;
+            const dy = mouseY - this.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            if (dist < 200) {
+              const force = (200 - dist) * 0.0003;
+              this.x += dx * force;
+              this.y += dy * force;
+            }
+          } 
+          else if (stage === 2) {
+            // Stage 2: Singularity Vortex Pull
+            const centerX = width / 2;
+            const centerY = height / 2;
+            const dx = centerX - this.x;
+            const dy = centerY - this.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+
+            if (dist < 10) {
+              // Pulled inside the Singularity -> reset outside the screen rim
+              const rimAngle = Math.random() * Math.PI * 2;
+              const spawnRadius = Math.max(width, height) * 0.7;
+              this.x = centerX + Math.cos(rimAngle) * spawnRadius;
+              this.y = centerY + Math.sin(rimAngle) * spawnRadius;
+            } else {
+              // Orbital gravity vortex math
+              const pullForce = Math.min(2.5, 400 / dist) * speedMod;
+              const orbitAngle = Math.atan2(dy, dx) + 0.15; // angle + offset creates spiral
+              
+              this.x += Math.cos(orbitAngle) * -pullForce * 3 + dx * 0.015;
+              this.y += Math.sin(orbitAngle) * -pullForce * 3 + dy * 0.015;
+            }
+          } 
+          else if (stage === 3) {
+            // Stage 3: Quantum Rebirth Radial Explosion
+            if (this.expLife > 0) {
+              // Apply physical drift from blast
+              this.x += Math.cos(this.expAngle) * this.expSpeed;
+              this.y += Math.sin(this.expAngle) * this.expSpeed;
+              this.expSpeed *= this.friction;
+              this.expLife -= 0.008;
+            } else {
+              // Drifts back to starfield
+              this.reset(false);
+              this.expLife = 1.0;
+            }
+          }
+        }
+
+        draw() {
+          ctx.beginPath();
+          
+          if (activeSectionIndex === 0) {
+            // Render 3D star projection
+            const px = (this.x - width / 2) * (width / this.z) + width / 2;
+            const py = (this.y - height / 2) * (width / this.z) + height / 2;
+            const pSize = Math.max(0.1, (1 - this.z / width) * 3);
+
+            if (px > 0 && px < width && py > 0 && py < height) {
+              ctx.arc(px, py, pSize, 0, Math.PI * 2);
+              ctx.fillStyle = `${this.baseColor}${this.alpha})`;
+              ctx.fill();
+            }
+          } else {
+            // standard 2D render
+            ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+            let alphaRender = this.alpha;
+            if (activeSectionIndex === 3) alphaRender *= this.expLife;
+            
+            ctx.fillStyle = `${this.baseColor}${alphaRender})`;
+            ctx.fill();
+          }
+        }
+      }
+
+      // Initialize Star Array
+      const starCount = 350;
+      const stars = [];
+      for (let i = 0; i < starCount; i++) {
+        stars.push(new Particle());
+      }
+
+      // Live Loop
+      function renderCanvas() {
+        ctx.fillStyle = 'rgba(3, 3, 13, 0.15)'; // trails effect
+        ctx.fillRect(0, 0, width, height);
+
+        // Render & Update stars
+        stars.forEach(star => {
+          star.update(activeSectionIndex, scrollProgress, scrollVelocity);
+          star.draw();
+        });
+
+        // Add additional atmospheric lights in Nebula stage
+        if (activeSectionIndex === 1) {
+          ctx.beginPath();
+          const nebGrad = ctx.createRadialGradient(mouseX, mouseY, 0, mouseX, mouseY, 150);
+          nebGrad.addColorStop(0, 'rgba(125, 95, 255, 0.08)');
+          nebGrad.addColorStop(0.5, 'rgba(24, 220, 255, 0.03)');
+          nebGrad.addColorStop(1, 'rgba(3, 3, 13, 0)');
+          ctx.fillStyle = nebGrad;
+          ctx.arc(mouseX, mouseY, 150, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        requestAnimationFrame(renderCanvas);
+      }
+      renderCanvas();
+
+
+      /* ==========================================
+         D. CINEMATIC GSAP TIMELINES & SCROLLTRIGGERS
+         ========================================== */
+      
+      // Calculate scroll speed/velocity
+      window.addEventListener("scroll", () => {
+        const st = window.scrollY;
+        scrollVelocity = Math.abs(st - lastScrollTop);
+        lastScrollTop = st <= 0 ? 0 : st;
+      });
+
+      // SECTION 1: Launch Timeline
+      const t1 = gsap.timeline({
+        scrollTrigger: {
+          trigger: "#section-launch",
+          start: "top top",
+          end: "bottom top",
+          scrub: 1.5,
+          pin: true,
+          onUpdate: (self) => {
+            scrollProgress = self.progress;
+            if (isAudioRunning) synth.updateParameters(scrollProgress, scrollVelocity);
+          }
+        }
+      });
+
+      // Entrance animation on load
+      gsap.to("#launch-meta", { opacity: 1, y: 0, duration: 1, delay: 0.5 });
+      gsap.to("#launch-title .title-part", { 
+        opacity: 1, 
+        y: 0, 
+        duration: 1.2, 
+        delay: 0.7, 
+        stagger: 0.2,
+        ease: "power4.out"
+      });
+      gsap.to("#launch-desc", { opacity: 1, y: 0, duration: 1, delay: 1 });
+      gsap.to("#launch-portal", { opacity: 1, scale: 1, duration: 1.5, delay: 1.2 });
+      gsap.to("#launch-hint", { opacity: 0.7, duration: 1, delay: 1.8 });
+
+      // Scroll animations
+      t1.to("#launch-title .title-part:first-child", { x: -200, opacity: 0, scale: 0.8 })
+        .to("#launch-title .title-part:last-child", { x: 200, opacity: 0, scale: 0.8 }, "<")
+        .to("#launch-desc", { y: -80, opacity: 0 }, "<")
+        .to("#launch-portal", { scale: 2.8, rotate: 180, opacity: 0, borderStyle: "solid" }, "<")
+        .to("#launch-hint", { opacity: 0, y: 50 }, "<");
+
+      // SECTION 2: Nebula Passage Timeline
+      const t2 = gsap.timeline({
+        scrollTrigger: {
+          trigger: "#section-nebula",
+          start: "top top",
+          end: "bottom top",
+          scrub: 1.5,
+          pin: true,
+          onEnter: () => {
+            activeSectionIndex = 1;
+            updateSideNav(1);
+            gsap.to(bgGlow, { background: "radial-gradient(circle, var(--primary-glow) 0%, rgba(3, 3, 13, 0) 70%)", duration: 1 });
+          },
+          onLeaveBack: () => {
+            activeSectionIndex = 0;
+            updateSideNav(0);
+            gsap.to(bgGlow, { background: "radial-gradient(circle, var(--primary-glow) 0%, rgba(3, 3, 13, 0) 70%)", duration: 1 });
+          },
+          onUpdate: (self) => {
+            scrollProgress = 1 + self.progress;
+            if (isAudioRunning) synth.updateParameters(scrollProgress, scrollVelocity);
+            
+            // Dynamically change telemetry digits in real-time scroll!
+            const driftVal = (1.402 + self.progress * 0.8).toFixed(3);
+            const dustVal = Math.floor(43.2 + self.progress * 150);
+            document.getElementById("telemetry-drift").innerText = `${driftVal} ly/s`;
+            document.getElementById("telemetry-dust").innerText = `${dustVal}k μg/m³`;
+          }
+        }
+      });
+
+      t2.to("#nebula-card", { opacity: 1, x: 0, duration: 1 })
+        .to("#nebula-graphic", { opacity: 1, x: 0, duration: 1 }, "<")
+        .to("#nebula-card", { scale: 0.9, opacity: 0, x: -100, delay: 0.5 })
+        .to("#nebula-graphic", { scale: 0.9, opacity: 0, x: 100, delay: 0.5 }, "<");
+
+      // SECTION 3: Event Horizon Timeline
+      const warpFilter = document.getElementById("warp-displacement");
+
+      const t3 = gsap.timeline({
+        scrollTrigger: {
+          trigger: "#section-singularity",
+          start: "top top",
+          end: "bottom top",
+          scrub: 1.5,
+          pin: true,
+          onEnter: () => {
+            activeSectionIndex = 2;
+            updateSideNav(2);
+            gsap.to(bgGlow, { background: "radial-gradient(circle, var(--accent-glow) 0%, rgba(3, 3, 13, 0) 70%)", duration: 1 });
+          },
+          onLeaveBack: () => {
+            activeSectionIndex = 1;
+            updateSideNav(1);
+            gsap.to(bgGlow, { background: "radial-gradient(circle, var(--primary-glow) 0%, rgba(3, 3, 13, 0) 70%)", duration: 1 });
+          },
+          onUpdate: (self) => {
+            scrollProgress = 2 + self.progress;
+            if (isAudioRunning) synth.updateParameters(scrollProgress, scrollVelocity);
+            
+            // Warp text distort modulation via feDisplacementMap scale attribute
+            const scaleWarp = Math.sin(self.progress * Math.PI) * 75; // Peak distortion in the middle of scroll
+            warpFilter.setAttribute("scale", scaleWarp);
+          }
+        }
+      });
+
+      t3.to("#singularity-meta", { opacity: 1, y: 0, duration: 0.8 })
+        .to("#singularity-title", { opacity: 1, scale: 1.1, duration: 1 }, "<")
+        .to("#singularity-desc", { opacity: 1, y: 0, duration: 1 }, "<0.2")
+        .to("#singularity-ring", { opacity: 0.8, scale: 1.5, rotate: 360, duration: 2.5, ease: "none" }, "<")
+        .to("#singularity-title", { scale: 0, opacity: 0, duration: 0.8 })
+        .to("#singularity-desc", { scale: 0, opacity: 0, duration: 0.8 }, "<")
+        .to("#singularity-ring", { scale: 0.1, opacity: 0, duration: 1 }, "<");
+
+      // SECTION 4: Quantum Rebirth Timeline
+      const t4 = gsap.timeline({
+        scrollTrigger: {
+          trigger: "#section-rebirth",
+          start: "top top",
+          end: "bottom top",
+          scrub: 1.5,
+          pin: true,
+          onEnter: () => {
+            activeSectionIndex = 3;
+            updateSideNav(3);
+            gsap.to(bgGlow, { background: "radial-gradient(circle, rgba(255, 184, 184, 0.15) 0%, rgba(3, 3, 13, 0) 70%)", duration: 1 });
+            
+            // Trigger exploding particle blast
+            stars.forEach(star => {
+              const blastAngle = Math.random() * Math.PI * 2;
+              star.x = width / 2;
+              star.y = height / 2;
+              star.expAngle = blastAngle;
+              star.expSpeed = Math.random() * 14 + 6;
+              star.expLife = 1.0;
+            });
+          },
+          onLeaveBack: () => {
+            activeSectionIndex = 2;
+            updateSideNav(2);
+            gsap.to(bgGlow, { background: "radial-gradient(circle, var(--accent-glow) 0%, rgba(3, 3, 13, 0) 70%)", duration: 1 });
+          },
+          onUpdate: (self) => {
+            scrollProgress = 2.8 + self.progress * 0.2;
+            if (isAudioRunning) synth.updateParameters(scrollProgress, scrollVelocity);
+          }
+        }
+      });
+
+      t4.to("#rebirth-card", { scale: 1, opacity: 1, duration: 1.2, ease: "back.out(1.4)" });
+
+
+      /* ==========================================
+         E. UI CONTROLS & NAVIGATION PROGRESS
+         ========================================== */
+      function updateSideNav(index) {
+        sideNavItems.forEach((item, idx) => {
+          if (idx === index) {
+            item.classList.add("active");
+          } else {
+            item.classList.remove("active");
+          }
+        });
+      }
+
+      // Direct Sidebar Click Navigation using ScrollTrigger scroll position calculator
+      sideNavItems.forEach(item => {
+        item.addEventListener("click", () => {
+          const sectionIdx = parseInt(item.getAttribute("data-section"));
+          const targetY = sectionIdx * window.innerHeight;
+          
+          gsap.to(window, {
+            scrollTo: targetY,
+            duration: 1.5,
+            ease: "power3.inOut"
+          });
+        });
+      });
+
+      // Restart Button Reset
+      const btnRestart = document.getElementById("btn-restart");
+      btnRestart.addEventListener("click", (e) => {
+        e.preventDefault();
+        
+        // Dynamic cinematic flash before loop restart
+        gsap.to(bgGlow, { background: "radial-gradient(circle, #fff 0%, rgba(3, 3, 13, 0) 70%)", opacity: 1, duration: 0.1 });
+        
+        gsap.to(window, {
+          scrollTo: 0,
+          duration: 2.5,
+          ease: "power4.inOut",
+          onComplete: () => {
+            // Fade ambient glow back to purple
+            gsap.to(bgGlow, { 
+              background: "radial-gradient(circle, var(--primary-glow) 0%, rgba(3, 3, 13, 0) 70%)", 
+              opacity: 0.5, 
+              duration: 1 
+            });
+          }
+        });
+      });
+
+      // ScrollTo functionality fallback code if not loaded
+      if(!window.scrollTo) {
+        window.scrollTo = function(options) {
+          window.scroll({
+            top: options.scrollTo || options,
+            behavior: 'smooth'
+          });
+        }
+      }
+      
+      // Inject GSAP ScrollToPlugin manually for programmatic clicks
+      const scScript = document.createElement("script");
+      scScript.src = "https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollToPlugin.min.js";
+      document.head.appendChild(scScript);
+
+    });
+  </script>
+</body>
+</html>

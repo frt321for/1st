@@ -1,0 +1,1228 @@
+<!DOCTYPE html>
+<!--
+DIRECTION CONTRACT
+THESIS         手作陶瓷最该被回答的问题不是「好不好看」，而是「我收到的那一件会和图上差多少」。
+               整页围绕「哪些会变、哪些不会变」组织：器型用带公差的线图，规格表列出每项的允许偏差，
+               评价按「对差异的态度」分组。拒绝手工品类默认的米色 + 衬线 + 陶土橙。
+OWN-WORLD      冷岩灰纸底（偏青，不是米白）+ 炭黑正文 + 单一窑青强调色；
+               尺寸、公差、温度一律等宽表格数字；分区靠发丝线与尺寸标注，不靠卡片阴影。
+STORY          先看清器型与真实尺寸，再挑釉色（釉色会改变线图的填充），
+               然后读懂公差意味着什么，最后在购买框里确认发货是现货还是等窑。
+FIRST VIEWPORT 左侧是带标注的器型线图与釉色切换，右侧是价格与购买；
+               「每件手作存在差异」这句话与加入购物车在同一屏内。
+SIGNATURE      器型线图：不是产品照，是带口径、高度、容量标注的技术图，
+               切换釉色时填充与垂流一起变，切换单品时整条轮廓换掉。
+-->
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>岩语 · 手冲咖啡器三件套</title>
+<style>
+/* ==========================================================================
+   岩语 · 手冲咖啡器套组详情页
+   ========================================================================== */
+
+:root{
+  --stone:#e6e7e4;
+  --stone-2:#f2f3f0;
+  --stone-3:#dadbd7;
+
+  --ink:#191a1a;
+  --ink-2:#4c4f50;
+  --ink-3:#5f6364;
+
+  --kiln:#35605c;
+  --kiln-2:#284b48;
+  --kiln-soft:#e0eae8;
+
+  --warn:#9c4a1e;
+
+  --hair:#cfd1cc;
+  --hair-2:#b3b6b0;
+
+  --r-sm:4px; --r-md:9px; --r-lg:14px;
+
+  --font:"PingFang SC","Hiragino Sans GB","Microsoft YaHei",
+         ui-sans-serif,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  --mono:ui-monospace,"SF Mono","Cascadia Mono",Consolas,monospace;
+  --ease:cubic-bezier(.22,.61,.36,1);
+}
+
+*,*::before,*::after{ box-sizing:border-box; }
+html,body{ margin:0; padding:0; overflow-x:clip; }
+html{ scroll-behavior:smooth; color-scheme:light; }
+@media (prefers-reduced-motion:reduce){ html{ scroll-behavior:auto; } }
+
+body{
+  min-height:100dvh;
+  background:var(--stone);
+  color:var(--ink);
+  font-family:var(--font);
+  font-size:16px;
+  line-height:1.64;
+  -webkit-font-smoothing:antialiased;
+}
+
+h1,h2,h3,h4,p,ul,ol,dl,dd,dt,figure,blockquote{ margin:0; padding:0; }
+ul,ol{ list-style:none; }
+a{ color:inherit; }
+button{ font:inherit; }
+
+:focus-visible{ outline:2px solid var(--kiln); outline-offset:3px; border-radius:3px; }
+
+.mono{ font-family:var(--mono); font-variant-numeric:tabular-nums; }
+.sr{
+  position:absolute; width:1px; height:1px; padding:0; margin:-1px;
+  overflow:hidden; clip-path:inset(50%); white-space:nowrap; border:0;
+}
+
+.wrap{ max-width:1280px; margin-inline:auto; padding-inline:clamp(1rem,4vw,3rem); }
+
+/* ==========================================================================
+   顶栏
+   ========================================================================== */
+.top{
+  position:sticky; top:0; z-index:30;
+  background:color-mix(in srgb, var(--stone) 90%, transparent);
+  backdrop-filter:blur(10px);
+  border-bottom:1px solid var(--hair);
+}
+.top__in{
+  min-height:60px;
+  display:flex; align-items:center; gap:1rem;
+}
+.logo{
+  font-size:1.15rem; font-weight:700; letter-spacing:.06em;
+  text-decoration:none;
+}
+.logo small{
+  font-weight:400; font-size:.6875rem; letter-spacing:.24em;
+  color:var(--ink-3); margin-left:.5ch;
+}
+.crumb{ font-size:.8125rem; color:var(--ink-3); margin-left:1rem; }
+.crumb a{ text-decoration:none; }
+.crumb a:hover{ text-decoration:underline; text-underline-offset:3px; }
+.top__buy{
+  margin-left:auto;
+  display:none;
+  align-items:center; gap:.8rem;
+}
+.top__buy[data-on="true"]{ display:flex; }
+.top__price{ font-family:var(--mono); font-weight:660; }
+
+/* ==========================================================================
+   主区
+   ========================================================================== */
+.hero{
+  display:grid;
+  grid-template-columns:minmax(0,1.15fr) minmax(340px,.85fr);
+  gap:clamp(1.5rem,4vw,3.5rem);
+  padding-block:clamp(1.5rem,4vw,3rem);
+  align-items:start;
+}
+
+/* ---- 器型线图 ---- */
+.viewer{
+  position:sticky; top:5rem;
+  background:var(--stone-2);
+  border:1px solid var(--hair);
+  border-radius:var(--r-lg);
+  padding:clamp(1rem,2.5vw,1.6rem);
+}
+.viewer__stage{
+  display:grid; place-items:center;
+  padding-block:.5rem 1rem;
+}
+.vessel{ width:min(100%,420px); height:auto; }
+.vessel .body{ fill:var(--glaze,#6c7a72); }
+.vessel .flow{ fill:url(#glazeflow); }
+.vessel .outline{ fill:none; stroke:var(--ink); stroke-width:1.6; }
+.vessel .thin{ fill:none; stroke:var(--ink); stroke-width:1; opacity:.55; }
+.vessel .dim{ stroke:var(--kiln); stroke-width:1; }
+.vessel .dimtxt{
+  fill:var(--kiln); font-size:11px; font-family:var(--mono);
+  letter-spacing:.02em;
+}
+.vessel .clay{ fill:#b9b3a6; }
+
+.viewer__tabs{
+  display:grid; grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:.4rem;
+  padding-top:1rem;
+  border-top:1px solid var(--hair);
+}
+.vtab{
+  min-height:46px;
+  border:1px solid var(--hair-2);
+  border-radius:var(--r-md);
+  background:transparent;
+  color:var(--ink-2);
+  font-size:.875rem;
+  cursor:pointer;
+  transition:background-color .16s var(--ease), color .16s var(--ease), border-color .16s var(--ease);
+}
+.vtab:hover{ background:var(--stone-3); color:var(--ink); }
+.vtab[aria-selected="true"]{
+  background:var(--ink); color:var(--stone-2); border-color:var(--ink); font-weight:600;
+}
+.viewer__cap{
+  margin-top:.9rem;
+  font-size:.75rem; color:var(--ink-3); text-wrap:pretty;
+}
+
+/* ---- 购买框 ---- */
+.buy{ min-width:0; }
+.buy__tag{
+  display:inline-block;
+  font-size:.6875rem; letter-spacing:.18em; text-transform:uppercase;
+  color:var(--kiln); font-weight:660;
+}
+.buy h1{
+  margin-top:.4rem;
+  font-size:clamp(1.7rem,3.6vw,2.5rem);
+  font-weight:700; letter-spacing:-.032em; line-height:1.1;
+  text-wrap:balance;
+}
+.buy__lede{ margin-top:.8rem; color:var(--ink-2); max-width:44ch; text-wrap:pretty; }
+
+.rating{
+  display:flex; align-items:center; gap:.6rem;
+  margin-top:.9rem;
+  font-size:.875rem; color:var(--ink-2);
+}
+.stars{ display:inline-flex; gap:2px; }
+.stars i{
+  width:13px; height:13px;
+  background:var(--kiln);
+  clip-path:polygon(50% 0%,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%);
+}
+.stars i[data-off="true"]{ background:var(--hair-2); }
+.rating a{ color:var(--kiln); text-underline-offset:3px; }
+
+.price{
+  display:flex; align-items:baseline; gap:.6rem;
+  margin-top:1.3rem;
+  font-family:var(--mono); font-variant-numeric:tabular-nums;
+}
+.price b{ font-size:2.1rem; font-weight:700; letter-spacing:-.03em; }
+.price s{ color:var(--ink-3); font-size:1rem; }
+.price em{ font-style:normal; font-size:.8125rem; color:var(--kiln); }
+
+.opt{ margin-top:1.4rem; }
+.opt__head{
+  display:flex; align-items:baseline; justify-content:space-between; gap:1ch;
+  margin-bottom:.55rem;
+}
+.opt__head h2{ font-size:.875rem; font-weight:620; }
+.opt__head span{ font-size:.8125rem; color:var(--ink-3); }
+
+.picks{ display:grid; gap:.5rem; }
+.pick{
+  position:relative;
+  display:grid;
+  grid-template-columns:auto minmax(0,1fr) auto;
+  gap:.85rem; align-items:center;
+  padding:.75rem .9rem;
+  border:1px solid var(--hair-2);
+  border-radius:var(--r-md);
+  background:var(--stone-2);
+  cursor:pointer;
+  transition:border-color .16s var(--ease), background-color .16s var(--ease);
+}
+.pick input{ position:absolute; opacity:0; pointer-events:none; }
+.pick__dot{
+  width:18px; height:18px; border-radius:50%;
+  border:1.5px solid var(--hair-2); position:relative; flex:0 0 auto;
+}
+.pick:hover{ background:var(--stone-3); }
+.pick:has(input:checked){ border-color:var(--kiln); background:var(--kiln-soft); }
+.pick:has(input:checked) .pick__dot{ border-color:var(--kiln); }
+.pick:has(input:checked) .pick__dot::after{
+  content:""; position:absolute; inset:3.5px; border-radius:50%; background:var(--kiln);
+}
+.pick:has(input:focus-visible){ outline:2px solid var(--kiln); outline-offset:2px; }
+.pick b{ display:block; font-size:.9375rem; font-weight:600; }
+.pick span{ display:block; font-size:.8125rem; color:var(--ink-3); }
+.pick em{ font-style:normal; font-family:var(--mono); font-size:.9375rem; font-weight:600; }
+
+/* 釉色 */
+.glazes{ display:flex; flex-wrap:wrap; gap:.6rem; }
+.glaze{
+  position:relative;
+  width:62px;
+  border:0; padding:0; background:none;
+  cursor:pointer;
+  text-align:center;
+}
+.glaze i{
+  display:block; width:100%; aspect-ratio:1;
+  border-radius:50%;
+  box-shadow:inset 0 0 0 1px rgba(0,0,0,.18), inset 0 -6px 10px -6px rgba(0,0,0,.5);
+  transition:box-shadow .16s var(--ease), transform .16s var(--ease);
+}
+.glaze span{
+  display:block; margin-top:.35rem;
+  font-size:.6875rem; color:var(--ink-3);
+}
+.glaze:hover i{ transform:scale(1.05); }
+.glaze[aria-pressed="true"] i{
+  box-shadow:inset 0 0 0 1px rgba(0,0,0,.18), 0 0 0 2px var(--stone), 0 0 0 4px var(--ink);
+}
+.glaze[aria-pressed="true"] span{ color:var(--ink); font-weight:600; }
+.glaze[disabled]{ opacity:.4; cursor:not-allowed; }
+.glaze[disabled] i{ transform:none; }
+
+/* 数量 */
+.qty{
+  display:inline-flex; align-items:stretch;
+  border:1px solid var(--hair-2);
+  border-radius:var(--r-md);
+  overflow:hidden;
+  background:var(--stone-2);
+}
+.qty button{
+  width:46px; min-height:46px;
+  border:0; background:transparent; cursor:pointer;
+  font-size:1.15rem; line-height:1;
+  color:var(--ink);
+}
+.qty button:hover{ background:var(--stone-3); }
+.qty button[aria-disabled="true"]{ opacity:.35; cursor:not-allowed; pointer-events:none; }
+.qty input{
+  width:52px; border:0; border-inline:1px solid var(--hair-2);
+  background:transparent; text-align:center;
+  font-family:var(--mono); font-size:1rem; font-weight:600;
+  color:var(--ink);
+}
+.qty input:focus{ outline:none; background:var(--kiln-soft); }
+
+.stock{
+  display:flex; align-items:center; gap:.5ch;
+  margin-top:.9rem;
+  font-size:.875rem;
+}
+.stock::before{
+  content:""; width:8px; height:8px; border-radius:2px; background:var(--kiln);
+}
+.stock[data-kind="preorder"]::before{ background:var(--warn); border-radius:50%; }
+.stock[data-kind="preorder"]{ color:var(--warn); }
+
+.cta{ display:flex; gap:.6rem; margin-top:1.1rem; flex-wrap:wrap; }
+.btn{
+  position:relative;
+  min-height:54px;
+  display:inline-flex; align-items:center; justify-content:center; gap:.55ch;
+  padding:0 1.5rem;
+  border:1px solid var(--hair-2);
+  border-radius:var(--r-md);
+  background:var(--stone-2);
+  color:var(--ink);
+  font-size:1rem; font-weight:560;
+  cursor:pointer;
+  transition:background-color .16s var(--ease), border-color .16s var(--ease), translate .08s var(--ease);
+}
+.btn:hover{ background:var(--stone-3); }
+.btn:active{ translate:0 1px; }
+.btn--go{ flex:1 1 12rem; background:var(--ink); border-color:var(--ink); color:var(--stone-2); font-weight:640; }
+.btn--go:hover{ background:#2b2d2d; border-color:#2b2d2d; }
+.btn--go:focus-visible{ outline-color:var(--kiln); }
+.btn--sm{ min-height:44px; padding:0 1rem; font-size:.9375rem; }
+.btn[data-state="loading"]{ color:transparent; pointer-events:none; }
+.btn[data-state="loading"]::after{
+  content:""; position:absolute; inset:0; margin:auto;
+  width:1.05em; height:1.05em; border-radius:50%;
+  border:2px solid rgba(255,255,255,.35); border-top-color:var(--stone-2);
+  animation:spin .68s linear infinite;
+}
+@keyframes spin{ to{ rotate:360deg; } }
+.btn--fav[aria-pressed="true"]{ border-color:var(--kiln); color:var(--kiln); background:var(--kiln-soft); }
+
+.assure{ margin-top:1.2rem; border-top:1px solid var(--hair); }
+.assure div{
+  display:grid; grid-template-columns:minmax(0,6.5em) minmax(0,1fr);
+  gap:.9rem; padding:.5rem 0;
+  border-bottom:1px solid var(--hair);
+  font-size:.875rem;
+}
+.assure dt{ color:var(--ink-3); font-size:.8125rem; }
+
+.variance{
+  margin-top:1.2rem;
+  padding:.9rem 1rem;
+  border:1px solid var(--hair-2);
+  border-left:3px solid var(--kiln);
+  border-radius:var(--r-md);
+  background:var(--kiln-soft);
+  font-size:.875rem;
+  color:var(--ink-2);
+  text-wrap:pretty;
+}
+.variance b{ color:var(--ink); }
+
+/* ==========================================================================
+   分区
+   ========================================================================== */
+.sec{ padding-block:clamp(2.5rem,6vw,4.5rem); border-top:1px solid var(--hair); }
+.sec__head{ display:flex; flex-wrap:wrap; align-items:baseline; gap:.6rem 1.2rem; }
+.sec__head h2{
+  font-size:clamp(1.4rem,3vw,2rem);
+  font-weight:680; letter-spacing:-.028em;
+}
+.sec__head span{ font-family:var(--mono); font-size:.75rem; color:var(--ink-3); letter-spacing:.12em; }
+.sec__lede{ margin-top:.7rem; color:var(--ink-2); max-width:58ch; text-wrap:pretty; }
+
+/* ---- 规格表 ---- */
+.spec{
+  margin-top:1.6rem;
+  border-top:1px solid var(--ink);
+}
+.spec__row{
+  display:grid;
+  grid-template-columns:minmax(0,10em) minmax(0,1fr) minmax(0,8em);
+  gap:1rem;
+  padding:.7rem 0;
+  border-bottom:1px solid var(--hair);
+  align-items:baseline;
+}
+.spec__row:first-child{
+  font-size:.6875rem; letter-spacing:.14em; text-transform:uppercase;
+  color:var(--ink-3); padding-block:.5rem;
+}
+.spec__row dt{ color:var(--ink-3); font-size:.875rem; }
+.spec__row dd{ font-size:.9375rem; }
+.spec__row dd.mono{ font-size:.875rem; }
+.spec__row .tol{
+  font-family:var(--mono); font-size:.8125rem; color:var(--kiln);
+}
+.spec__row .tol[data-fixed="true"]{ color:var(--ink-3); }
+
+/* ---- 工艺 ---- */
+.craft{
+  margin-top:1.8rem;
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:1px;
+  background:var(--hair);
+  border:1px solid var(--hair);
+  border-radius:var(--r-lg);
+  overflow:hidden;
+}
+.craft article{
+  background:var(--stone-2);
+  padding:1.1rem 1.15rem 1.25rem;
+}
+.craft .mono{
+  display:block; font-size:.6875rem; color:var(--kiln);
+  letter-spacing:.12em; margin-bottom:.45rem;
+}
+.craft h3{ font-size:1rem; font-weight:640; letter-spacing:-.014em; }
+.craft p{ margin-top:.4rem; font-size:.875rem; color:var(--ink-2); text-wrap:pretty; }
+.craft .dur{
+  display:inline-block; margin-top:.7rem;
+  padding:.14rem .5rem;
+  border:1px solid var(--hair-2); border-radius:99px;
+  font-family:var(--mono); font-size:.6875rem; color:var(--ink-3);
+}
+
+.kiln-note{
+  margin-top:1.4rem;
+  display:grid;
+  grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+  gap:clamp(1rem,3vw,2.5rem);
+  align-items:start;
+}
+.kiln-note p{ color:var(--ink-2); text-wrap:pretty; }
+.kiln-note p + p{ margin-top:.8rem; }
+.curve{
+  border:1px solid var(--hair);
+  border-radius:var(--r-lg);
+  background:var(--stone-2);
+  padding:1rem 1.1rem 1.2rem;
+}
+.curve h4{ font-size:.8125rem; font-weight:620; }
+.curve figure{ margin-top:.7rem; }
+.curve svg{ width:100%; height:auto; display:block; }
+.curve figcaption{ margin-top:.6rem; font-size:.75rem; color:var(--ink-3); }
+
+/* ---- 评价 ---- */
+.rev-sum{
+  margin-top:1.5rem;
+  display:grid;
+  grid-template-columns:minmax(0,auto) minmax(0,1fr);
+  gap:clamp(1.25rem,4vw,3rem);
+  align-items:center;
+  padding:1.2rem 1.3rem;
+  background:var(--stone-2);
+  border:1px solid var(--hair);
+  border-radius:var(--r-lg);
+}
+.rev-sum__big{ text-align:center; }
+.rev-sum__big b{
+  display:block; font-family:var(--mono);
+  font-size:3rem; font-weight:700; letter-spacing:-.04em; line-height:1;
+}
+.rev-sum__big span{ font-size:.8125rem; color:var(--ink-3); }
+.bars{ display:grid; gap:.35rem; min-width:0; }
+.bars div{
+  display:grid; grid-template-columns:2.6rem minmax(0,1fr) 2.6rem;
+  gap:.6rem; align-items:center;
+  font-family:var(--mono); font-size:.75rem; color:var(--ink-3);
+}
+.bars i{
+  display:block; height:7px; border-radius:99px;
+  background:var(--hair-2); position:relative; overflow:hidden;
+}
+.bars i b{ position:absolute; inset:0 auto 0 0; background:var(--kiln); border-radius:99px; }
+
+.rev-list{ margin-top:1.4rem; display:grid; gap:1rem; }
+.rev{
+  padding:1.1rem 1.2rem;
+  background:var(--stone-2);
+  border:1px solid var(--hair);
+  border-radius:var(--r-lg);
+}
+.rev__top{
+  display:flex; flex-wrap:wrap; align-items:center; gap:.5rem .9rem;
+  font-size:.8125rem; color:var(--ink-3);
+}
+.rev__topic{
+  padding:.1rem .55rem;
+  border:1px solid var(--hair-2); border-radius:99px;
+  font-size:.6875rem; color:var(--ink-2);
+}
+.rev blockquote{ margin-top:.7rem; color:var(--ink-2); text-wrap:pretty; }
+.rev__meta{ margin-top:.7rem; font-size:.75rem; color:var(--ink-3); font-family:var(--mono); }
+.rev-note{ margin-top:1rem; font-size:.75rem; color:var(--ink-3); }
+
+/* ---- Toast ---- */
+.toasts{
+  position:fixed; right:1rem; bottom:1rem; z-index:60;
+  display:flex; flex-direction:column-reverse; gap:.5rem;
+  width:min(340px, calc(100vw - 2rem));
+  pointer-events:none;
+}
+.toast{
+  pointer-events:auto;
+  display:flex; gap:.7rem; align-items:flex-start;
+  padding:.75rem .9rem;
+  background:var(--ink); color:var(--stone-2);
+  border-radius:var(--r-md);
+  box-shadow:0 14px 30px -16px rgba(0,0,0,.7);
+  font-size:.875rem;
+  animation:toastIn .22s var(--ease) both;
+}
+@keyframes toastIn{ from{ opacity:0; transform:translateY(10px); } to{ opacity:1; transform:none; } }
+.toast b{ display:block; font-weight:640; }
+.toast span{ display:block; color:rgba(242,243,240,.7); font-size:.8125rem; }
+.toast button{
+  margin-left:auto; background:none; border:0; color:inherit;
+  cursor:pointer; font-size:1rem; line-height:1; padding:.1rem .2rem;
+}
+
+/* ==========================================================================
+   页脚
+   ========================================================================== */
+.foot{
+  border-top:1px solid var(--ink);
+  padding-block:1.5rem 3rem;
+  display:flex; flex-wrap:wrap; gap:.5rem 2rem; justify-content:space-between;
+  font-size:.8125rem; color:var(--ink-3);
+}
+
+/* ==========================================================================
+   响应式
+   ========================================================================== */
+@media (max-width:980px){
+  .hero{ grid-template-columns:minmax(0,1fr); }
+  .viewer{ position:static; }
+  .craft{ grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .kiln-note{ grid-template-columns:minmax(0,1fr); }
+}
+@media (max-width:560px){
+  .craft{ grid-template-columns:minmax(0,1fr); }
+  .spec__row{ grid-template-columns:minmax(0,1fr); gap:.15rem; }
+  .spec__row:first-child{ display:none; }
+  .spec__row .tol::before{ content:"公差 "; color:var(--ink-3); }
+  .rev-sum{ grid-template-columns:minmax(0,1fr); }
+  .cta .btn{ flex:1 1 100%; }
+  .crumb{ display:none; }
+  .toasts{ left:1rem; right:1rem; width:auto; }
+}
+@media (prefers-reduced-motion:reduce){
+  .glaze i,.btn,.pick,.vtab{ transition:none; }
+  .toast{ animation:none; }
+}
+</style>
+</head>
+<body>
+
+<!-- ==================== 顶栏 ==================== -->
+<header class="top">
+  <div class="wrap top__in">
+    <a class="logo" href="#">岩语<small>YANYU</small></a>
+    <nav class="crumb" aria-label="面包屑">
+      <a href="#">器物</a> · <a href="#">咖啡</a> · <span>手冲三件套</span>
+    </nav>
+    <div class="top__buy" id="topBuy" data-on="false">
+      <span class="top__price" id="topPrice">¥880</span>
+      <button class="btn btn--go btn--sm" type="button" data-act="add">加入购物车</button>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <!-- ==================== 主区 ==================== -->
+  <section class="hero">
+
+    <!-- ---- 器型线图 ---- -->
+    <div class="viewer">
+      <div class="viewer__stage">
+        <svg class="vessel" id="vessel" viewBox="0 0 260 230" role="img"
+             aria-labelledby="vTitle vDesc">
+          <title id="vTitle">滤杯器型线图</title>
+          <desc id="vDesc">带口径、高度与容量标注的侧视线图，填充色为当前所选釉色。</desc>
+
+          <defs>
+            <linearGradient id="glazeflow" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%"  stop-color="#ffffff" stop-opacity=".26"/>
+              <stop offset="46%" stop-color="#ffffff" stop-opacity="0"/>
+              <stop offset="86%" stop-color="#000000" stop-opacity=".22"/>
+              <stop offset="100%" stop-color="#000000" stop-opacity=".34"/>
+            </linearGradient>
+            <marker id="arrL" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto">
+              <path d="M7,0 L0,3.5 L7,7 Z" fill="#35605c"/>
+            </marker>
+            <marker id="arrR" markerWidth="7" markerHeight="7" refX="1" refY="3.5" orient="auto">
+              <path d="M0,0 L7,3.5 L0,7 Z" fill="#35605c"/>
+            </marker>
+          </defs>
+
+          <!-- 滤杯 -->
+          <g id="gDripper">
+            <path class="body" d="M42,54 L218,54 L146,158 L114,158 Z"/>
+            <path class="flow" d="M42,54 L218,54 L146,158 L114,158 Z"/>
+            <ellipse class="body" cx="130" cy="54" rx="88" ry="13"/>
+            <ellipse class="thin" cx="130" cy="54" rx="88" ry="13"/>
+            <ellipse class="thin" cx="130" cy="54" rx="78" ry="11"/>
+            <path class="outline" d="M42,54 L114,158 L114,182 L146,182 L146,158 L218,54"/>
+            <path class="body" d="M114,158 L146,158 L146,182 L114,182 Z"/>
+            <ellipse class="body" cx="130" cy="182" rx="16" ry="5"/>
+            <ellipse class="thin" cx="130" cy="182" rx="16" ry="5"/>
+            <!-- 导流肋 -->
+            <path class="thin" d="M74,80 L124,158"/>
+            <path class="thin" d="M104,66 L126,158"/>
+            <path class="thin" d="M186,80 L136,158"/>
+            <path class="thin" d="M156,66 L134,158"/>
+          </g>
+
+          <!-- 分享壶 -->
+          <g id="gServer" hidden>
+            <path class="body" d="M76,74 C68,120 82,180 130,180 C178,180 192,120 184,74 Z"/>
+            <path class="flow" d="M76,74 C68,120 82,180 130,180 C178,180 192,120 184,74 Z"/>
+            <ellipse class="body" cx="130" cy="74" rx="54" ry="10"/>
+            <ellipse class="thin" cx="130" cy="74" rx="54" ry="10"/>
+            <path class="outline" d="M76,74 C68,120 82,180 130,180 C178,180 192,120 184,74"/>
+            <!-- 壶嘴 -->
+            <path class="body" d="M184,74 L206,64 L200,80 L183,84 Z"/>
+            <path class="outline" d="M184,74 L206,64 L200,80"/>
+            <!-- 把手 -->
+            <path class="outline" d="M78,96 C50,100 48,146 80,150" stroke-width="5"/>
+            <!-- 刻度 -->
+            <path class="thin" d="M96,110 L112,110"/><text class="dimtxt" x="116" y="114">300</text>
+            <path class="thin" d="M92,132 L108,132"/><text class="dimtxt" x="112" y="136">200</text>
+            <path class="thin" d="M92,154 L108,154"/><text class="dimtxt" x="112" y="158">100</text>
+          </g>
+
+          <!-- 杯 -->
+          <g id="gCup" hidden>
+            <path class="body" d="M88,88 L172,88 L160,168 C160,175 148,180 130,180 C112,180 100,175 100,168 Z"/>
+            <path class="flow" d="M88,88 L172,88 L160,168 C160,175 148,180 130,180 C112,180 100,175 100,168 Z"/>
+            <ellipse class="body" cx="130" cy="88" rx="42" ry="9"/>
+            <ellipse class="thin" cx="130" cy="88" rx="42" ry="9"/>
+            <ellipse class="thin" cx="130" cy="88" rx="35" ry="7"/>
+            <path class="outline" d="M88,88 L100,168 C100,175 112,180 130,180 C148,180 160,175 160,168 L172,88"/>
+            <!-- 圈足露胎 -->
+            <path class="clay" d="M104,172 C104,178 116,182 130,182 C144,182 156,178 156,172 L155,178 C155,183 144,186 130,186 C116,186 105,183 105,178 Z"/>
+            <path class="thin" d="M104,172 C104,178 116,182 130,182 C144,182 156,178 156,172"/>
+          </g>
+
+          <!-- 尺寸标注 -->
+          <g id="dims">
+            <!-- 口径 -->
+            <line class="dim" id="dTopL" x1="42" y1="32" x2="218" y2="32"
+                  marker-start="url(#arrL)" marker-end="url(#arrR)"/>
+            <line class="dim" x1="42" y1="26" x2="42" y2="44" opacity=".5"/>
+            <line class="dim" x1="218" y1="26" x2="218" y2="44" opacity=".5"/>
+            <text class="dimtxt" id="tTop" x="130" y="24" text-anchor="middle">口径 118 ±3</text>
+
+            <!-- 高 -->
+            <line class="dim" id="dSide" x1="24" y1="54" x2="24" y2="182"
+                  marker-start="url(#arrL)" marker-end="url(#arrR)"/>
+            <text class="dimtxt" id="tSide" x="6" y="122"
+                  transform="rotate(-90 6 122)" text-anchor="middle">高 92 ±3</text>
+
+            <!-- 容量 -->
+            <text class="dimtxt" id="tVol" x="238" y="200" text-anchor="end">容量 —</text>
+          </g>
+
+          <!-- 地面基准线 -->
+          <line class="thin" x1="20" y1="196" x2="240" y2="196" opacity=".35"/>
+        </svg>
+      </div>
+
+      <div class="viewer__tabs" role="tablist" aria-label="选择件">
+        <button class="vtab" role="tab" type="button" aria-selected="true"  data-piece="dripper">滤杯</button>
+        <button class="vtab" role="tab" type="button" aria-selected="false" data-piece="server">分享壶</button>
+        <button class="vtab" role="tab" type="button" aria-selected="false" data-piece="cup">品杯</button>
+      </div>
+
+      <p class="viewer__cap">
+        图为按实物 1:1 测绘的侧视线图，标注为设计尺寸与允许公差。
+        釉面的垂流方向与厚薄每件不同，图中只表示大致趋势。
+      </p>
+    </div>
+
+    <!-- ---- 购买 ---- -->
+    <div class="buy">
+      <span class="buy__tag">手作陶瓷 · 单窑限量</span>
+      <h1>「岩语」手冲咖啡器三件套</h1>
+      <p class="buy__lede">
+        滤杯、分享壶、品杯各一。同一窑次烧成，釉色与胎体接近，
+        但每件的窑变与开片都不一样。
+      </p>
+
+      <div class="rating">
+        <span class="stars" aria-hidden="true">
+          <i></i><i></i><i></i><i></i><i data-off="true"></i>
+        </span>
+        <span><b class="mono">4.6</b> · <a href="#reviews">42 条评价</a></span>
+      </div>
+
+      <p class="price">
+        <b id="priceMain">¥880</b>
+        <s id="priceOld">¥980</s>
+        <em id="priceNote">套装较单件合计省 ¥100</em>
+      </p>
+
+      <!-- 套装 -->
+      <div class="opt">
+        <div class="opt__head"><h2>组合</h2></div>
+        <div class="picks" role="radiogroup" aria-label="组合">
+          <label class="pick">
+            <input type="radio" name="combo" value="set" checked>
+            <span class="pick__dot" aria-hidden="true"></span>
+            <span><b>三件套</b><span>滤杯 + 分享壶 + 品杯 ×1</span></span>
+            <em>¥880</em>
+          </label>
+          <label class="pick">
+            <input type="radio" name="combo" value="dripper">
+            <span class="pick__dot" aria-hidden="true"></span>
+            <span><b>单件 · 滤杯</b><span>含滤纸 40 张</span></span>
+            <em>¥360</em>
+          </label>
+          <label class="pick">
+            <input type="radio" name="combo" value="server">
+            <span class="pick__dot" aria-hidden="true"></span>
+            <span><b>单件 · 分享壶</b><span>带容量刻度</span></span>
+            <em>¥420</em>
+          </label>
+          <label class="pick">
+            <input type="radio" name="combo" value="cup">
+            <span class="pick__dot" aria-hidden="true"></span>
+            <span><b>单件 · 品杯</b><span>圈足露胎</span></span>
+            <em>¥200</em>
+          </label>
+        </div>
+      </div>
+
+      <!-- 釉色 -->
+      <div class="opt">
+        <div class="opt__head">
+          <h2>釉色</h2>
+          <span id="glazeName">灰青釉</span>
+        </div>
+        <div class="glazes" role="radiogroup" aria-label="釉色" id="glazes"></div>
+      </div>
+
+      <!-- 数量 -->
+      <div class="opt">
+        <div class="opt__head">
+          <h2>数量</h2>
+          <span id="qtyHint">本窑剩余 6 套</span>
+        </div>
+        <div class="qty">
+          <button type="button" id="qMinus" aria-label="减少一件" aria-disabled="true">−</button>
+          <input type="text" id="qty" value="1" inputmode="numeric" aria-label="购买数量">
+          <button type="button" id="qPlus" aria-label="增加一件">+</button>
+        </div>
+        <p class="stock" id="stock" data-kind="instock">现货，48 小时内发出</p>
+      </div>
+
+      <div class="cta">
+        <button class="btn btn--go" type="button" id="addBtn" data-act="add" data-state="idle">加入购物车</button>
+        <button class="btn btn--fav" type="button" id="favBtn" aria-pressed="false">收藏</button>
+      </div>
+
+      <dl class="assure">
+        <div><dt>配送</dt><dd>顺丰包邮，木架加固；破损免费重寄</dd></div>
+        <div><dt>退换</dt><dd>7 天无理由；因窑变差异退货同样受理</dd></div>
+        <div><dt>保修</dt><dd>非人为开裂 90 天内换新</dd></div>
+      </dl>
+
+      <p class="variance">
+        <b>关于差异：</b>这是柴烧还原焰烧成的手作器物。同一釉色在不同窑位会有明显深浅，
+        器身可能出现细小开片、缩釉点与落灰痕。这些属于工艺特征，不作为质量问题处理。
+        如果你需要完全一致的成套器皿，建议选择我们的电窑均色系列。
+      </p>
+    </div>
+  </section>
+
+  <!-- ==================== 规格 ==================== -->
+  <section class="sec" id="spec">
+    <div class="sec__head">
+      <h2>规格</h2>
+      <span>SPECIFICATION</span>
+    </div>
+    <p class="sec__lede">
+      下表为三件套的设计尺寸。手作器物存在允许偏差，标注为「固定」的项目不随窑次变化。
+    </p>
+
+    <dl class="spec" id="specTable">
+      <div class="spec__row"><dt>项目</dt><dd>数值</dd><dd class="tol">允许偏差</dd></div>
+      <div class="spec__row"><dt>滤杯口径</dt><dd class="mono">118 mm</dd><dd class="tol">± 3 mm</dd></div>
+      <div class="spec__row"><dt>滤杯高度</dt><dd class="mono">92 mm</dd><dd class="tol">± 3 mm</dd></div>
+      <div class="spec__row"><dt>分享壶容量</dt><dd class="mono">360 ml</dd><dd class="tol">± 15 ml</dd></div>
+      <div class="spec__row"><dt>品杯容量</dt><dd class="mono">180 ml</dd><dd class="tol">± 10 ml</dd></div>
+      <div class="spec__row"><dt>三件套净重</dt><dd class="mono">1 240 g</dd><dd class="tol">± 90 g</dd></div>
+      <div class="spec__row"><dt>泥料</dt><dd>高岭土基粗陶泥，含 12% 熟料</dd><dd class="tol" data-fixed="true">固定</dd></div>
+      <div class="spec__row"><dt>釉料</dt><dd>草木灰基长石釉，无铅无镉</dd><dd class="tol" data-fixed="true">固定</dd></div>
+      <div class="spec__row"><dt>烧成</dt><dd class="mono">1 280 ℃ · 还原焰 · 柴窑</dd><dd class="tol">± 20 ℃</dd></div>
+      <div class="spec__row"><dt>吸水率</dt><dd class="mono">&lt; 0.5 %</dd><dd class="tol">固定上限</dd></div>
+      <div class="spec__row"><dt>适配滤纸</dt><dd>01 号锥形（V 型）</dd><dd class="tol" data-fixed="true">固定</dd></div>
+      <div class="spec__row"><dt>耐温差</dt><dd class="mono">120 ℃</dd><dd class="tol" data-fixed="true">固定</dd></div>
+      <div class="spec__row"><dt>洗碗机</dt><dd>可用（建议下层，避免碰撞）</dd><dd class="tol" data-fixed="true">固定</dd></div>
+      <div class="spec__row"><dt>微波炉</dt><dd>不可用（釉中含微量金属氧化物）</dd><dd class="tol" data-fixed="true">固定</dd></div>
+      <div class="spec__row"><dt>产地</dt><dd>浙江龙泉 · 自有柴窑</dd><dd class="tol" data-fixed="true">固定</dd></div>
+    </dl>
+  </section>
+
+  <!-- ==================== 工艺 ==================== -->
+  <section class="sec" id="craft">
+    <div class="sec__head">
+      <h2>一套器皿要经过的八件事</h2>
+      <span>PROCESS</span>
+    </div>
+    <p class="sec__lede">
+      从泥料到能发货，最短 31 天。其中有 4 天完全交给窑火，我们只能等结果。
+    </p>
+
+    <div class="craft">
+      <article>
+        <span class="mono">01</span>
+        <h3>练泥</h3>
+        <p>本地瓷土与熟料按比例混合，反复揉练排出气泡。有气泡的坯在窑里会炸。</p>
+        <span class="dur">3 天陈腐</span>
+      </article>
+      <article>
+        <span class="mono">02</span>
+        <h3>拉坯</h3>
+        <p>三件器型全部手工拉制。同一批坯之间约有 2 到 3 毫米的自然差异。</p>
+        <span class="dur">每套约 40 分钟</span>
+      </article>
+      <article>
+        <span class="mono">03</span>
+        <h3>修坯</h3>
+        <p>半干时车修圈足与导流肋。滤杯的肋高直接影响萃取速度，逐个卡尺校对。</p>
+        <span class="dur">每套约 25 分钟</span>
+      </article>
+      <article>
+        <span class="mono">04</span>
+        <h3>阴干</h3>
+        <p>阴凉处慢干，不能晒。干得太快，圈足会先收缩然后开裂。</p>
+        <span class="dur">7 至 10 天</span>
+      </article>
+      <article>
+        <span class="mono">05</span>
+        <h3>素烧</h3>
+        <p>先烧到 800 ℃ 定型，让坯体能吸釉又不散。这一步淘汰约一成。</p>
+        <span class="dur">9 小时升温 + 冷却</span>
+      </article>
+      <article>
+        <span class="mono">06</span>
+        <h3>施釉</h3>
+        <p>浸釉后擦净圈足，露胎的部分是为了不粘窑板，也留一处能看见泥料本色。</p>
+        <span class="dur">每件约 4 分钟</span>
+      </article>
+      <article>
+        <span class="mono">07</span>
+        <h3>装窑与烧成</h3>
+        <p>柴窑一次装约 120 件。窑位决定落灰与还原程度，靠近火膛的釉色会更深。</p>
+        <span class="dur">连续投柴 32 小时</span>
+      </article>
+      <article>
+        <span class="mono">08</span>
+        <h3>开窑与挑选</h3>
+        <p>自然冷却两天后开窑。按釉面完整度与配套接近度分级，成套率约六成。</p>
+        <span class="dur">2 天冷却</span>
+      </article>
+    </div>
+
+    <div class="kiln-note">
+      <div>
+        <p>
+          柴窑最难的地方在于，投柴的节奏、天气的湿度、当天的风向都会影响窑内气氛，
+          而这些没法完全复制。我们能做的是把可控的部分做到稳定：泥料配比、素烧曲线、
+          釉的浓度、装窑的位置图。剩下的交给火。
+        </p>
+        <p>
+          所以我们不承诺「和图上一模一样」，只承诺尺寸在公差内、功能完全一致，
+          以及釉色落在同一色系的可接受范围里。开窑后不合格的那四成，
+          我们自己留着用，或者打碎回炉。
+        </p>
+      </div>
+
+      <div class="curve">
+        <h4>本窑烧成曲线</h4>
+        <figure>
+          <svg viewBox="0 0 320 150" role="img" aria-label="烧成温度曲线：约 32 小时内由室温升至 1280 摄氏度，在 1150 至 1280 摄氏度区间保持还原气氛，随后自然冷却。">
+            <g stroke="#cfd1cc" stroke-width="1">
+              <line x1="34" y1="16" x2="34" y2="118"/>
+              <line x1="34" y1="118" x2="308" y2="118"/>
+              <line x1="34" y1="40" x2="308" y2="40" opacity=".5"/>
+              <line x1="34" y1="70" x2="308" y2="70" opacity=".5"/>
+              <line x1="34" y1="98" x2="308" y2="98" opacity=".5"/>
+            </g>
+            <g fill="#5f6364" font-family="ui-monospace,monospace" font-size="9">
+              <text x="30" y="43" text-anchor="end">1280</text>
+              <text x="30" y="73" text-anchor="end">900</text>
+              <text x="30" y="101" text-anchor="end">400</text>
+              <text x="34" y="132">0h</text>
+              <text x="150" y="132" text-anchor="middle">16h</text>
+              <text x="266" y="132" text-anchor="middle">32h</text>
+            </g>
+            <path d="M34,118 C70,112 96,96 120,74 C142,54 160,44 186,40 L214,40 C246,44 274,72 306,112"
+                  fill="none" stroke="#35605c" stroke-width="2.2"/>
+            <rect x="186" y="34" width="28" height="12" fill="#35605c" opacity=".16"/>
+            <text x="200" y="30" fill="#35605c" font-family="ui-monospace,monospace"
+                  font-size="9" text-anchor="middle">还原</text>
+          </svg>
+        </figure>
+        <figcaption>本窑实际记录：最高 1 284 ℃，还原保温 3 小时 40 分。</figcaption>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== 评价 ==================== -->
+  <section class="sec" id="reviews">
+    <div class="sec__head">
+      <h2>买过的人怎么说</h2>
+      <span>REVIEWS</span>
+    </div>
+    <p class="sec__lede">
+      我们把评价按话题分组，其中「差异与预期」这一组最值得先看——
+      它决定了你会不会喜欢柴烧。
+    </p>
+
+    <div class="rev-sum">
+      <div class="rev-sum__big">
+        <b>4.6</b>
+        <span class="stars" aria-hidden="true"><i></i><i></i><i></i><i></i><i data-off="true"></i></span>
+        <span>共 42 条</span>
+      </div>
+      <div class="bars">
+        <div><span>5 星</span><i><b style="width:64%"></b></i><span>27</span></div>
+        <div><span>4 星</span><i><b style="width:24%"></b></i><span>10</span></div>
+        <div><span>3 星</span><i><b style="width:7%"></b></i><span>3</span></div>
+        <div><span>2 星</span><i><b style="width:5%"></b></i><span>2</span></div>
+        <div><span>1 星</span><i><b style="width:0%"></b></i><span>0</span></div>
+      </div>
+    </div>
+
+    <div class="rev-list">
+      <article class="rev">
+        <div class="rev__top">
+          <span class="stars" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span>
+          <span class="rev__topic">差异与预期</span>
+          <span>灰青釉 · 三件套</span>
+        </div>
+        <blockquote>
+          收到的比页面上的线图要深一档，靠火膛那侧还有一片落灰。
+          本来有点犹豫，用了两周之后反而觉得这块落灰是这只杯子最好看的地方。
+          三件的釉色确实不完全一致，摆在一起看得出来，但不难看。
+        </blockquote>
+        <p class="rev__meta">已购买 · 使用 3 周</p>
+      </article>
+
+      <article class="rev">
+        <div class="rev__top">
+          <span class="stars" aria-hidden="true"><i></i><i></i><i></i><i></i><i data-off="true"></i></span>
+          <span class="rev__topic">使用体验</span>
+          <span>柿釉 · 单件滤杯</span>
+        </div>
+        <blockquote>
+          导流肋比常见的树脂滤杯要浅，同样的粉水比下流速慢一点，
+          我把研磨调粗了两格才顺。壶身厚，保温比玻璃壶好很多，
+          缺点是空杯预热要多花半分钟。
+        </blockquote>
+        <p class="rev__meta">已购买 · 使用 2 个月</p>
+      </article>
+
+      <article class="rev">
+        <div class="rev__top">
+          <span class="stars" aria-hidden="true"><i></i><i></i><i></i><i data-off="true"></i><i data-off="true"></i></span>
+          <span class="rev__topic">差异与预期</span>
+          <span>月白釉 · 三件套</span>
+        </div>
+        <blockquote>
+          东西没问题，是我自己没读清楚。我想要的是三件一模一样的，
+          结果分享壶明显偏灰、杯子偏白。客服说明了这是柴烧的正常范围，
+          也同意退，最后我留下了杯子退了另外两件。建议把这点写得更前面一些。
+        </blockquote>
+        <p class="rev__meta">已购买 · 部分退货</p>
+      </article>
+    </div>
+
+    <p class="rev-note">
+      以上评价为占位内容，用于展示分组方式与版式。正式上线前需替换为真实且经授权的买家评价。
+    </p>
+  </section>
+
+  <!-- ==================== 页脚 ==================== -->
+  <footer class="foot">
+    <span>岩语 YANYU · 龙泉自有柴窑 · 演示页面</span>
+    <span>器物有别，用久了才认得出是自己那只。</span>
+  </footer>
+</div>
+
+<div class="toasts" id="toasts" role="region" aria-label="操作反馈" aria-live="polite"></div>
+
+<script>
+(function () {
+  'use strict';
+
+  function $(id){ return document.getElementById(id); }
+
+  /* ======================================================================
+     数据
+     ====================================================================== */
+  var GLAZES = [
+    { id:'grayblue', name:'灰青釉',  hex:'#6d8280', stock:{ set:6, dripper:11, server:8, cup:19 } },
+    { id:'moonwhite',name:'月白釉',  hex:'#c9c8bd', stock:{ set:3, dripper:6,  server:4, cup:12 } },
+    { id:'persimmon',name:'柿釉',    hex:'#9d5a34', stock:{ set:0, dripper:4,  server:0, cup:7  } },
+    { id:'ironblack',name:'铁黑釉',  hex:'#3a3733', stock:{ set:2, dripper:5,  server:3, cup:9  } }
+  ];
+
+  var COMBOS = {
+    set:     { name:'三件套',     price:880, old:980, note:'套装较单件合计省 ¥100', piece:'dripper' },
+    dripper: { name:'单件 · 滤杯', price:360, old:0,   note:'含滤纸 40 张',        piece:'dripper' },
+    server:  { name:'单件 · 分享壶',price:420, old:0,  note:'带容量刻度',          piece:'server'  },
+    cup:     { name:'单件 · 品杯', price:200, old:0,   note:'圈足露胎',            piece:'cup'     }
+  };
+
+  var PIECES = {
+    dripper:{ g:'gDripper', title:'滤杯器型线图', top:'口径 118 ±3', side:'高 92 ±3',  vol:'容量 —',
+              dimTop:[42,218], dimSide:[54,182] },
+    server: { g:'gServer',  title:'分享壶器型线图', top:'口径 88 ±3', side:'高 106 ±3', vol:'容量 360 ±15 ml',
+              dimTop:[76,184], dimSide:[74,180] },
+    cup:    { g:'gCup',     title:'品杯器型线图', top:'口径 76 ±2',  side:'高 92 ±3',  vol:'容量 180 ±10 ml',
+              dimTop:[88,172], dimSide:[88,182] }
+  };
+
+  var state = { combo:'set', glaze:'grayblue', piece:'dripper', qty:1, fav:false };
+
+  /* ======================================================================
+     Toast
+     ====================================================================== */
+  function toast(title, desc){
+    var host = $('toasts');
+    while (host.children.length >= 2) host.firstChild.remove();
+    var el = document.createElement('div');
+    el.className = 'toast';
+    var body = document.createElement('div');
+    var b = document.createElement('b'); b.textContent = title; body.appendChild(b);
+    if (desc){ var s = document.createElement('span'); s.textContent = desc; body.appendChild(s); }
+    var x = document.createElement('button');
+    x.type = 'button'; x.textContent = '×'; x.setAttribute('aria-label','关闭');
+    var t = setTimeout(close, 4200);
+    function close(){ clearTimeout(t); el.remove(); }
+    x.addEventListener('click', close);
+    el.addEventListener('mouseenter', function(){ clearTimeout(t); });
+    el.addEventListener('mouseleave', function(){ t = setTimeout(close, 2000); });
+    el.appendChild(body); el.appendChild(x);
+    host.appendChild(el);
+  }
+
+  /* ======================================================================
+     釉色按钮
+     ====================================================================== */
+  (function buildGlazes(){
+    var host = $('glazes');
+    GLAZES.forEach(function(g){
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'glaze';
+      b.dataset.glaze = g.id;
+      b.setAttribute('aria-pressed', String(g.id === state.glaze));
+      b.innerHTML = '<i></i><span></span>';
+      b.querySelector('i').style.background =
+        'linear-gradient(168deg, color-mix(in srgb, ' + g.hex + ' 78%, #ffffff), ' + g.hex + ' 58%, color-mix(in srgb, ' + g.hex + ' 76%, #000000))';
+      b.querySelector('span').textContent = g.name;
+      b.setAttribute('aria-label', '釉色 ' + g.name);
+      b.addEventListener('click', function(){
+        if (b.disabled) return;
+        state.glaze = g.id;
+        render();
+      });
+      host.appendChild(b);
+    });
+  })();
+
+  /* ======================================================================
+     交互
+     ====================================================================== */
+  document.querySelectorAll('input[name="combo"]').forEach(function(r){
+    r.addEventListener('change', function(){
+      state.combo = r.value;
+      state.piece = COMBOS[r.value].piece;
+      state.qty = 1;
+      render();
+    });
+  });
+
+  document.querySelectorAll('.vtab').forEach(function(t){
+    t.addEventListener('click', function(){
+      state.piece = t.dataset.piece;
+      render();
+    });
+  });
+
+  $('qMinus').addEventListener('click', function(){ setQty(state.qty - 1); });
+  $('qPlus').addEventListener('click', function(){ setQty(state.qty + 1); });
+  $('qty').addEventListener('change', function(){ setQty(parseInt(this.value, 10) || 1); });
+  $('qty').addEventListener('keydown', function(e){
+    if (e.key === 'ArrowUp'){ e.preventDefault(); setQty(state.qty + 1); }
+    if (e.key === 'ArrowDown'){ e.preventDefault(); setQty(state.qty - 1); }
+  });
+
+  function stockOf(){
+    var g = GLAZES.filter(function(x){ return x.id === state.glaze; })[0];
+    return g ? g.stock[state.combo] : 0;
+  }
+  function setQty(n){
+    var max = Math.max(1, stockOf());
+    state.qty = Math.max(1, Math.min(max, n));
+    render();
+  }
+
+  $('favBtn').addEventListener('click', function(){
+    state.fav = !state.fav;
+    this.setAttribute('aria-pressed', String(state.fav));
+    this.textContent = state.fav ? '已收藏' : '收藏';
+  });
+
+  document.querySelectorAll('[data-act="add"]').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      if (stockOf() <= 0){
+        toast('该釉色本窑已售罄', '可以先收藏，下一窑开窑时通知你。');
+        return;
+      }
+      var main = $('addBtn');
+      main.dataset.state = 'loading';
+      main.setAttribute('aria-busy','true');
+      setTimeout(function(){
+        main.dataset.state = 'idle';
+        main.setAttribute('aria-busy','false');
+        var g = GLAZES.filter(function(x){ return x.id === state.glaze; })[0];
+        toast('已加入购物车',
+          COMBOS[state.combo].name + ' · ' + g.name + ' × ' + state.qty +
+          '，合计 ¥' + (COMBOS[state.combo].price * state.qty));
+      }, 780);
+    });
+  });
+
+  /* ======================================================================
+     渲染
+     ====================================================================== */
+  function render(){
+    var c = COMBOS[state.combo];
+    var g = GLAZES.filter(function(x){ return x.id === state.glaze; })[0];
+    var stock = g.stock[state.combo];
+
+    /* 价格 */
+    var total = c.price * state.qty;
+    $('priceMain').textContent = '¥' + total;
+    $('topPrice').textContent = '¥' + total;
+    $('priceOld').textContent = c.old ? ('¥' + c.old * state.qty) : '';
+    $('priceOld').style.display = c.old ? '' : 'none';
+    $('priceNote').textContent = c.note;
+
+    /* 釉色可用性 */
+    document.querySelectorAll('.glaze').forEach(function(b){
+      var gg = GLAZES.filter(function(x){ return x.id === b.dataset.glaze; })[0];
+      var s = gg.stock[state.combo];
+      b.disabled = (s <= 0);
+      b.setAttribute('aria-pressed', String(b.dataset.glaze === state.glaze));
+      b.setAttribute('aria-label', '釉色 ' + gg.name + (s <= 0 ? '，本窑售罄' : '，剩余 ' + s));
+      b.querySelector('span').textContent = s <= 0 ? (gg.name + '·罄') : gg.name;
+    });
+    $('glazeName').textContent = g.name;
+
+    /* 库存 */
+    var st = $('stock');
+    if (stock <= 0){
+      st.dataset.kind = 'preorder';
+      st.textContent = '本窑已售罄，下一窑预计 5 周后开窑';
+      $('qtyHint').textContent = '暂无现货';
+    } else if (stock <= 3){
+      st.dataset.kind = 'instock';
+      st.textContent = '现货，48 小时内发出';
+      $('qtyHint').textContent = '本窑仅剩 ' + stock + (state.combo === 'set' ? ' 套' : ' 件');
+    } else {
+      st.dataset.kind = 'instock';
+      st.textContent = '现货，48 小时内发出';
+      $('qtyHint').textContent = '本窑剩余 ' + stock + (state.combo === 'set' ? ' 套' : ' 件');
+    }
+
+    /* 数量 */
+    if (state.qty > Math.max(1, stock)) state.qty = Math.max(1, stock);
+    $('qty').value = state.qty;
+    $('qMinus').setAttribute('aria-disabled', String(state.qty <= 1));
+    $('qPlus').setAttribute('aria-disabled', String(stock <= 0 || state.qty >= stock));
+    $('addBtn').setAttribute('aria-disabled', 'false');
+
+    /* 线图 */
+    Object.keys(PIECES).forEach(function(k){
+      $(PIECES[k].g).hidden = (k !== state.piece);
+    });
+    document.querySelectorAll('.vtab').forEach(function(t){
+      t.setAttribute('aria-selected', String(t.dataset.piece === state.piece));
+    });
+
+    var p = PIECES[state.piece];
+    $('vessel').style.setProperty('--glaze', g.hex);
+    $('vTitle').textContent = p.title;
+    $('tTop').textContent = p.top;
+    $('tSide').textContent = p.side;
+    $('tVol').textContent = p.vol;
+    $('dTopL').setAttribute('x1', p.dimTop[0]);
+    $('dTopL').setAttribute('x2', p.dimTop[1]);
+    $('dSide').setAttribute('y1', p.dimSide[0]);
+    $('dSide').setAttribute('y2', p.dimSide[1]);
+  }
+
+  /* 顶栏购买条：主购买框滚出视口后出现 */
+  if ('IntersectionObserver' in window){
+    var io = new IntersectionObserver(function(e){
+      $('topBuy').dataset.on = String(!e[0].isIntersecting);
+    }, { rootMargin:'-70px 0px 0px 0px' });
+    io.observe($('addBtn'));
+  }
+
+  render();
+})();
+</script>
+
+</body>
+</html>

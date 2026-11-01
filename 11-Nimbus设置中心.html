@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nimbus 云枢 · 设置中心</title>
+<style>
+:root{
+  --bg:#f3f5f9;--card:#fff;--ink:#1b2333;--dim:#67718a;--faint:#98a1b6;
+  --line:#e4e8f1;--indigo:#4f5df0;--indigo-soft:rgba(79,93,240,.1);
+  --red:#d64545;--red-soft:rgba(214,69,69,.1);
+  --ok:#0fa968;--amber:#e8a63c;--cyan:#2f9de8;
+  --shadow:0 1px 2px rgba(27,35,51,.05),0 10px 30px rgba(27,35,51,.07);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:"PingFang SC","Microsoft YaHei","Helvetica Neue",sans-serif;font-size:14px;line-height:1.65;min-height:100vh}
+button{font:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent;background:none;border:none;color:inherit}
+input,select{font:inherit;color:inherit}
+button:focus-visible,input:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--indigo);outline-offset:2px}
+::-webkit-scrollbar{width:8px}::-webkit-scrollbar-thumb{background:#ccd3e0;border-radius:4px}
+
+/* ---------- 布局 ---------- */
+.shell{display:flex;min-height:100vh}
+.sidenav{width:230px;flex:0 0 auto;background:#fff;border-right:1px solid var(--line);padding:22px 14px;position:sticky;top:0;height:100vh}
+.sidenav .brand{display:flex;align-items:center;gap:10px;padding:0 10px 20px;font-weight:700;letter-spacing:.04em}
+.sidenav .brand i{width:30px;height:30px;border-radius:9px;font-style:normal;display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px;background:linear-gradient(135deg,var(--indigo),#7c5cf0);box-shadow:0 6px 16px rgba(79,93,240,.3)}
+.sidenav .brand small{display:block;font-size:9.5px;letter-spacing:.3em;color:var(--faint);font-weight:400}
+.stabs{display:flex;flex-direction:column;gap:3px}
+.stabs button{
+  display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;color:var(--dim);
+  font-size:13.5px;transition:.15s;text-align:left;position:relative;
+}
+.stabs button svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.stabs button:hover{background:var(--bg);color:var(--ink)}
+.stabs button.on{background:var(--indigo-soft);color:var(--indigo);font-weight:600}
+.stabs .dirty{position:absolute;right:12px;width:7px;height:7px;border-radius:50%;background:var(--amber);opacity:0;transition:.2s}
+.stabs .dirty.show{opacity:1}
+.stabs .danger{color:var(--red)}
+.stabs .danger:hover{background:var(--red-soft)}
+.sidenav .vtag{margin-top:18px;padding:12px 14px;background:var(--bg);border-radius:12px;font-size:11px;color:var(--faint);line-height:1.8}
+.main{flex:1;min-width:0;padding:30px 40px 130px;max-width:880px}
+.masthead h1{font-size:22px;font-weight:700;letter-spacing:.02em}
+.masthead p{color:var(--dim);font-size:13px;margin-top:4px}
+.masthead .badge{display:inline-flex;gap:7px;align-items:center;font-size:11px;color:var(--ok);background:rgba(15,169,104,.09);border-radius:999px;padding:4px 12px;margin-top:12px}
+.masthead .badge i{width:6px;height:6px;border-radius:50%;background:var(--ok)}
+
+/* ---------- 面板 ---------- */
+.panel{display:none;animation:panelin .35s cubic-bezier(.2,.8,.3,1)}
+.panel.active{display:block}
+@keyframes panelin{from{opacity:0;transform:translateY(10px)}to{opacity:1}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);margin-top:18px;overflow:hidden}
+.card h3{font-size:14.5px;font-weight:600;padding:18px 24px 0;display:flex;align-items:baseline;gap:10px}
+.card h3 small{font-size:12px;color:var(--faint);font-weight:400}
+.card .desc{padding:2px 24px 0;font-size:12.5px;color:var(--dim)}
+.card .body{padding:10px 24px 20px}
+.row{display:flex;align-items:center;gap:18px;padding:16px 0;border-bottom:1px solid #f0f2f8;flex-wrap:wrap}
+.row:last-child{border-bottom:none}
+.row .info{flex:1;min-width:220px}
+.row .info b{display:block;font-size:13.5px;font-weight:600}
+.row .info span{font-size:12px;color:var(--dim)}
+.hr{border-top:1px solid var(--line);margin:2px 0}
+
+/* ---------- 开关 ---------- */
+.switch{width:46px;height:26px;border-radius:999px;background:#d7dcea;position:relative;transition:.22s;flex:0 0 auto}
+.switch::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 2px 5px rgba(27,35,51,.25);transition:.22s cubic-bezier(.3,1.3,.5,1)}
+.switch.on{background:var(--indigo)}
+.switch.on::after{left:23px}
+.switch:focus-visible{outline-offset:3px}
+/* ---------- 滑杆 ---------- */
+.slider{display:flex;align-items:center;gap:14px;flex:1;min-width:240px}
+.slider input[type=range]{-webkit-appearance:none;appearance:none;flex:1;height:6px;border-radius:3px;background:linear-gradient(90deg,var(--indigo) var(--p,50%),#e4e8f1 var(--p,50%));outline-offset:6px}
+.slider input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none;width:20px;height:20px;border-radius:50%;background:#fff;
+  border:2px solid var(--indigo);box-shadow:0 2px 8px rgba(79,93,240,.35);cursor:grab;
+}
+.slider input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;background:#fff;border:2px solid var(--indigo);cursor:grab}
+.slider .bub{
+  min-width:56px;text-align:center;font-size:12.5px;font-weight:600;color:var(--indigo);
+  background:var(--indigo-soft);border-radius:8px;padding:4px 8px;font-variant-numeric:tabular-nums;
+}
+/* ---------- 输入与下拉 ---------- */
+.txt{width:100%;height:42px;border:1.5px solid var(--line);border-radius:10px;padding:0 13px;background:#fbfcfe;transition:.18s;min-width:0}
+.txt:focus{border-color:var(--indigo);background:#fff;box-shadow:0 0 0 3px rgba(79,93,240,.1)}
+.field2{width:230px}
+@media (max-width:560px){.field2{width:100%}}
+.dd{position:relative;width:230px}
+.ddbtn{
+  width:100%;height:42px;border:1.5px solid var(--line);border-radius:10px;background:#fbfcfe;
+  padding:0 13px;display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:13.5px;transition:.18s;
+}
+.ddbtn:hover{border-color:#c6cde0}
+.ddbtn .car{color:var(--faint);font-size:10px;transition:transform .2s}
+.dd.open .ddbtn{border-color:var(--indigo);box-shadow:0 0 0 3px rgba(79,93,240,.1)}
+.dd.open .car{transform:rotate(180deg)}
+.ddlist{
+  position:absolute;top:calc(100% + 7px);left:0;right:0;background:#fff;border:1px solid var(--line);
+  border-radius:12px;box-shadow:0 16px 40px rgba(27,35,51,.16);z-index:30;overflow:hidden;
+  opacity:0;transform:translateY(-6px) scale(.98);pointer-events:none;transition:.18s;
+}
+.dd.open .ddlist{opacity:1;transform:none;pointer-events:auto}
+.ddlist button{width:100%;text-align:left;padding:10px 14px;font-size:13.5px;color:var(--ink);display:flex;justify-content:space-between;transition:.12s}
+.ddlist button:hover{background:var(--bg)}
+.ddlist button.sel{color:var(--indigo);font-weight:600}
+.ddlist button.sel::after{content:"✓"}
+/* ---------- 按钮 ---------- */
+.btn{border-radius:10px;padding:9px 18px;font-size:13px;font-weight:600;transition:.16s;border:1.5px solid transparent;display:inline-flex;align-items:center;gap:7px}
+.btn.primary{background:var(--indigo);color:#fff}
+.btn.primary:hover{filter:brightness(1.08)}
+.btn.ghost{border-color:var(--line);color:var(--dim)}
+.btn.ghost:hover{color:var(--ink);border-color:#c6cde0}
+.btn.danger{background:var(--red-soft);color:var(--red)}
+.btn.danger:hover{background:var(--red);color:#fff}
+.btn.sm{padding:6px 13px;font-size:12.5px}
+/* ---------- 头像 ---------- */
+.avatar-row{display:flex;align-items:center;gap:16px;padding:18px 0}
+.avatar{width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,var(--indigo),#7c5cf0);color:#fff;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:600;box-shadow:0 8px 20px rgba(79,93,240,.3);position:relative}
+.avatar .cam{position:absolute;right:-2px;bottom:-2px;width:22px;height:22px;border-radius:50%;background:#fff;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:10px}
+/* ---------- API 密钥行 ---------- */
+.keyrow{display:flex;align-items:center;gap:14px;padding:13px 0;border-bottom:1px solid #f0f2f8;font-size:13px;flex-wrap:wrap}
+.keyrow:last-child{border-bottom:none}
+.keyrow code{font-family:Consolas,monospace;background:var(--bg);padding:5px 11px;border-radius:8px;color:var(--dim);font-size:12.5px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
+.keyrow .meta2{font-size:11px;color:var(--faint);white-space:nowrap}
+/* ---------- 危险区 ---------- */
+.danger-card{border-color:rgba(214,69,69,.35)}
+.danger-card h3{color:var(--red)}
+/* ---------- 保存栏 ---------- */
+.savebar{
+  position:fixed;left:0;right:0;bottom:0;z-index:40;display:flex;justify-content:center;
+  transform:translateY(110%);transition:transform .3s cubic-bezier(.2,.8,.3,1);
+}
+.savebar.show{transform:none}
+.savebar .in{
+  display:flex;align-items:center;gap:16px;background:rgba(27,35,51,.94);backdrop-filter:blur(10px);
+  color:#fff;border-radius:14px;padding:12px 16px 12px 20px;margin-bottom:18px;box-shadow:0 18px 44px rgba(27,35,51,.4);
+  font-size:13px;
+}
+.savebar .in .dotp{width:8px;height:8px;border-radius:50%;background:var(--amber);animation:pulse2 1.4s infinite}
+@keyframes pulse2{50%{opacity:.4}}
+/* ---------- 弹窗 ---------- */
+.modal-mask{position:fixed;inset:0;background:rgba(16,20,32,.55);backdrop-filter:blur(3px);z-index:80;display:none;align-items:center;justify-content:center;padding:20px}
+.modal-mask.show{display:flex;animation:fadein .2s}
+@keyframes fadein{from{opacity:0}}
+.modal{background:#fff;border-radius:18px;width:min(440px,100%);padding:28px;box-shadow:0 30px 80px rgba(16,20,32,.4);animation:pop2 .28s cubic-bezier(.2,1.2,.4,1)}
+@keyframes pop2{from{transform:scale(.92) translateY(10px);opacity:0}}
+.modal .micon{width:48px;height:48px;border-radius:14px;background:var(--red-soft);display:flex;align-items:center;justify-content:center;margin-bottom:16px}
+.modal .micon svg{width:24px;height:24px;stroke:var(--red);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.modal h3{font-size:17px;margin-bottom:8px}
+.modal p{font-size:13px;color:var(--dim)}
+.modal p b{color:var(--ink)}
+.modal .mfield{margin:18px 0 8px}
+.modal .mfield label{display:block;font-size:12px;color:var(--dim);margin-bottom:7px}
+.modal .mfield label b{color:var(--red);font-family:Consolas,monospace}
+.modal .btns{display:flex;gap:10px;justify-content:flex-end;margin-top:18px}
+/* ---------- Toast ---------- */
+.toasts{position:fixed;top:22px;right:22px;z-index:90;display:flex;flex-direction:column;gap:10px;width:min(340px,86vw)}
+.toast{
+  display:flex;gap:11px;align-items:flex-start;background:#fff;border:1px solid var(--line);
+  border-radius:13px;padding:13px 15px;box-shadow:0 14px 40px rgba(27,35,51,.16);
+  animation:toastin .32s cubic-bezier(.2,1.1,.4,1);position:relative;overflow:hidden;
+}
+.toast::after{content:"";position:absolute;left:0;bottom:0;height:3px;background:var(--tc,var(--ok));animation:life 3.6s linear forwards}
+@keyframes life{from{width:100%}to{width:0}}
+@keyframes toastin{from{transform:translateX(40px);opacity:0}}
+.toast.out{animation:toastout .25s forwards}
+@keyframes toastout{to{transform:translateX(40px);opacity:0}}
+.toast .tic{width:22px;height:22px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:11px;color:#fff;flex:0 0 auto;background:var(--tc,var(--ok))}
+.toast b{display:block;font-size:13px}
+.toast span{font-size:12px;color:var(--dim);display:block}
+.toast .x{margin-left:auto;color:var(--faint);font-size:14px;padding:0 2px}
+.toast .x:hover{color:var(--ink)}
+@media (prefers-reduced-motion:reduce){
+  .panel.active,.modal-mask.show .modal,.toast{animation:none}
+  .toast::after{animation:none}
+  .savebar{transition:none}
+}
+@media (max-width:760px){
+  .shell{flex-direction:column}
+  .sidenav{width:100%;height:auto;position:static;display:flex;overflow-x:auto;padding:12px;gap:6px}
+  .sidenav .brand,.sidenav .vtag{display:none}
+  .stabs{flex-direction:row}
+  .stabs button{white-space:nowrap}
+  .main{padding:22px 18px 130px}
+}
+</style>
+</head>
+<body>
+
+<div class="shell">
+  <!-- ============ 侧栏 ============ -->
+  <aside class="sidenav">
+    <div class="brand"><i>N</i><span>Nimbus 云枢<small>WORKSPACE OS</small></span></div>
+    <nav class="stabs" id="stabs" aria-label="设置分区">
+      <button class="on" data-t="account">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg>账户信息<span class="dirty"></span>
+      </button>
+      <button data-t="general">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 0 0-.1-1.2l2-1.6-2-3.4-2.4 1a7 7 0 0 0-2-1.2L14 3h-4l-.5 2.6a7 7 0 0 0-2 1.2l-2.4-1-2 3.4 2 1.6A7 7 0 0 0 5 12c0 .4 0 .8.1 1.2l-2 1.6 2 3.4 2.4-1a7 7 0 0 0 2 1.2L10 21h4l.5-2.6a7 7 0 0 0 2-1.2l2.4 1 2-3.4-2-1.6c.06-.4.1-.8.1-1.2z"/></svg>通用偏好<span class="dirty"></span>
+      </button>
+      <button data-t="notify">
+        <svg viewBox="0 0 24 24"><path d="M18 9a6 6 0 1 0-12 0c0 6-2 7-2 7h16s-2-1-2-7"/><path d="M10.5 20a1.7 1.7 0 0 0 3 0"/></svg>通知订阅<span class="dirty"></span>
+      </button>
+      <button data-t="security">
+        <svg viewBox="0 0 24 24"><path d="M12 3l8 4v5c0 5-3.5 8-8 9-4.5-1-8-4-8-9V7z"/><path d="M9 12l2 2 4-4"/></svg>安全中心<span class="dirty"></span>
+      </button>
+      <button class="danger" data-t="danger">
+        <svg viewBox="0 0 24 24"><path d="M12 9v5M12 17.5v.5"/><path d="M10.3 3.8L2.6 17a2 2 0 0 0 1.7 3h15.4a2 2 0 0 0 1.7-3L13.7 3.8a2 2 0 0 0-3.4 0z"/></svg>危险操作
+      </button>
+    </nav>
+    <div class="vtag">云枢 Nimbus · 专业版<br>工作区 nimbus-team<br>成员 14 / 20 · 存储 68%</div>
+  </aside>
+
+  <!-- ============ 主区 ============ -->
+  <main class="main">
+    <div class="masthead">
+      <h1>设置中心</h1>
+      <p>管理你的账户、工作区偏好与安全选项 —— 所有更改都会先保存在本地，点击底部保存栏后生效。</p>
+      <span class="badge"><i></i>已同步 · 2 分钟前</span>
+    </div>
+
+    <!-- ======== 账户 ======== -->
+    <section class="panel active" data-p="account">
+      <div class="card">
+        <h3>个人资料 <small>对外可见</small></h3>
+        <div class="desc">头像与昵称将出现在协作视图与成员列表中。</div>
+        <div class="body">
+          <div class="avatar-row">
+            <div class="avatar">岑<span class="cam">✎</span></div>
+            <div style="flex:1;min-width:200px">
+              <div style="display:flex;gap:12px;flex-wrap:wrap">
+                <div class="field2"><label style="font-size:11.5px;color:var(--dim);letter-spacing:.12em;display:block;margin-bottom:6px">昵称</label><input class="txt dirty-watch" id="nickname" value="岑晚舟"></div>
+                <div class="field2"><label style="font-size:11.5px;color:var(--dim);letter-spacing:.12em;display:block;margin-bottom:6px">职位头衔</label><input class="txt dirty-watch" id="title" value="运营负责人"></div>
+              </div>
+            </div>
+          </div>
+          <div class="row">
+            <div class="info"><b>邮箱</b><span>登录与账单通知邮箱</span></div>
+            <input class="txt field2 dirty-watch" id="email" value="wenzhou@nimbus.io" type="email">
+          </div>
+          <div class="hr"></div>
+          <div class="row">
+            <div class="info"><b>时区</b><span>影响报表统计的时间切分</span></div>
+            <div class="dd" data-dd>
+              <button class="ddbtn" aria-haspopup="listbox"><span class="ddval">(GMT+8) 北京 · 上海</span><span class="car">▼</span></button>
+              <div class="ddlist" role="listbox">
+                <button data-v="(GMT+8) 北京 · 上海" class="sel">(GMT+8) 北京 · 上海</button>
+                <button data-v="(GMT+9) 东京">(GMT+9) 东京</button>
+                <button data-v="(GMT+0) 伦敦">(GMT+0) 伦敦</button>
+                <button data-v="(GMT-5) 纽约">(GMT-5) 纽约</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======== 通用 ======== -->
+    <section class="panel" data-p="general">
+      <div class="card">
+        <h3>外观与语言</h3>
+        <div class="desc">界面主题立即生效，其余偏好保存后生效。</div>
+        <div class="body">
+          <div class="row">
+            <div class="info"><b>语言</b><span>切换界面显示语言</span></div>
+            <div class="dd" data-dd>
+              <button class="ddbtn" aria-haspopup="listbox"><span class="ddval">简体中文</span><span class="car">▼</span></button>
+              <div class="ddlist" role="listbox">
+                <button data-v="简体中文" class="sel">简体中文</button>
+                <button data-v="繁體中文">繁體中文</button>
+                <button data-v="English">English</button>
+                <button data-v="日本語">日本語</button>
+              </div>
+            </div>
+          </div>
+          <div class="row">
+            <div class="info"><b>自动锁定</b><span>空闲超过该时长后要求重新验证</span></div>
+            <div class="slider">
+              <input type="range" min="5" max="60" step="5" value="30" class="dirty-watch" id="lockRange" aria-label="自动锁定时长">
+              <span class="bub" id="lockBub">30 分钟</span>
+            </div>
+          </div>
+          <div class="row">
+            <div class="info"><b>侧栏折叠</b><span>默认折叠侧边导航，节省横向空间</span></div>
+            <button class="switch dirty-watch" role="switch" aria-checked="false" aria-label="侧栏折叠"></button>
+          </div>
+          <div class="row">
+            <div class="info"><b>测试数据打点</b><span>在图表上叠加模拟数据以便演示</span></div>
+            <button class="switch on dirty-watch" role="switch" aria-checked="true" aria-label="测试数据打点"></button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======== 通知 ======== -->
+    <section class="panel" data-p="notify">
+      <div class="card">
+        <h3>通知矩阵</h3>
+        <div class="desc">按重要程度选择打扰方式。</div>
+        <div class="body">
+          <div class="row">
+            <div class="info"><b>工作区动态</b><span>成员加入、权限变更、空间告急</span></div>
+            <button class="switch on dirty-watch" role="switch" aria-checked="true" aria-label="工作区动态邮件通知"></button>
+          </div>
+          <div class="row">
+            <div class="info"><b>日报摘要</b><span>每天 09:00 发送昨日数据摘要</span></div>
+            <button class="switch on dirty-watch" role="switch" aria-checked="true" aria-label="日报摘要"></button>
+          </div>
+          <div class="row">
+            <div class="info"><b>群聊机器人</b><span>将告警推送到飞书群</span></div>
+            <button class="switch dirty-watch" role="switch" aria-checked="false" aria-label="群聊机器人"></button>
+          </div>
+          <div class="row">
+            <div class="info"><b>短信告急通道</b><span>仅在数据异常波动时短信通知（按条计费）</span></div>
+            <button class="switch dirty-watch" role="switch" aria-checked="false" aria-label="短信告急通道"></button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======== 安全 ======== -->
+    <section class="panel" data-p="security">
+      <div class="card">
+        <h3>登录与验证</h3>
+        <div class="body">
+          <div class="row">
+            <div class="info"><b>双因素认证</b><span>登录时需要 TOTP 动态码，强烈建议开启</span></div>
+            <button class="switch on" role="switch" aria-checked="true" aria-label="双因素认证"></button>
+          </div>
+          <div class="hr"></div>
+          <div class="row">
+            <div class="info"><b>登录设备</b><span>3 台活跃设备 · 上次登录于 2 小时前</span></div>
+            <button class="btn ghost sm" id="kickBtn">下线全部其他设备</button>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <h3>API 密钥 <small>用于程序化访问</small></h3>
+        <div class="body">
+          <div class="keyrow"><code>nmb_live_8f3e****a2c1</code><span class="meta2">创建于 2026-06-12</span><button class="btn ghost sm key-revoke">吊销</button></div>
+          <div class="keyrow"><code>nmb_test_2d91****77ff</code><span class="meta2">创建于 2026-08-30</span><button class="btn ghost sm key-revoke">吊销</button></div>
+          <button class="btn primary sm" id="newKeyBtn" style="margin-top:14px">＋ 生成新密钥</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======== 危险 ======== -->
+    <section class="panel" data-p="danger">
+      <div class="card danger-card">
+        <h3>⚠ 危险操作</h3>
+        <div class="desc">以下操作不可撤销或需要冷静期，请谨慎执行。</div>
+        <div class="body">
+          <div class="row">
+            <div class="info"><b>清空回收站</b><span>永久删除回收站内 1,203 个对象</span></div>
+            <button class="btn danger sm" data-modal="empty">清空</button>
+          </div>
+          <div class="hr"></div>
+          <div class="row">
+            <div class="info"><b>移除全部成员</b><span>除你之外的 13 名成员将被移出工作区</span></div>
+            <button class="btn danger sm" data-modal="kickall">移除成员</button>
+          </div>
+          <div class="hr"></div>
+          <div class="row">
+            <div class="info"><b>注销工作区</b><span>数据将保留 30 天冷静期，之后彻底删除</span></div>
+            <button class="btn danger" data-modal="destroy">注销工作区…</button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- 保存栏 -->
+<div class="savebar" id="savebar" role="region" aria-label="未保存更改">
+  <div class="in">
+    <span class="dotp"></span><span id="savebarTxt">有 1 项未保存的更改</span>
+    <button class="btn ghost sm" id="discardBtn" style="border-color:rgba(255,255,255,.25);color:#cfd5e4">放弃</button>
+    <button class="btn primary sm" id="saveBtn" style="background:#4f5df0">保存更改</button>
+  </div>
+</div>
+
+<!-- 危险确认弹窗 -->
+<div class="modal-mask" id="modalMask" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+  <div class="modal">
+    <div class="micon"><svg viewBox="0 0 24 24"><path d="M12 9v5M12 17.5v.5"/><path d="M10.3 3.8L2.6 17a2 2 0 0 0 1.7 3h15.4a2 2 0 0 0 1.7-3L13.7 3.8a2 2 0 0 0-3.4 0z"/></svg></div>
+    <h3 id="modalTitle">确认操作</h3>
+    <p id="modalDesc">该操作不可撤销。</p>
+    <div class="mfield" id="modalField">
+      <label>请输入 <b>nimbus-team</b> 以确认</label>
+      <input class="txt" id="modalInput" placeholder="输入工作区名称" autocomplete="off">
+    </div>
+    <div class="btns">
+      <button class="btn ghost" id="modalCancel">取消</button>
+      <button class="btn danger" id="modalOk" disabled>确认执行</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toasts" id="toasts" aria-live="polite"></div>
+
+<script>
+"use strict";
+const $=id=>document.getElementById(id);
+/* ================= 标签页 ================= */
+document.querySelectorAll('#stabs button').forEach(b=>{
+  b.addEventListener('click',()=>{
+    document.querySelectorAll('#stabs button').forEach(x=>x.classList.toggle('on',x===b));
+    document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('active',p.dataset.p===b.dataset.t));
+  });
+});
+/* ================= 开关 ================= */
+document.body.addEventListener('click',e=>{
+  const sw=e.target.closest('.switch');
+  if(sw){
+    sw.classList.toggle('on');
+    sw.setAttribute('aria-checked',sw.classList.contains('on')?'true':'false');
+    if(sw.classList.contains('dirty-watch'))markDirty();
+  }
+});
+/* ================= 滑杆 ================= */
+$('lockRange').addEventListener('input',e=>{
+  const v=+e.target.value;
+  e.target.style.setProperty('--p',((v-5)/55*100)+'%');
+  $('lockBub').textContent=v+' 分钟';
+  markDirty();
+});
+/* ================= 下拉 ================= */
+document.querySelectorAll('.dd').forEach(dd=>{
+  const btn=dd.querySelector('.ddbtn'),val=dd.querySelector('.ddval');
+  btn.addEventListener('click',e=>{
+    e.stopPropagation();
+    const open=dd.classList.contains('open');
+    document.querySelectorAll('.dd.open').forEach(x=>x.classList.remove('open'));
+    if(!open)dd.classList.add('open');
+  });
+  dd.querySelectorAll('.ddlist button').forEach(opt=>{
+    opt.addEventListener('click',()=>{
+      dd.querySelectorAll('.ddlist button').forEach(x=>x.classList.toggle('sel',x===opt));
+      val.textContent=opt.dataset.v;
+      dd.classList.remove('open');
+      if(dd.closest('.panel').dataset.p==='account')markDirty();
+      toast('ok','偏好已更新',val.textContent+' 将在保存后生效');
+    });
+  });
+});
+document.addEventListener('click',()=>document.querySelectorAll('.dd.open').forEach(x=>x.classList.remove('open')));
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape')document.querySelectorAll('.dd.open').forEach(x=>x.classList.remove('open'));
+});
+/* ================= 脏状态与保存栏 ================= */
+let dirtyCount=0;
+const dirtyEls=new Set();
+function markDirty(el){
+  if(el){
+    if(el.classList.contains('switch')&&!el.dataset.orig)el.dataset.orig=el.classList.contains('on')?'on':'off';
+    dirtyEls.add(el);
+  }
+  dirtyCount=dirtyEls.size||1;
+  $('savebarTxt').textContent=`有 ${Math.max(dirtyEls.size,1)} 项未保存的更改`;
+  $('savebar').classList.add('show');
+  document.querySelectorAll('#stabs .dirty').forEach(d=>d.classList.add('show'));
+}
+document.querySelectorAll('.dirty-watch').forEach(el=>{
+  el.addEventListener('input',()=>markDirty(el));
+});
+$('discardBtn').addEventListener('click',()=>{
+  dirtyEls.forEach(el=>{
+    if(el.classList.contains('switch')){
+      const orig=el.dataset.orig||'off';
+      el.classList.toggle('on',orig==='on');
+      el.setAttribute('aria-checked',String(orig==='on'));
+      delete el.dataset.orig;
+    }
+    else if(el.type==='range'){el.value=30;el.style.setProperty('--p','45%');$('lockBub').textContent='30 分钟'}
+    else el.value=el.defaultValue;
+  });
+  dirtyEls.clear();
+  document.querySelectorAll('#stabs .dirty').forEach(d=>d.classList.remove('show'));
+  $('savebar').classList.remove('show');
+  toast('info','已放弃更改','所有设置已恢复为上次保存的版本');
+});
+$('saveBtn').addEventListener('click',()=>{
+  dirtyEls.forEach(el=>delete el.dataset.orig);
+  dirtyEls.clear();
+  document.querySelectorAll('#stabs .dirty').forEach(d=>d.classList.remove('show'));
+  $('savebar').classList.remove('show');
+  toast('ok','设置已保存','新配置已同步至工作区全部 14 名成员');
+});
+/* ================= Toast ================= */
+function toast(type,title,desc){
+  const colors={ok:'var(--ok)',warn:'var(--amber)',err:'var(--red)',info:'var(--cyan)'};
+  const icons={ok:'✓',warn:'!',err:'×',info:'i'};
+  const t=document.createElement('div');
+  t.className='toast';t.style.setProperty('--tc',colors[type]||colors.ok);
+  t.innerHTML=`<span class="tic">${icons[type]||'i'}</span><div><b>${title}</b><span>${desc||''}</span></div><button class="x" aria-label="关闭">✕</button>`;
+  $('toasts').appendChild(t);
+  const kill=()=>{t.classList.add('out');setTimeout(()=>t.remove(),260)};
+  t.querySelector('.x').addEventListener('click',kill);
+  setTimeout(kill,3600);
+}
+/* ================= 危险弹窗 ================= */
+const MODALS={
+  empty:{title:'清空回收站',desc:'将<b>永久删除</b>回收站内 <b>1,203 个对象</b>，此操作不可撤销。',need:null,ok:'永久删除',done:()=>toast('ok','回收站已清空','共释放存储空间 34.2 GB')},
+  kickall:{title:'移除全部成员',desc:'除你之外的 <b>13 名成员</b>将立即失去工作区访问权限，他们将收到邮件通知。',need:null,ok:'移除成员',done:()=>toast('ok','已移除 13 名成员','如需恢复，可在成员页重新邀请')},
+  destroy:{title:'注销工作区 nimbus-team',desc:'工作区将进入 <b>30 天冷静期</b>，期间可随时撤销；冷静期结束后全部数据将被<b>永久删除</b>。',need:'nimbus-team',ok:'申请注销',done:()=>{toast('warn','注销申请已提交','冷静期至 10 月 12 日，期间可在设置中撤销')}},
+};
+let curModal=null;
+document.querySelectorAll('[data-modal]').forEach(b=>{
+  b.addEventListener('click',()=>{
+    curModal=MODALS[b.dataset.modal];
+    $('modalTitle').textContent=curModal.title;
+    $('modalDesc').innerHTML=curModal.desc;
+    $('modalField').style.display=curModal.need?'block':'none';
+    $('modalInput').value='';
+    $('modalOk').disabled=!!curModal.need;
+    $('modalOk').textContent=curModal.ok;
+    $('modalMask').classList.add('show');
+    setTimeout(()=>(curModal.need?$('modalInput'):$('modalOk')).focus(),60);
+  });
+});
+$('modalInput').addEventListener('input',e=>{
+  $('modalOk').disabled=e.target.value!==curModal.need;
+});
+function closeModal(){$('modalMask').classList.remove('show')}
+$('modalCancel').addEventListener('click',closeModal);
+$('modalMask').addEventListener('click',e=>{if(e.target===e.currentTarget)closeModal()});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&$('modalMask').classList.contains('show'))closeModal()});
+$('modalOk').addEventListener('click',()=>{
+  closeModal();
+  curModal.done();
+});
+/* ================= 其他小动作 ================= */
+$('kickBtn').addEventListener('click',()=>toast('ok','已下线 2 台设备','其余设备需要重新登录'));
+$('newKeyBtn').addEventListener('click',()=>{
+  const row=document.createElement('div');
+  row.className='keyrow';
+  const key='nmb_live_'+Math.random().toString(36).slice(2,6)+'****'+Math.random().toString(36).slice(2,6);
+  row.innerHTML=`<code>${key}</code><span class="meta2">刚刚创建</span><button class="btn ghost sm key-revoke">吊销</button>`;
+  $('newKeyBtn').before(row);
+  toast('ok','新密钥已生成','请立即复制保存，仅展示一次');
+});
+document.body.addEventListener('click',e=>{
+  const rv=e.target.closest('.key-revoke');
+  if(rv){
+    rv.closest('.keyrow').remove();
+    toast('err','密钥已吊销','使用该密钥的集成将立即失效');
+  }
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,88 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 620"><title>山间来信：晨雾与花间咖啡包装、陶瓷咖啡杯的原创静物插画</title><defs>
+  <radialGradient id="ground"><stop stop-color="#e5dcc6"/><stop offset="1" stop-color="#ece7d9" stop-opacity="0"/></radialGradient>
+  <linearGradient id="cup" x2=".6" y2="1"><stop stop-color="#faf7e9"/><stop offset=".55" stop-color="#e6dfcd"/><stop offset="1" stop-color="#b7ab90"/></linearGradient>
+  <radialGradient id="coffee"><stop stop-color="#b7733c"/><stop offset=".8" stop-color="#714328"/><stop offset="1" stop-color="#4d2a1c"/></radialGradient>
+  <filter id="soft-shadow" x="-60%" y="-60%" width="220%" height="240%"><feGaussianBlur stdDeviation="11"/></filter>
+  <filter id="pack-shadow" x="-40%" y="-20%" width="190%" height="160%"><feDropShadow dx="9" dy="15" stdDeviation="9" flood-color="#473d2a" flood-opacity=".18"/></filter>
+</defs>
+<path d="M86 246 C83 113 204 44 370 58 C554 67 684 179 668 336 C652 511 551 558 374 552 C193 546 71 428 86 246Z" fill="#e9e4d6"/>
+<g fill="none" stroke="#a7b09b" opacity=".45" stroke-width=".8"><path d="M313 73 C414 110 464 30 552 120 S567 281 654 289"/><path d="M302 86 C402 126 465 48 541 132 S558 291 655 306"/><path d="M290 97 C390 144 461 65 530 147 S549 303 652 325"/><path d="M282 111 C380 160 454 87 520 161 S540 316 649 344"/><path d="M274 128 C365 175 448 109 510 176 S530 332 642 362"/><path d="M258 143 C354 191 440 127 500 192 S519 345 633 380"/></g>
+<ellipse cx="352" cy="507" rx="243" ry="64" fill="url(#ground)"/>
+<ellipse cx="341" cy="503" rx="191" ry="23" fill="#73654b" opacity=".14" filter="url(#soft-shadow)"/>
+<g transform="translate(105 94) rotate(-12 150 200) scale(1.01)" filter="url(#pack-shadow)"><defs>
+    <linearGradient id="hero-green-paper" x1="0" x2="1"><stop stop-color="#d2c7ad"/><stop offset=".075" stop-color="#e4dac2"/><stop offset=".25" stop-color="#f5eddc"/><stop offset=".69" stop-color="#f0e7d3"/><stop offset=".92" stop-color="#e5dac2"/><stop offset="1" stop-color="#c6b99d"/></linearGradient>
+    <linearGradient id="hero-green-top" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#d8cdb4"/><stop offset=".45" stop-color="#f5efdf"/><stop offset="1" stop-color="#d5c8ad"/></linearGradient>
+    <linearGradient id="hero-green-edge"><stop stop-color="#fffaf0" stop-opacity=".04"/><stop offset=".5" stop-color="#fffaf0" stop-opacity=".2"/><stop offset="1" stop-color="#1c251c" stop-opacity=".16"/></linearGradient>
+    <clipPath id="hero-green-label"><rect x="51" y="110" width="199" height="210" rx="1"/></clipPath>
+  </defs>
+  <path d="M45 20 Q148 17 254 20 L257 75 L276 349 Q274 365 254 370 Q155 378 45 371 Q29 369 27 353 L43 76Z" fill="url(#hero-green-paper)" stroke="#b7a98d" stroke-width=".7"/>
+  <path d="M45 20 Q146 17 254 20 L256 50 Q156 46 44 51Z" fill="url(#hero-green-top)"/>
+  <path d="M47 28 Q148 25 251 28 M46 34 Q144 31 252 34 M46 43 Q145 39 253 43" fill="none" stroke="#bcae91" stroke-width=".7" opacity=".6"/>
+  <path d="M44 51 L43 86 L30 349 L50 340 L54 73Z" fill="#cabd9f" opacity=".55"/>
+  <path d="M252 52 L253 84 L274 349 L252 340 L247 72Z" fill="#baac8d" opacity=".28"/>
+  <path d="M31 352 Q159 361 274 350 L254 370 Q151 378 44 370Z" fill="#cfc2a6"/>
+  <path d="M51 343 Q151 351 252 343" fill="none" stroke="#b2a487" opacity=".5"/>
+  <circle cx="152" cy="79" r="8" fill="#d9cfb9" stroke="#c2b49a" stroke-width=".65"/>
+  <circle cx="152" cy="79" r="3" fill="#baac8f" opacity=".5"/>
+  <rect x="51" y="110" width="199" height="210" rx="1" fill="#68774e"/>
+  <g fill="#faf5e7" text-anchor="middle">
+    <path d="M127 131 L138 120 L149 130 L159 116 L177 134 M133 132 Q150 125 170 134" fill="none" stroke="#f1ead7" stroke-width="1.1" stroke-linecap="round"/>
+    <text x="150" y="159" font-size="19" font-family="SimSun, 'Songti SC', serif" letter-spacing="4">山间来信</text>
+    <text x="152" y="173" font-size="5.7" font-family="Arial, sans-serif" letter-spacing="2">MOUNTAIN LETTERS</text>
+    <path d="M73 185 H228" stroke="#f5eddb" stroke-width=".65" opacity=".45"/>
+    <text x="154" y="220" font-size="32" font-family="SimSun, 'Songti SC', serif" letter-spacing="8">晨雾</text>
+    <text x="152" y="236" font-size="6.7" font-family="Arial, sans-serif" letter-spacing="1.3">MORNING MIST</text>
+  </g>
+  <g clip-path="url(#hero-green-label)" fill="none" stroke="#e3e6cf" stroke-width=".75" opacity=".4"><path d="M52 261 C84 237 94 254 125 227 S174 248 202 219 S239 210 250 219"/><path d="M52 269 C84 244 94 259 125 234 S174 252 202 226 S239 220 250 229"/><path d="M52 277 C84 251 94 264 125 241 S174 256 202 233 S239 230 250 239"/><path d="M52 285 C84 258 94 269 125 248 S174 260 202 240 S239 240 250 249"/><path d="M52 293 C84 265 94 274 125 255 S174 264 202 247 S239 250 250 259"/><path d="M52 301 C84 272 94 279 125 262 S174 268 202 254 S239 260 250 269"/><path d="M52 309 C84 279 94 284 125 269 S174 272 202 261 S239 270 250 279"/><path d="M52 317 C84 286 94 289 125 276 S174 276 202 268 S239 280 250 289"/><path d="M52 325 C84 293 94 294 125 283 S174 280 202 275 S239 290 250 299"/></g>
+  <rect x="51" y="287" width="199" height="33" fill="#68774e"/>
+  <text x="66" y="307" fill="#f7f0df" font-family="Georgia, serif" font-size="19">01</text>
+  <g fill="#f7f0df" font-family="Arial, sans-serif" font-size="5.8" letter-spacing=".7"><text x="97" y="301">YUNNAN · BAOSHAN</text><text x="97" y="312">LIGHT ROAST  /  250g</text></g>
+  <path d="M241 115 L246 115 L247 316 L241 316Z" fill="url(#hero-green-edge)" opacity=".4"/>
+  <g stroke="#b8a88a" stroke-width=".45" opacity=".2" fill="none"><path d="M56 66 L60 95 M241 55 L233 91 M38 284 L43 329 M260 258 L266 334 M77 357 L225 357"/></g></g>
+<g transform="translate(331 179) rotate(11 150 200) scale(.83)" filter="url(#pack-shadow)"><defs>
+    <linearGradient id="hero-orange-paper" x1="0" x2="1"><stop stop-color="#d2c7ad"/><stop offset=".075" stop-color="#e4dac2"/><stop offset=".25" stop-color="#f5eddc"/><stop offset=".69" stop-color="#f0e7d3"/><stop offset=".92" stop-color="#e5dac2"/><stop offset="1" stop-color="#c6b99d"/></linearGradient>
+    <linearGradient id="hero-orange-top" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#d8cdb4"/><stop offset=".45" stop-color="#f5efdf"/><stop offset="1" stop-color="#d5c8ad"/></linearGradient>
+    <linearGradient id="hero-orange-edge"><stop stop-color="#fffaf0" stop-opacity=".04"/><stop offset=".5" stop-color="#fffaf0" stop-opacity=".2"/><stop offset="1" stop-color="#1c251c" stop-opacity=".16"/></linearGradient>
+    <clipPath id="hero-orange-label"><rect x="51" y="110" width="199" height="210" rx="1"/></clipPath>
+  </defs>
+  <path d="M45 20 Q148 17 254 20 L257 75 L276 349 Q274 365 254 370 Q155 378 45 371 Q29 369 27 353 L43 76Z" fill="url(#hero-orange-paper)" stroke="#b7a98d" stroke-width=".7"/>
+  <path d="M45 20 Q146 17 254 20 L256 50 Q156 46 44 51Z" fill="url(#hero-orange-top)"/>
+  <path d="M47 28 Q148 25 251 28 M46 34 Q144 31 252 34 M46 43 Q145 39 253 43" fill="none" stroke="#bcae91" stroke-width=".7" opacity=".6"/>
+  <path d="M44 51 L43 86 L30 349 L50 340 L54 73Z" fill="#cabd9f" opacity=".55"/>
+  <path d="M252 52 L253 84 L274 349 L252 340 L247 72Z" fill="#baac8d" opacity=".28"/>
+  <path d="M31 352 Q159 361 274 350 L254 370 Q151 378 44 370Z" fill="#cfc2a6"/>
+  <path d="M51 343 Q151 351 252 343" fill="none" stroke="#b2a487" opacity=".5"/>
+  <circle cx="152" cy="79" r="8" fill="#d9cfb9" stroke="#c2b49a" stroke-width=".65"/>
+  <circle cx="152" cy="79" r="3" fill="#baac8f" opacity=".5"/>
+  <rect x="51" y="110" width="199" height="210" rx="1" fill="#b96b50"/>
+  <g fill="#faf5e7" text-anchor="middle">
+    <path d="M127 131 L138 120 L149 130 L159 116 L177 134 M133 132 Q150 125 170 134" fill="none" stroke="#f1ead7" stroke-width="1.1" stroke-linecap="round"/>
+    <text x="150" y="159" font-size="19" font-family="SimSun, 'Songti SC', serif" letter-spacing="4">山间来信</text>
+    <text x="152" y="173" font-size="5.7" font-family="Arial, sans-serif" letter-spacing="2">MOUNTAIN LETTERS</text>
+    <path d="M73 185 H228" stroke="#f5eddb" stroke-width=".65" opacity=".45"/>
+    <text x="154" y="220" font-size="32" font-family="SimSun, 'Songti SC', serif" letter-spacing="8">花间</text>
+    <text x="152" y="236" font-size="6.7" font-family="Arial, sans-serif" letter-spacing="1.3">AMONG THE BLOOMS</text>
+  </g>
+  <g clip-path="url(#hero-orange-label)" fill="none" stroke="#f1dacb" stroke-width=".75" opacity=".4"><path d="M52 261 C84 237 94 254 125 227 S174 248 202 219 S239 210 250 219"/><path d="M52 269 C84 244 94 259 125 234 S174 252 202 226 S239 220 250 229"/><path d="M52 277 C84 251 94 264 125 241 S174 256 202 233 S239 230 250 239"/><path d="M52 285 C84 258 94 269 125 248 S174 260 202 240 S239 240 250 249"/><path d="M52 293 C84 265 94 274 125 255 S174 264 202 247 S239 250 250 259"/><path d="M52 301 C84 272 94 279 125 262 S174 268 202 254 S239 260 250 269"/><path d="M52 309 C84 279 94 284 125 269 S174 272 202 261 S239 270 250 279"/><path d="M52 317 C84 286 94 289 125 276 S174 276 202 268 S239 280 250 289"/><path d="M52 325 C84 293 94 294 125 283 S174 280 202 275 S239 290 250 299"/></g>
+  <rect x="51" y="287" width="199" height="33" fill="#b96b50"/>
+  <text x="66" y="307" fill="#f7f0df" font-family="Georgia, serif" font-size="19">02</text>
+  <g fill="#f7f0df" font-family="Arial, sans-serif" font-size="5.8" letter-spacing=".7"><text x="97" y="301">ETHIOPIA · YIRGACHEFFE</text><text x="97" y="312">LIGHT ROAST  /  250g</text></g>
+  <path d="M241 115 L246 115 L247 316 L241 316Z" fill="url(#hero-orange-edge)" opacity=".4"/>
+  <g stroke="#b8a88a" stroke-width=".45" opacity=".2" fill="none"><path d="M56 66 L60 95 M241 55 L233 91 M38 284 L43 329 M260 258 L266 334 M77 357 L225 357"/></g></g>
+<g transform="translate(553 468) rotate(-16)">
+ <ellipse cx="4" cy="22" rx="85" ry="48" fill="#7c6d53" opacity=".17" filter="url(#soft-shadow)"/>
+ <ellipse cx="0" cy="6" rx="88" ry="62" fill="#ded6c3" stroke="#c7b99f" stroke-width="1"/>
+ <ellipse cx="0" cy="2" rx="82" ry="57" fill="#f0eadb"/>
+ <path d="M56 -17 C110 -34 114 38 63 30 L59 16 C91 25 91 -14 59 -2Z" fill="url(#cup)" stroke="#d0c5ad" stroke-width="1"/>
+ <path d="M-64 -6 Q-60 54 0 55 Q61 53 65 -6Z" fill="url(#cup)"/>
+ <ellipse cx="0" cy="-7" rx="66" ry="43" fill="#f8f4e8" stroke="#cfc4ad" stroke-width="1"/>
+ <ellipse cx="0" cy="-7" rx="57" ry="35" fill="url(#coffee)"/>
+ <ellipse cx="0" cy="-8" rx="50" ry="29" fill="none" stroke="#cd9558" stroke-width="2" opacity=".5"/>
+ <g fill="#f1ddaf" transform="rotate(-18)"><path d="M0 18 C-5 6 -40 2 -35 -8 C-30 -20 -5 -6 0 18Z"/><path d="M0 13 C5 1 36 -1 32 -11 C27 -21 6 -8 0 13Z"/><path d="M0 7 C-6 -4 -29 -7 -24 -17 C-20 -25 -5 -13 0 7Z"/><path d="M0 1 C5 -7 23 -12 18 -20 C13 -28 3 -16 0 1Z"/><path d="M0 -4 C-10 -15 -9 -27 -1 -28 C7 -28 10 -16 0 -4Z"/><path d="M-1 -21 Q-3 5 2 25" fill="none" stroke="#f1ddaf" stroke-width="2.5"/></g>
+</g>
+<g transform="translate(579 91) rotate(15)" fill="none" stroke="#b45e3e"><circle r="47" stroke-width="1.4"/><circle r="41" stroke-width=".7"/><path d="M-24 -5 L-6 -19 L8 -6 L17 -14 L28 -2 M-26 4 H27" stroke-width="1.2"/><g fill="#b45e3e" stroke="none" text-anchor="middle" font-family="Arial, sans-serif"><text y="-28" font-size="7" letter-spacing="1.8">FRESHLY ROASTED</text><text y="21" font-size="10" letter-spacing="3">山间来信</text><text y="32" font-size="5.8" letter-spacing="1.8">FROM ORIGIN, WITH LOVE</text></g></g>
+<g transform="translate(96 451) rotate(-15)"><rect width="113" height="85" rx="2" fill="#f9f5e8" stroke="#d7cbb3" stroke-width=".6"/><path d="M12 56 H101 M12 68 H88" stroke="#cfbea1" stroke-width=".6"/><text x="13" y="20" fill="#6b744f" font-family="Arial" font-size="6" letter-spacing="1.6">A LETTER FOR YOU</text><text x="13" y="41" fill="#3e4f3a" font-family="SimSun, serif" font-size="13">今天，也好好喝咖啡。</text></g>
+<g fill="#694830" stroke="#4f3424" stroke-width=".7"><g transform="translate(335 545) rotate(-32)"><ellipse rx="12" ry="8"/><path d="M-10 2 Q-2 -5 9 0" fill="none" stroke="#b48a5e" stroke-width="1.3"/></g><g transform="translate(367 530) rotate(31)"><ellipse rx="10" ry="7"/><path d="M-8 1 Q0 -4 8 0" fill="none" stroke="#b48a5e" stroke-width="1.1"/></g><g transform="translate(363 555) rotate(77)"><ellipse rx="11" ry="7.3"/><path d="M-9 1 Q-2 -4 8 1" fill="none" stroke="#b48a5e" stroke-width="1.2"/></g></g>
+<text x="47" y="307" transform="rotate(-90 47 307)" font-family="Arial" font-size="8" fill="#70785e" letter-spacing="2.6">SMALL BATCH · BIG LITTLE MOMENTS</text>
+<path d="M119 572 H189" stroke="#a2a68d" stroke-width=".7"/><text x="201" y="575" font-family="Arial" font-size="8" letter-spacing="1.2" fill="#747b64">GOOD COFFEE. A SLOWER DAY.</text>
+</svg>

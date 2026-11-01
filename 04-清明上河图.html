@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>清明上河图 · 动态长卷</title>
+<style>
+:root{--ink:#3d3226;--paper:#e9dec3;--silk:#241d14;--seal:#a63a2b}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%}
+body{
+  background:
+    radial-gradient(1200px 600px at 50% 20%, #2c251a, #171208 60%, #0d0a05 100%);
+  overflow:hidden;font-family:"PingFang SC","Microsoft YaHei",sans-serif;
+  display:flex;flex-direction:column;
+}
+/* ---------- 题签 ---------- */
+header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:14px clamp(16px,3vw,40px) 10px;color:#c9b98f;
+}
+header .t{display:flex;align-items:baseline;gap:16px}
+header h1{font-family:"STKaiti","KaiTi","SimSun",serif;font-size:clamp(18px,2.6vmin,26px);letter-spacing:.5em;font-weight:600;color:#e6d6ab}
+header .sub{font-size:10px;letter-spacing:.3em;color:#8d7f5f}
+header .ops{display:flex;gap:8px}
+header button{
+  font:inherit;font-size:11px;letter-spacing:.2em;color:#c9b98f;
+  border:1px solid rgba(201,185,143,.3);border-radius:999px;padding:7px 16px;background:rgba(0,0,0,.25);
+  cursor:pointer;transition:.2s;
+}
+header button:hover{color:#efe2bb;border-color:rgba(201,185,143,.7)}
+header button.on{background:rgba(201,185,143,.16);color:#f0e4c0}
+header button:focus-visible{outline:1px solid #e6d6ab;outline-offset:2px}
+/* ---------- 画卷 ---------- */
+.stage{flex:1;display:flex;align-items:center;justify-content:center;min-height:0;padding:0 clamp(10px,2vw,28px)}
+.wrap{
+  position:relative;height:min(66vh,640px);width:min(96vw,1400px);
+  border-radius:3px;overflow:hidden;
+  box-shadow:0 30px 80px rgba(0,0,0,.7), 0 4px 18px rgba(0,0,0,.5);
+  border:1px solid rgba(201,185,143,.25);
+  cursor:grab;touch-action:pan-y;
+}
+.wrap.grabbing{cursor:grabbing}
+canvas{position:absolute;inset:0;width:100%;height:100%}
+/* 卷内题签与印（DOM 覆盖层，随卷首固定） */
+.scroll-title{
+  position:absolute;top:24px;right:36px;z-index:5;pointer-events:none;
+  writing-mode:vertical-rl;font-family:"STKaiti","KaiTi","SimSun",serif;
+  color:#43362a;display:flex;gap:12px;align-items:flex-start;
+}
+.scroll-title .big{font-size:clamp(20px,3.4vmin,34px);letter-spacing:.4em}
+.scroll-title .small{font-size:clamp(9px,1.3vmin,12px);letter-spacing:.35em;color:#6a5940;margin-top:6px}
+.scroll-title .seal{
+  writing-mode:horizontal-tb;margin-top:14px;width:34px;height:34px;background:var(--seal);
+  color:#f3e8d2;font-size:13px;line-height:1.2;display:flex;align-items:center;justify-content:center;
+  border-radius:4px;transform:rotate(-2deg);font-family:"STKaiti","KaiTi",serif;
+  box-shadow:0 0 8px rgba(166,58,43,.4);
+}
+/* 纸纹晕影 */
+.vignette{position:absolute;inset:0;z-index:4;pointer-events:none;
+  box-shadow:inset 0 0 90px rgba(90,66,34,.35), inset 0 0 20px rgba(90,66,34,.2)}
+/* ---------- 底部进度 ---------- */
+footer{padding:12px clamp(16px,3vw,40px) 18px;display:flex;align-items:center;gap:16px;color:#8d7f5f}
+footer .pos{font-size:10px;letter-spacing:.25em;font-variant-numeric:tabular-nums;min-width:64px}
+.track{flex:1;height:22px;display:flex;align-items:center;cursor:pointer}
+.track .rail{width:100%;height:3px;background:rgba(201,185,143,.18);border-radius:2px;position:relative}
+.track .thumb{
+  position:absolute;top:50%;width:44px;height:12px;transform:translate(-50%,-50%);
+  background:linear-gradient(180deg,#e6d6ab,#a08a5a);border-radius:6px;
+  box-shadow:0 2px 8px rgba(0,0,0,.5);
+}
+.track .rail i{position:absolute;left:0;top:0;bottom:0;background:rgba(201,185,143,.35);border-radius:2px}
+footer .chap{font-size:10px;letter-spacing:.3em;min-width:96px;text-align:right}
+@media (max-width:640px){
+  header .sub{display:none}
+  .scroll-title{right:14px;top:12px}
+  footer .chap{display:none}
+}
+@media (prefers-reduced-motion:reduce){
+  header button#autoBtn{display:none}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="t">
+    <h1>清明上河图</h1>
+    <span class="sub">动态长卷 · 程序化生成 · 拖拽左右观看</span>
+  </div>
+  <div class="ops">
+    <button id="autoBtn" class="on">自动巡航</button>
+    <button id="backBtn">回到卷首</button>
+  </div>
+</header>
+
+<div class="stage">
+  <div class="wrap" id="wrap">
+    <canvas id="cv"></canvas>
+    <div class="scroll-title" aria-hidden="true">
+      <div class="big">清明上河</div>
+      <div class="small">仿张择端笔意 · 汴京盛景</div>
+      <div class="seal">翰林</div>
+    </div>
+    <div class="vignette"></div>
+  </div>
+</div>
+
+<footer>
+  <span class="pos" id="pos">0000 / 9600</span>
+  <div class="track" id="track" aria-label="长卷进度">
+    <div class="rail"><i id="fill"></i><div class="thumb" id="thumb"></div></div>
+  </div>
+  <span class="chap" id="chap">郊野村头</span>
+</footer>
+
+<script>
+"use strict";
+/* ==================================================================
+   《清明上河图》动态长卷 —— 全部程序化生成，零图片素材
+   静态层：8 块瓦片预渲染（绢底 / 建筑 / 虹桥 / 树木）
+   动态层：每帧只画活物（水纹、行船、行人、飞鸟、幌旗）
+   ================================================================== */
+const W=9600, H=1200, TILE=1200;
+const RIVER={x0:1500,x1:6600,top:790,bot:1130};       // 汴河
+const GROUND=905;                                     // 街面基线
+const BRIDGE={x0:3250,x1:4750,cx:4000,spanY:640};     // 虹桥
+const cv=document.getElementById('cv'),ctx=cv.getContext('2d');
+const wrap=document.getElementById('wrap');
+const RM=matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ---------- 随机与色板 ---------- */
+function rng(seed){let s=seed>>>0;return()=>((s=(s*1664525+1013904223)>>>0)/4294967296)}
+const PAL={
+  silk:'#e9dec3', ink:'#4a3c2c', inkLight:'rgba(74,60,44,.5)',
+  roof:'#5d5348', roofDark:'#453d33', wood:'#8a6a44', woodDark:'#6b4f30',
+  plaster:'#d9cba6', field:'#cbbd90', fieldDark:'#b8a978',
+  water:'#c2c6b2', waterDeep:'#adb5a2', tree:'#5d6b45', treeDark:'#49563a',
+  red:'#9e4a35', blue:'#5a7285', white:'#f2ecd9',
+};
+/* ---------- 基元：宋式屋顶 / 房屋 / 树 / 人 ---------- */
+function roof(c,x,y,w,h,color){
+  c.fillStyle=color;c.beginPath();
+  c.moveTo(x-w*.08,y);
+  c.quadraticCurveTo(x+w*.5,y-h*1.5,x+w*1.08,y);      // 主坡
+  c.quadraticCurveTo(x+w*.5,y-h*.28,x,y);              // 檐口内凹
+  c.closePath();c.fill();
+  c.strokeStyle=PAL.ink;c.lineWidth=1.5;
+  c.beginPath();c.moveTo(x-w*.08,y);c.quadraticCurveTo(x+w*.5,y-h*1.5,x+w*1.08,y);c.stroke();
+  c.beginPath();c.moveTo(x-w*.08,y);c.quadraticCurveTo(x+w*.5,y-h*.28,x+w*1.08,y);c.stroke();
+  // 檐角起翘
+  c.beginPath();c.moveTo(x-w*.08,y);c.quadraticCurveTo(x-w*.14,y-h*.12,x-w*.2,y-h*.2);c.stroke();
+  c.beginPath();c.moveTo(x+w*1.08,y);c.quadraticCurveTo(x+w*1.14,y-h*.12,x+w*1.2,y-h*.2);c.stroke();
+}
+function house(c,x,y,w,h,opt={}){
+  const r=opt.r||rng(x*7+h);
+  c.fillStyle=opt.plaster||PAL.plaster;c.fillRect(x,y-h*.62,w,h*.62);
+  c.strokeStyle=PAL.inkLight;c.lineWidth=1;c.strokeRect(x,y-h*.62,w,h*.62);
+  // 门窗
+  const dw=Math.max(7,w*.14);
+  c.fillStyle=PAL.woodDark;
+  c.fillRect(x+w*.18,y-h*.4,dw,h*.4);
+  if(w>70)c.fillRect(x+w*.66,y-h*.34,dw*.8,h*.34);
+  roof(c,x+w/2,y-h*.6,w,h*.34,opt.roof||PAL.roof);
+  if(opt.floor2){ // 二层楼
+    c.fillStyle=opt.plaster||PAL.plaster;c.fillRect(x+w*.08,y-h*.62-16,w*.84,16);
+    c.strokeStyle=PAL.inkLight;c.strokeRect(x+w*.08,y-h*.62-16,w*.84,16);
+    roof(c,x+w/2,y-h*.62-16,w*.84,h*.2,opt.roof||PAL.roof);
+  }
+}
+function treeWillow(c,x,y,s,seed){ // 柳
+  const r=rng(seed);
+  c.strokeStyle=PAL.woodDark;c.lineWidth=2+s*.5;
+  c.beginPath();c.moveTo(x,y);c.quadraticCurveTo(x+8*s,y-30*s,x,y-52*s);c.stroke();
+  // 树冠淡叶团
+  c.fillStyle='rgba(93,107,69,.45)';
+  c.beginPath();c.ellipse(x,y-56*s,20*s,12*s,0,0,7);c.fill();
+  for(let i=0;i<6;i++){
+    const a=-Math.PI/2+(i-2.5)*.34,len=(30+r()*18)*s;
+    const ex=x+Math.cos(a)*len,ey=y-52*s+Math.sin(a)*len*.9;
+    c.strokeStyle=PAL.wood;c.lineWidth=1.4;
+    c.beginPath();c.moveTo(x,y-52*s);c.quadraticCurveTo(x+Math.cos(a)*len*.6,y-58*s,ex,ey);c.stroke();
+    c.strokeStyle=PAL.tree;c.lineWidth=2.4*s;
+    c.beginPath();c.moveTo(ex,ey);c.quadraticCurveTo(ex+6*s,ey+14*s,ex+2*s,ey+26*s);c.stroke();
+  }
+}
+function treeRound(c,x,y,s,seed){
+  const r=rng(seed);
+  c.strokeStyle=PAL.woodDark;c.lineWidth=2.4*s;
+  c.beginPath();c.moveTo(x,y);c.lineTo(x,y-26*s);c.stroke();
+  for(let i=0;i<5;i++){
+    c.fillStyle=i%2?PAL.tree:PAL.treeDark;
+    c.beginPath();
+    c.arc(x+(r()-.5)*30*s,y-30*s-(r())*14*s,(9+r()*8)*s,0,7);c.fill();
+  }
+}
+function person(c,x,y,phase,s=.9,color=PAL.ink){
+  const leg=Math.sin(phase)*2.4*s;
+  c.strokeStyle=color;c.fillStyle=color;
+  c.lineWidth=1.6*s;
+  c.beginPath();c.moveTo(x,y-8*s);c.lineTo(x-leg,y);c.stroke();       // 左腿
+  c.beginPath();c.moveTo(x,y-8*s);c.lineTo(x+leg,y);c.stroke();       // 右腿
+  c.beginPath();                                                       // 袍身
+  c.moveTo(x-2.6*s,y-8*s);c.lineTo(x+2.6*s,y-8*s);
+  c.lineTo(x+3.4*s,y-17*s);c.lineTo(x-3.4*s,y-17*s);c.closePath();c.fill();
+  c.beginPath();c.arc(x,y-20*s,2.5*s,0,7);c.fill();                    // 头
+  if(s>1.1){c.fillRect(x-4*s,y-24*s,1.6*s,4*s)}                        // 斗笠/幞头
+}
+function camel(c,x,y,dir=1,s=1){
+  c.fillStyle=PAL.ink;
+  c.beginPath();c.ellipse(x,y-16*s,14*s,8*s,0,0,7);c.fill();          // 双峰体
+  c.beginPath();c.arc(x,y-14*s,9*s,0,7);c.fill();
+  c.beginPath();c.arc(x+dir*13*s,y-20*s,4.5*s,0,7);c.fill();          // 头
+  c.strokeStyle=PAL.ink;c.lineWidth=2*s;
+  c.beginPath();c.moveTo(x-6*s,y-10*s);c.lineTo(x-6*s,y);c.stroke();
+  c.beginPath();c.moveTo(x+6*s,y-10*s);c.lineTo(x+6*s,y);c.stroke();
+}
+function donkey(c,x,y,dir=1,s=1){
+  c.fillStyle='#6a5c48';
+  c.beginPath();c.ellipse(x,y-9*s,11*s,6*s,0,0,7);c.fill();
+  c.beginPath();c.arc(x+dir*11*s,y-12*s,3.6*s,0,7);c.fill();
+  c.strokeStyle='#6a5c48';c.lineWidth=1.8*s;
+  [[-6],[5]].forEach(([dx])=>{c.beginPath();c.moveTo(x+dx*s,y-5*s);c.lineTo(x+dx*s,y);c.stroke()});
+}
+function banner(c,x,y,phase,color=PAL.red){ // 酒旗
+  c.strokeStyle=PAL.woodDark;c.lineWidth=2;
+  c.beginPath();c.moveTo(x,y);c.lineTo(x,y-40);c.stroke();
+  c.save();c.translate(x,y-40);c.rotate(Math.sin(phase)*.1);
+  c.fillStyle=color;c.beginPath();
+  c.moveTo(0,0);c.quadraticCurveTo(26,6+Math.sin(phase*1.3)*4,52,2);
+  c.lineTo(52,26);c.quadraticCurveTo(26,30,0,22);c.closePath();c.fill();
+  c.fillStyle='rgba(255,248,230,.9)';c.font='11px STKaiti, KaiTi, serif';
+  c.fillText('酒',16,16);c.restore();
+}
+function canopy(c,x,y,w,color){ // 摊贩凉棚
+  c.fillStyle=color;
+  c.beginPath();c.moveTo(x-8,y);c.quadraticCurveTo(x+w/2,y-16,x+w+8,y);c.lineTo(x+w-2,y+8);c.lineTo(x+2,y+8);c.closePath();c.fill();
+  c.strokeStyle=PAL.inkLight;c.lineWidth=1;
+  c.beginPath();c.moveTo(x+w/2,y-14);c.lineTo(x+w/2,y+8);c.stroke();
+  c.fillStyle=PAL.wood;c.fillRect(x+2,y+8,w-4,4);
+}
+
+/* ---------- 静态层：瓦片绘制 ---------- */
+function bridgeY(x){ // 虹桥桥面弧线
+  if(x<BRIDGE.x0||x>BRIDGE.x1)return GROUND;
+  const t=(x-BRIDGE.cx)/(BRIDGE.x1-BRIDGE.x0)*2; // -1..1
+  return BRIDGE.spanY+(GROUND-BRIDGE.spanY)*t*t;
+}
+function drawStatic(c){
+  const r=rng(20240401);
+  /* 绢底 */
+  c.fillStyle=PAL.silk;c.fillRect(0,0,W,H);
+  for(let i=0;i<2600;i++){
+    c.fillStyle=`rgba(120,95,55,${(r()*.05).toFixed(3)})`;
+    c.fillRect(r()*W,r()*H,r()*90+20,1);
+  }
+  c.strokeStyle='rgba(90,66,34,.5)';c.lineWidth=3;c.strokeRect(6,6,W-12,H-12);
+  /* 远景淡墨山影 */
+  for(let k=0;k<3;k++){
+    c.fillStyle=`rgba(122,116,100,${.16-k*.04})`;
+    c.beginPath();c.moveTo(0,560+k*40);
+    for(let x=0;x<=W;x+=160){
+      c.lineTo(x,520+k*40-Math.sin(x*.0013+k*2)*70-r()*30);
+    }
+    c.lineTo(W,H);c.lineTo(0,H);c.closePath();c.fill();
+  }
+  /* 郊野田垄（0-1500）：近处向远处收敛，贴地 */
+  c.strokeStyle='#97875f';c.lineWidth=4;
+  for(let x=40;x<1450;x+=52){
+    c.beginPath();c.moveTo(x,1145);c.quadraticCurveTo(x+10,1010,x-14,908+r()*30);c.stroke();
+  }
+  /* 汴河水面基色（1500-6600），两端喇叭口入画 */
+  const grd=c.createLinearGradient(0,RIVER.top,0,RIVER.bot);
+  grd.addColorStop(0,PAL.water);grd.addColorStop(.5,PAL.waterDeep);grd.addColorStop(1,PAL.water);
+  c.fillStyle=grd;
+  const RX0=RIVER.x0+140, RX1=RIVER.x1-220;
+  c.beginPath();
+  c.moveTo(RX0,RIVER.top);c.lineTo(RX1,RIVER.top);
+  c.quadraticCurveTo(RIVER.x1+40,(RIVER.top+RIVER.bot)/2,RX1,RIVER.bot);
+  c.lineTo(RX0,RIVER.bot);
+  c.quadraticCurveTo(RIVER.x0-40,(RIVER.top+RIVER.bot)/2,RX0,RIVER.top);
+  c.closePath();c.fill();
+  // 岸线
+  c.strokeStyle=PAL.ink;c.lineWidth=2.5;
+  c.beginPath();c.moveTo(RX0,RIVER.top);c.lineTo(RX1,RIVER.top);c.stroke();
+  c.beginPath();c.moveTo(RX0,RIVER.bot);c.lineTo(RX1,RIVER.bot);c.stroke();
+  // 近岸芦苇
+  for(let x=RIVER.x0+220;x<RIVER.x1-260;x+=90+r()*140){
+    const rr=rng(x);
+    c.strokeStyle=PAL.tree;c.lineWidth=1.6;
+    for(let i=0;i<5;i++){
+      const bx=x+rr()*30;
+      c.beginPath();c.moveTo(bx,RIVER.top+8);
+      c.quadraticCurveTo(bx+8,RIVER.top-18,bx+2+rr()*10,RIVER.top-34);c.stroke();
+    }
+  }
+  /* 虹桥（3250-4750）木拱 */
+  c.strokeStyle=PAL.woodDark;c.lineWidth=10;
+  c.beginPath();c.moveTo(BRIDGE.x0,GROUND);
+  c.quadraticCurveTo(BRIDGE.cx,BRIDGE.spanY-90,BRIDGE.x1,GROUND);c.stroke();
+  c.strokeStyle=PAL.wood;c.lineWidth=16;
+  c.beginPath();c.moveTo(BRIDGE.x0,GROUND-6);
+  c.quadraticCurveTo(BRIDGE.cx,BRIDGE.spanY-96,BRIDGE.x1,GROUND-6);c.stroke();
+  // 桥面
+  c.strokeStyle='#9a7a4e';c.lineWidth=26;
+  c.beginPath();c.moveTo(BRIDGE.x0,GROUND-8);
+  for(let x=BRIDGE.x0;x<=BRIDGE.x1;x+=30)c.lineTo(x,bridgeY(x)-14);
+  c.stroke();
+  // 桥栏
+  c.strokeStyle=PAL.woodDark;c.lineWidth=3.5;
+  for(const off of[-14,14]){
+    c.beginPath();
+    for(let x=BRIDGE.x0;x<=BRIDGE.x1;x+=30){const y=bridgeY(x)-off;c.lineTo(x,y-30)}
+    c.stroke();
+    for(let x=BRIDGE.x0;x<=BRIDGE.x1;x+=90){
+      c.beginPath();c.moveTo(x,bridgeY(x)-off);c.lineTo(x,bridgeY(x)-off-30);c.stroke();
+    }
+  }
+  // 拱骨放射线
+  c.strokeStyle='rgba(74,60,44,.4)';c.lineWidth=2;
+  for(let i=1;i<9;i++){
+    const t=i/9,x=BRIDGE.x0+t*(BRIDGE.x1-BRIDGE.x0);
+    c.beginPath();c.moveTo(x,bridgeY(x));
+    c.lineTo(BRIDGE.cx,BRIDGE.spanY-88);c.stroke();
+  }
+  // 桥头四柱表木（宋代十字风信鹤）
+  [[BRIDGE.x0-40],[BRIDGE.x1+40]].forEach(([x])=>{
+    c.strokeStyle=PAL.woodDark;c.lineWidth=5;
+    c.beginPath();c.moveTo(x,GROUND+10);c.lineTo(x,GROUND-120);c.stroke();
+    c.beginPath();c.moveTo(x-14,GROUND-96);c.lineTo(x+14,GROUND-96);c.stroke();
+    c.fillStyle=PAL.woodDark;c.beginPath();c.arc(x,GROUND-124,4,0,7);c.fill();
+  });
+  /* 城门楼（6850 附近，河右端之外） */
+  const GX=6850;
+  c.fillStyle='#b7a583';c.fillRect(GX-260,GROUND-230,520,230);      // 城台
+  c.strokeStyle=PAL.ink;c.lineWidth=2;c.strokeRect(GX-260,GROUND-230,520,230);
+  for(let i=0;i<9;i++){ // 砖缝
+    c.strokeStyle='rgba(74,60,44,.25)';c.lineWidth=1;
+    c.beginPath();c.moveTo(GX-260,GROUND-230+i*26);c.lineTo(GX+260,GROUND-230+i*26);c.stroke();
+  }
+  c.fillStyle='#4c4238';                                            // 门洞
+  c.beginPath();c.moveTo(GX-56,GROUND);c.lineTo(GX-56,GROUND-96);
+  c.quadraticCurveTo(GX,GROUND-140,GX+56,GROUND-96);c.lineTo(GX+56,GROUND);c.closePath();c.fill();
+  house(c,GX-130,GROUND-234,260,66,{roof:PAL.roofDark,floor2:false});
+  c.fillStyle='#8a2f2a';c.fillRect(GX-34,GROUND-168,68,26);           // 匾额（门洞上方）
+  c.strokeStyle='#e8dcc0';c.strokeRect(GX-30,GROUND-164,60,18);
+  c.fillStyle='#e8dcc0';c.font='16px STKaiti, KaiTi, serif';c.fillText('上善门',GX-26,GROUND-148);
+  /* 地面分段：河段（1500-6600）不铺街色，改为两岸 */
+  c.fillStyle='#cbb88f';
+  c.fillRect(0,GROUND+2,RIVER.x0-60,H-GROUND-2);                 // 西段街面
+  c.fillRect(6500,GROUND+2,W-6500,H-GROUND-2);              // 东段街面（衔接水面右弧）
+  c.fillRect(RIVER.x0-40,1132,RIVER.x1-RIVER.x0-80,H-1132);      // 河段南岸近景滩地
+  c.fillStyle='#bfb287';                                          // 河段北岸带
+  c.fillRect(RIVER.x0-40,700,RIVER.x1-RIVER.x0-140,RIVER.top-700);
+  c.strokeStyle='rgba(74,60,44,.35)';c.lineWidth=1.5;
+  c.beginPath();c.moveTo(0,GROUND+2);c.lineTo(RIVER.x0,GROUND+2);c.stroke();
+  c.beginPath();c.moveTo(RIVER.x1,GROUND+2);c.lineTo(W,GROUND+2);c.stroke();
+  c.strokeStyle='rgba(74,60,44,.3)';
+  c.beginPath();c.moveTo(RIVER.x0,700);c.lineTo(RIVER.x1,700);c.stroke();
+  /* 沿街建筑：西岸 / 北岸临河街市 / 城内 */
+  const rB=rng(88);
+  for(let x=4790;x<6400;x+=140+rB()*80) house(c,x,RIVER.top-6,110+rB()*80,80+rB()*40,{floor2:rB()>.4});
+  for(let x=7150;x<9450;x+=160+rB()*100){
+    house(c,x,GROUND-8,130+rB()*90,100+rB()*55,{floor2:rB()>.45,roof:rB()>.7?PAL.roofDark:PAL.roof});
+  }
+  /* 北岸稀疏村舍（虹桥上游） */
+  for(let x=1900;x<3100;x+=420+rB()*260) house(c,x,RIVER.top-6,100+rB()*60,70+rB()*30,{});
+  /* 虹桥两端桥台（墩岸入水） */
+  c.fillStyle='#b7a583';c.strokeStyle='rgba(74,60,44,.5)';c.lineWidth=2;
+  [[BRIDGE.x0],[BRIDGE.x1]].forEach(([bx],i)=>{
+    const dir=i===0?-1:1;
+    c.beginPath();
+    c.moveTo(bx-90*dir,1132);c.lineTo(bx-30*dir,872);c.lineTo(bx+70*dir,872);c.lineTo(bx+130*dir,1132);
+    c.closePath();c.fill();c.stroke();
+  });
+  /* 桥头表木（南岸前景，鹤形风向标） */
+  [[BRIDGE.x0-60],[BRIDGE.x1+60]].forEach(([x])=>{
+    c.strokeStyle=PAL.woodDark;c.lineWidth=5;
+    c.beginPath();c.moveTo(x,1136);c.lineTo(x,1004);c.stroke();
+    c.beginPath();c.moveTo(x-9,1022);c.lineTo(x+9,1022);c.stroke();
+    c.fillStyle=PAL.woodDark;
+    c.beginPath();c.ellipse(x,1000,4,9,0,0,7);c.fill();   // 顶立鹤形
+    c.beginPath();c.moveTo(x-2,994);c.lineTo(x-7,984);c.lineTo(x-1,992);c.closePath();c.fill(); // 喙
+  });
+  /* 桥头摊棚（北岸桥头） */
+  canopy(c,BRIDGE.x0-150,RIVER.top-58,110,'#8a4a35');
+  canopy(c,BRIDGE.x0-30,RIVER.top-58,90,'#5a7285');
+  canopy(c,BRIDGE.x1+40,RIVER.top-58,100,'#8a4a35');
+  canopy(c,BRIDGE.x1+170,RIVER.top-58,86,'#5a7285');
+  /* 酒楼幌旗（北岸/城内） */
+  banner.base=[[1960,RIVER.top-4],[2960,RIVER.top-4],[4860,RIVER.top-4],[5900,RIVER.top-4],[7400,GROUND-8],[8900,GROUND-8]];
+  /* 树木 */
+  for(let x=200;x<9500;x+=260+r()*240){
+    if(x>RIVER.x0-60&&x<RIVER.x1+60&&!(x>BRIDGE.x0-80&&x<BRIDGE.x1+80))continue;
+    const s=.7+r()*.8;
+    (r()>.5?treeWillow:treeRound)(c,x,GROUND+40,s,(x|0));
+  }
+  /* 卷首卷尾题跋留白 */
+  c.fillStyle='rgba(233,222,195,.9)';
+  c.fillRect(0,0,120,H);c.fillRect(W-120,0,120,H);
+}
+/* 河中静态泊船（按所属瓦片画入静态层） */
+const PARKED=[[2450,980,.9,1],[3050,1020,1.15,1],[5450,1000,1,1],[6150,960,.85,-1]];
+function drawParkedBoats(c,tileX0){
+  PARKED.forEach(([x,y,s,dir])=>{
+    if(x>=tileX0&&x<tileX0+TILE)hullBoat(c,x,y,s,dir,false);
+  });
+}
+function hullBoat(c,x,y,s,dir,withMast){
+  c.save();c.translate(x,y);c.scale(dir*s,s);
+  c.fillStyle='#7a5c38';
+  c.beginPath();                                  // 船体
+  c.moveTo(-95,0);c.quadraticCurveTo(-60,26,0,26);
+  c.quadraticCurveTo(70,26,105,-8);c.lineTo(95,-14);
+  c.quadraticCurveTo(60,4,-95,-10);c.closePath();c.fill();
+  c.strokeStyle=PAL.ink;c.lineWidth=2;c.stroke();
+  c.fillStyle='#5d4a30';                          // 船舱篷
+  c.beginPath();c.moveTo(-52,-10);c.quadraticCurveTo(-30,-40,10,-40);
+  c.quadraticCurveTo(40,-40,48,-10);c.closePath();c.fill();c.stroke();
+  c.strokeStyle=PAL.inkLight;c.lineWidth=1;       // 篷纹
+  for(let i=0;i<4;i++){c.beginPath();c.moveTo(-40+i*22,-36);c.lineTo(-46+i*22,-11);c.stroke()}
+  if(withMast){                                   // 大桅杆（过桥放倒者省略）
+    c.strokeStyle=PAL.woodDark;c.lineWidth=4;
+    c.beginPath();c.moveTo(20,-12);c.lineTo(30,-120);c.stroke();
+    c.beginPath();c.moveTo(30,-118);c.lineTo(80,-90);c.stroke(); // 纤绳斜桁
+    c.fillStyle='#e8dcc0';c.fillRect(32,-116,34,50);
+  }
+  c.strokeStyle=PAL.woodDark;c.lineWidth=3;       // 摇橹
+  c.beginPath();c.moveTo(-88,-6);c.lineTo(-120,14);c.stroke();
+  c.restore();
+}
+/* ---------- 动态实体 ---------- */
+const walkers=[];
+function addWalkers(x0,x1,yFn,n,speed,scale){
+  for(let i=0;i<n;i++)walkers.push({
+    x:x0+Math.random()*(x1-x0),x0,x1,yFn,
+    speed:(.4+Math.random()*.8)*speed*(Math.random()>.5?1:-1),
+    ph:Math.random()*7,s:.8+Math.random()*.5*scale,
+    col:Math.random()>.5?PAL.ink:['#5a7285','#9e4a35','#49563a'][Math.floor(Math.random()*3)],
+  });
+}
+addWalkers(150,1450,()=>GROUND+6,8,.9,.95);           // 郊野
+addWalkers(BRIDGE.x0+60,BRIDGE.x1-60,bridgeY,26,.55,1.15); // 虹桥
+addWalkers(BRIDGE.x0-260,BRIDGE.x0,()=>RIVER.top-2,6,.9,1);
+addWalkers(BRIDGE.x1,BRIDGE.x1+260,()=>RIVER.top-2,6,.9,1);
+addWalkers(4850,6400,()=>RIVER.top-2,14,.8,1);        // 北岸临河街
+addWalkers(6700,7060,()=>GROUND+6,8,.7,1.05);         // 城门口
+addWalkers(7200,9400,()=>GROUND+6,16,.85,1);
+const boats=[
+  {x:1900,y:880,s:1,dir:1,mast:true,ph:0},
+  {x:3900,y:960,s:1.3,dir:1,mast:false,ph:2,slow:true},   // 过桥大船（放桅）
+  {x:5000,y:905,s:.95,dir:-1,mast:true,ph:4},
+  {x:6300,y:930,s:.9,dir:1,mast:false,ph:1},
+];
+const birds=[];for(let i=0;i<7;i++)birds.push({x:Math.random()*W,y:260+Math.random()*220,ph:Math.random()*7,sp:.5+Math.random()*.9});
+const willowFluff=[];for(let i=0;i<26;i++)willowFluff.push({x:Math.random()*W,y:600+Math.random()*420,vy:.12+Math.random()*.25,vx:.15+Math.random()*.3,ph:Math.random()*7});
+
+/* ---------- 摄影与交互 ---------- */
+let scrollX=0,vel=0,dragging=false,lastX=0,auto=!RM,drawW=1100;
+const dpr=Math.min(devicePixelRatio,2);
+function resize(){
+  const r=wrap.getBoundingClientRect();
+  cv.width=r.width*dpr;cv.height=r.height*dpr;
+}
+addEventListener('resize',resize);
+wrap.addEventListener('pointerdown',e=>{dragging=true;lastX=e.clientX;vel=0;wrap.classList.add('grabbing');wrap.setPointerCapture(e.pointerId)});
+wrap.addEventListener('pointermove',e=>{
+  if(!dragging)return;
+  const dx=e.clientX-lastX;lastX=e.clientX;
+  scrollX-=dx*2.2;vel=-dx*2.2;
+});
+addEventListener('pointerup',()=>{dragging=false;wrap.classList.remove('grabbing')});
+wrap.addEventListener('wheel',e=>{e.preventDefault();scrollX+=e.deltaY+e.deltaX},{passive:false});
+const trackEl=document.getElementById('track');
+trackEl.addEventListener('pointerdown',e=>{
+  const r=trackEl.getBoundingClientRect();
+  scrollX=Math.max(0,Math.min(W-drawW,(e.clientX-r.left)/r.width*(W-drawW)));dragging=false;
+});
+document.getElementById('autoBtn').addEventListener('click',e=>{
+  auto=!auto;e.currentTarget.classList.toggle('on',auto);
+});
+document.getElementById('backBtn').addEventListener('click',()=>{scrollX=0;vel=0});
+
+/* ---------- 帧循环 ---------- */
+const TILES=[];
+function buildTiles(){
+  for(let i=0;i<W/TILE;i++){
+    const t=document.createElement('canvas');
+    t.width=TILE*dpr;t.height=H*dpr;
+    const c=t.getContext('2d');
+    c.scale(dpr,dpr);c.translate(-i*TILE,0);
+    drawStatic(c);
+    drawParkedBoats(c,i*TILE); // 泊船画入所属瓦片
+    TILES.push(t);
+  }
+}
+buildTiles();resize();
+
+const CHAPS=[[0,'郊野村头'],[1500,'汴河漕运'],[3250,'虹桥市声'],[4790,'临河街市'],[6420,'城门内外'],[7150,'城中街衢'],[8800,'卷尾人家']];
+let lastT=performance.now();
+function frame(now){
+  const dt=Math.min((now-lastT)/1000,.05);lastT=now;
+  const t=now/1000;
+  /* 滚动物理 */
+  if(!dragging){
+    scrollX+=vel;vel*=.88;
+    if(auto&&!RM)scrollX+=dt*150;
+  }
+  if(scrollX<0)scrollX=0;
+  if(scrollX>W-drawW){scrollX=W-drawW;auto=false;document.getElementById('autoBtn').classList.remove('on')}
+  const vw=cv.width/dpr,viewScale=vw/1100;   // 逻辑视口按 1100 设计宽换算
+  drawW=cv.width/(dpr*(cv.height/dpr)/H);    // 逻辑绘制宽（保持等高）
+  const offX=scrollX;
+
+  /* --- 绘制 --- */
+  ctx.setTransform(dpr*(cv.height/dpr)/H,0,0,dpr*(cv.height/dpr)/H,0,0);
+  ctx.clearRect(0,0,drawW,H);
+  /* 瓦片：视口逻辑宽可达 3.2 块瓦片，必须铺满 i0..i0+3 */
+  const i0=Math.max(0,Math.floor(offX/TILE));
+  for(let i=i0;i<=i0+3&&i<TILES.length;i++){
+    ctx.drawImage(TILES[i],i*TILE-offX,0,TILE,H);
+  }
+  /* 水纹（动态） */
+  if(offX<RIVER.x1&&offX+drawW>RIVER.x0){
+    ctx.strokeStyle='rgba(240,238,220,.5)';ctx.lineWidth=1.6;
+    for(let row=0;row<11;row++){
+      const y=RIVER.top+18+row*29;
+      ctx.beginPath();
+      for(let x=Math.max(offX,RIVER.x0);x<Math.min(offX+drawW,RIVER.x1);x+=14){
+        const wy=y+Math.sin(x*.02+t*(1.2+row*.13)+row*2)*3;
+        if(row<4||Math.sin(x*.011+t*.5+row)>.3)ctx.lineTo(x,wy);
+      }
+      ctx.stroke();
+    }
+  }
+  /* 行船 */
+  boats.forEach(b=>{
+    b.x+=b.dir*dt*(b.slow?9:16);
+    if(b.x>RIVER.x1-100)b.dir=-1;
+    if(b.x<RIVER.x0+100)b.dir=1;
+    b.ph+=dt;
+    ctx.save();
+    if(b.x>offX-160&&b.x<offX+drawW+160)hullBoat(ctx,b.x,b.y+Math.sin(t*1.4+b.ph)*2.5,b.s,b.dir,b.mast);
+    ctx.restore();
+    // 橹工
+    if(b.x>offX&&b.x<offX+drawW)person(ctx,b.x-b.dir*80*b.s,b.y-14*b.s,t*3+b.ph,.85);
+  });
+  /* 行人 */
+  walkers.forEach(w=>{
+    w.x+=w.speed*dt*22;w.ph+=dt*7*Math.abs(w.speed)*.6;
+    if(w.x>w.x1)w.x=w.x0;if(w.x<w.x0)w.x=w.x1;
+    const sx=w.x-offX;
+    if(sx>-20&&sx<drawW+20)person(ctx,sx,w.yFn(w.x),w.ph,w.s,w.col);
+  });
+  /* 挑夫与驼队（城门内外） */
+  [[6790,1],[6930,1],[7060,1]].forEach(([cx,dir])=>camel(ctx,cx-offX,GROUND+8,dir,1.1));
+  [[900],[1180],[1330]].forEach(([cx])=>donkey(ctx,cx-offX,GROUND+10,1,.95));
+  /* 幌旗 */
+  banner.base.forEach(([x,y],i)=>{
+    const sx=x-offX;
+    if(sx>-80&&sx<drawW+80)banner(ctx,sx,y,t*1.6+i,i%2?'#5a7285':PAL.red);
+  });
+  /* 柳絮 */
+  ctx.fillStyle='rgba(250,246,230,.8)';
+  willowFluff.forEach(f=>{
+    f.x+=f.vx*dt*30;f.y+=f.vy*dt*30+Math.sin(t*2+f.ph)*.2;
+    if(f.x>W)f.x=0;if(f.y>1100)f.y=560;
+    const sx=f.x-offX;if(sx>0&&sx<drawW){ctx.beginPath();ctx.arc(sx,f.y,1.6,0,7);ctx.fill()}
+  });
+  /* 飞鸟 */
+  ctx.strokeStyle='rgba(58,48,36,.85)';ctx.lineWidth=2;
+  birds.forEach(b=>{
+    b.x+=b.sp*dt*40;b.ph+=dt*9;
+    if(b.x>W)b.x=-40;
+    const sx=b.x-offX;if(sx>-30&&sx<drawW+30){
+      const f=Math.sin(b.ph)*4;
+      ctx.beginPath();
+      ctx.moveTo(sx-7,b.y+f*.4);ctx.quadraticCurveTo(sx-3,b.y-4-f,sx,b.y);
+      ctx.quadraticCurveTo(sx+3,b.y-4-f,sx+7,b.y+f*.4);ctx.stroke();
+    }
+  });
+  /* UI 同步 */
+  const pct=scrollX/(W-drawW);
+  document.getElementById('fill').style.width=(pct*100).toFixed(1)+'%';
+  document.getElementById('thumb').style.left=(pct*100).toFixed(1)+'%';
+  document.getElementById('pos').textContent=String(Math.round(scrollX)).padStart(4,'0')+' / 9600';
+  let chap=CHAPS[0][1];
+  CHAPS.forEach(([x,n])=>{if(scrollX+500>=x)chap=n});
+  document.getElementById('chap').textContent=chap;
+
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

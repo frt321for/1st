@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<!--
+THESIS: 把浏览器变成一间可操作的微缩铁路室，而不是把 Three.js 场景装进普通网页仪表盘。
+OWN-WORLD: 蜂蜜色木桌、饱和模型漆、黄铜轨道、奶油色铭牌与深绿控制台，全部由体素和铁路器件构成。
+STORY: 观众先看见整座繁忙布局，再发现桌前实体控制器，并亲手改变速度、灯光、昼夜和机械运行。
+FIRST VIEWPORT: 人眼位于桌前边缘，控制台占下方，主线环路框住港口、车站、城镇、机务段与工业区。
+SIGNATURE: 可拖动的实体黄铜速度杠杆直接驱动整列火车，是模型铁路主题本身的交互，而非悬浮网页控件。
+-->
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>马洛港湾铁路 · 体素微缩世界</title>
+  <style>
+    :root {
+      --ink: #f6edda;
+      --muted: #c9baa0;
+      --panel: rgba(24, 29, 25, 0.9);
+      --panel-solid: #181d19;
+      --brass: #e8b95c;
+      --signal: #f1543f;
+      --focus: #ffd76a;
+      --shadow: rgba(5, 9, 7, 0.36);
+      --radius: 10px;
+      --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+    }
+    * { box-sizing: border-box; }
+    html, body { width: 100%; min-height: 100%; margin: 0; overflow: clip; background: #171b19; }
+    body {
+      color: var(--ink);
+      font-family: "Aptos", "Segoe UI Variable", "Segoe UI", sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+    canvas { position: fixed; inset: 0; display: block; width: 100%; height: 100%; cursor: grab; touch-action: none; }
+    canvas.is-dragging { cursor: grabbing; }
+    .museum-plaque {
+      position: fixed;
+      top: clamp(1rem, 2.5vw, 2rem);
+      left: clamp(1rem, 2.5vw, 2rem);
+      z-index: 4;
+      width: min(25rem, calc(100% - 2rem));
+      padding: 0.9rem 1rem 0.85rem;
+      border-radius: var(--radius);
+      background: var(--panel);
+      box-shadow: 0 14px 36px var(--shadow), inset 0 1px rgba(255,255,255,0.08);
+      backdrop-filter: blur(12px) saturate(115%);
+      pointer-events: none;
+      animation: plaque-in 700ms var(--ease-out) both;
+    }
+    .museum-plaque__line { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; }
+    .museum-plaque h1 {
+      margin: 0;
+      font-family: Rockwell, "Roboto Slab", Georgia, serif;
+      font-size: clamp(1.05rem, 2vw, 1.42rem);
+      font-weight: 600;
+      line-height: 1.05;
+      letter-spacing: -0.02em;
+      text-wrap: balance;
+    }
+    .museum-plaque__scale {
+      flex: none;
+      color: var(--brass);
+      font: 700 0.72rem/1 Consolas, monospace;
+      letter-spacing: 0.08em;
+    }
+    .museum-plaque p {
+      margin: 0.5rem 0 0;
+      color: var(--muted);
+      font-size: 0.82rem;
+      line-height: 1.42;
+      text-wrap: pretty;
+    }
+    .status-strip {
+      position: fixed;
+      top: clamp(1rem, 2.5vw, 2rem);
+      right: clamp(1rem, 2.5vw, 2rem);
+      z-index: 4;
+      min-width: 9.5rem;
+      padding: 0.75rem 0.85rem;
+      border-radius: var(--radius);
+      background: var(--panel);
+      box-shadow: 0 14px 36px var(--shadow), inset 0 1px rgba(255,255,255,0.08);
+      backdrop-filter: blur(12px) saturate(115%);
+      pointer-events: none;
+      font-variant-numeric: tabular-nums;
+      animation: plaque-in 700ms 90ms var(--ease-out) both;
+    }
+    .status-strip__row { display: flex; justify-content: space-between; gap: 1rem; font-size: 0.72rem; line-height: 1.65; }
+    .status-strip__row span:first-child { color: var(--muted); }
+    .status-strip__row strong { color: var(--ink); font-weight: 650; }
+    .help {
+      position: fixed;
+      left: 50%;
+      bottom: 0.8rem;
+      z-index: 4;
+      transform: translateX(-50%);
+      max-width: calc(100% - 2rem);
+      padding: 0.48rem 0.72rem;
+      border-radius: 6px;
+      color: #eadfc9;
+      background: rgba(24, 29, 25, 0.78);
+      box-shadow: 0 8px 24px rgba(4, 7, 5, 0.22);
+      font-size: 0.72rem;
+      line-height: 1.35;
+      text-align: center;
+      pointer-events: none;
+      transition: opacity 180ms var(--ease-out);
+      animation: plaque-in 700ms 160ms var(--ease-out) both;
+    }
+    .loading {
+      position: fixed; inset: 0; z-index: 10; display: grid; place-items: center;
+      background: #1c221e; color: #f3e9d4;
+      transition: opacity 260ms var(--ease-out), visibility 260ms step-end;
+    }
+    .loading.is-hidden { opacity: 0; visibility: hidden; }
+    .loading__mark { text-align: center; }
+    .loading__rail { width: 10rem; height: 5px; margin: 0 auto 1rem; background: #3e493f; position: relative; overflow: hidden; }
+    .loading__rail::after { content: ""; position: absolute; inset: 0; width: 40%; background: var(--brass); animation: loading-rail 850ms ease-in-out infinite alternate; }
+    .loading strong { display: block; font: 600 1rem/1.2 Rockwell, Georgia, serif; }
+    .loading small { display: block; margin-top: 0.4rem; color: #bdb09a; font-size: 0.75rem; }
+    @keyframes plaque-in { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes loading-rail { from { transform: translateX(-100%); } to { transform: translateX(250%); } }
+    @media (max-width: 640px) {
+      .status-strip { top: auto; bottom: 3.5rem; right: 1rem; min-width: 8.8rem; }
+      .museum-plaque p { max-width: 31ch; }
+      .help { width: calc(100% - 2rem); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .museum-plaque, .status-strip, .help { animation: none; }
+      .loading__rail::after { animation-duration: 1.8s; }
+    }
+    @media (prefers-reduced-transparency: reduce) {
+      .museum-plaque, .status-strip, .help { background: var(--panel-solid); backdrop-filter: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="loading" id="loading" role="status" aria-live="polite">
+    <div class="loading__mark"><div class="loading__rail"></div><strong>正在接通马洛港湾铁路</strong><small>铺轨、升压、唤醒小镇</small></div>
+  </div>
+  <header class="museum-plaque" aria-label="场景介绍">
+    <div class="museum-plaque__line"><h1>马洛港湾铁路</h1><span class="museum-plaque__scale">HO · 1:87</span></div>
+    <p>一座正在运行的体素微缩世界。真正的控制器在木桌前缘：拖动黄铜杠杆，按下有色按钮。</p>
+  </header>
+  <aside class="status-strip" aria-live="polite" aria-label="铁路状态">
+    <div class="status-strip__row"><span>主线速度</span><strong id="speedReadout">65%</strong></div>
+    <div class="status-strip__row"><span>布局时间</span><strong id="timeReadout">08:20</strong></div>
+    <div class="status-strip__row"><span>照明回路</span><strong id="lightReadout">自动</strong></div>
+  </aside>
+  <div class="help">拖动空白处环视 · 滚轮缩放 · 拖动黄铜杠杆调速 · 点击控制台按钮</div>
+
+  <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+  <script>
+  (() => {
+    'use strict';
+
+    const loading = document.getElementById('loading');
+    const speedReadout = document.getElementById('speedReadout');
+    const timeReadout = document.getElementById('timeReadout');
+    const lightReadout = document.getElementById('lightReadout');
+
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0xb8d7e8);
+    scene.fog = new THREE.Fog(0xb8d7e8, 46, 95);
+
+    const camera = new THREE.PerspectiveCamera(46, innerWidth / innerHeight, 0.1, 160);
+    const cameraTarget = new THREE.Vector3(0, 7.2, 0);
+    let orbitTheta = 0;
+    let orbitPhi = 1.36;
+    let orbitRadius = 42;
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+    renderer.setPixelRatio(Math.min(devicePixelRatio, 1.6));
+    renderer.setSize(innerWidth, innerHeight);
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.08;
+    document.body.prepend(renderer.domElement);
+
+    const hemi = new THREE.HemisphereLight(0xbfe1ff, 0x5f4b32, 1.85);
+    scene.add(hemi);
+    const sun = new THREE.DirectionalLight(0xfff1c3, 3.1);
+    sun.position.set(-18, 32, 20);
+    sun.castShadow = true;
+    sun.shadow.mapSize.set(2048, 2048);
+    sun.shadow.camera.left = -36; sun.shadow.camera.right = 36;
+    sun.shadow.camera.top = 28; sun.shadow.camera.bottom = -25;
+    sun.shadow.camera.near = 1; sun.shadow.camera.far = 80;
+    sun.shadow.bias = -0.0007;
+    scene.add(sun);
+
+    const C = {
+      grass: 0x66954d, grass2: 0x78a958, earth: 0x7a5638, ballast: 0x7e7c73,
+      rail: 0x6d5441, sleeper: 0x4f3528, wood: 0x9b5f34, woodDark: 0x54331f,
+      cream: 0xf1dfb7, red: 0xc8493e, blue: 0x3977a8, yellow: 0xe3b84f,
+      green: 0x2f6f52, darkGreen: 0x213f32, navy: 0x243d59, roof: 0x663c35,
+      road: 0x4c5556, water: 0x3f89a8, stone: 0xaaa38e, white: 0xf2ead8,
+      black: 0x1d2422, brass: 0xd3a54d, orange: 0xdd7b36
+    };
+
+    const mats = new Map();
+    function material(color, roughness = 0.78, metalness = 0.02, emissive = 0x000000) {
+      const key = `${color}-${roughness}-${metalness}-${emissive}`;
+      if (!mats.has(key)) mats.set(key, new THREE.MeshStandardMaterial({ color, roughness, metalness, emissive }));
+      return mats.get(key);
+    }
+    const windowMaterials = [];
+    const lampBulbs = [];
+    const interactive = [];
+
+    function box(parent, sx, sy, sz, x, y, z, color, opts = {}) {
+      const mesh = new THREE.Mesh(new THREE.BoxGeometry(sx, sy, sz), opts.material || material(color, opts.roughness, opts.metalness, opts.emissive));
+      mesh.position.set(x, y, z);
+      if (opts.rotation) mesh.rotation.set(opts.rotation[0] || 0, opts.rotation[1] || 0, opts.rotation[2] || 0);
+      mesh.castShadow = opts.castShadow !== false;
+      mesh.receiveShadow = opts.receiveShadow !== false;
+      parent.add(mesh);
+      return mesh;
+    }
+    function cyl(parent, radius, height, x, y, z, color, opts = {}) {
+      const mesh = new THREE.Mesh(new THREE.CylinderGeometry(radius, radius, height, opts.segments || 8), opts.material || material(color, opts.roughness, opts.metalness, opts.emissive));
+      mesh.position.set(x, y, z);
+      if (opts.rotation) mesh.rotation.set(opts.rotation[0] || 0, opts.rotation[1] || 0, opts.rotation[2] || 0);
+      mesh.castShadow = opts.castShadow !== false;
+      mesh.receiveShadow = opts.receiveShadow !== false;
+      parent.add(mesh);
+      return mesh;
+    }
+    function makeLabel(text, width = 256, height = 64, bg = '#213f32', fg = '#f3dfb1') {
+      const canvas = document.createElement('canvas'); canvas.width = width; canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = bg; ctx.fillRect(0, 0, width, height);
+      ctx.strokeStyle = '#d3a54d'; ctx.lineWidth = 5; ctx.strokeRect(3, 3, width - 6, height - 6);
+      ctx.fillStyle = fg; ctx.font = `700 ${Math.round(height * 0.38)}px Segoe UI, sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(text, width / 2, height / 2 + 1);
+      const tex = new THREE.CanvasTexture(canvas); tex.colorSpace = THREE.SRGBColorSpace;
+      return new THREE.MeshBasicMaterial({ map: tex, transparent: true, side: THREE.DoubleSide });
+    }
+    function labelPlane(parent, text, w, h, x, y, z, rotation = [-Math.PI / 2, 0, 0], bg, fg) {
+      const p = new THREE.Mesh(new THREE.PlaneGeometry(w, h), makeLabel(text, 256, 64, bg, fg));
+      p.position.set(x, y, z); p.rotation.set(...rotation); parent.add(p); return p;
+    }
+
+    function voxelRoof(parent, x, y, z, w, d, color, ridgeAlongX = true) {
+      const layers = 5;
+      for (let i = 0; i < layers; i++) {
+        const t = i / layers;
+        if (ridgeAlongX) box(parent, w + 0.35, 0.22, d * (1 - t) + 0.2, x, y + i * 0.21, z, color);
+        else box(parent, w * (1 - t) + 0.2, 0.22, d + 0.35, x, y + i * 0.21, z, color);
+      }
+    }
+    function windowBox(parent, x, y, z, sx, sy, face = 'z') {
+      const m = new THREE.MeshStandardMaterial({ color: 0x9ac6d4, roughness: 0.35, metalness: 0.05, emissive: 0xffc866, emissiveIntensity: 0 });
+      windowMaterials.push(m);
+      return face === 'z' ? box(parent, sx, sy, 0.07, x, y, z, 0, { material: m, castShadow: false }) : box(parent, 0.07, sy, sx, x, y, z, 0, { material: m, castShadow: false });
+    }
+    function building(x, z, w, d, h, wall, roof, name, floors = 1) {
+      const g = new THREE.Group(); g.position.set(x, 5.65, z); scene.add(g);
+      box(g, w, h, d, 0, h / 2, 0, wall);
+      voxelRoof(g, 0, h + 0.05, 0, w, d, roof, w >= d);
+      box(g, 0.7, 1.25, 0.08, -w * 0.26, 0.63, d / 2 + 0.04, C.woodDark);
+      const rows = Math.max(1, floors); const cols = Math.max(2, Math.floor(w / 1.6));
+      for (let r = 0; r < rows; r++) for (let i = 0; i < cols; i++) {
+        windowBox(g, -w / 2 + 0.7 + i * ((w - 1.4) / Math.max(1, cols - 1)), 1.1 + r * 1.45, d / 2 + 0.05, 0.52, 0.62);
+      }
+      if (name) labelPlane(g, name, Math.min(w * 0.82, 3.6), 0.48, 0, h - 0.4, d / 2 + 0.09, [0, 0, 0], '#f1dfb7', '#24352e');
+      return g;
+    }
+
+    // Room and substantial wooden table.
+    box(scene, 90, 0.4, 74, 0, -0.2, 0, 0x7d6c59, { receiveShadow: true, castShadow: false });
+    box(scene, 90, 34, 0.45, 0, 17, -35, 0xb7ae9e, { castShadow: false });
+    box(scene, 0.45, 34, 74, -45, 17, 0, 0xc6bcaa, { castShadow: false });
+    box(scene, 23, 0.5, 3.2, 18, 13.2, -34.3, C.woodDark);
+    for (let i = 0; i < 7; i++) box(scene, 1.7, 2.4 + (i % 3) * 0.5, 2.6, 11 + i * 2.4, 14.6, -34.1, [C.red,C.blue,C.green,C.yellow,C.cream][i%5]);
+    const poster = box(scene, 9, 6, 0.1, -13, 18, -34.4, C.cream, { castShadow: false });
+    box(scene, 7.8, 0.5, 0.12, -13, 20, -34.28, C.red, { castShadow: false });
+    labelPlane(scene, 'EXPRESS TO THE COAST', 7.8, 1.1, -13, 18.2, -34.22, [0,0,0], '#f1dfb7', '#b43f38');
+
+    box(scene, 62, 1.1, 40, 0, 4.7, 0, C.wood, { roughness: 0.9 });
+    box(scene, 60.6, 0.55, 38.6, 0, 5.55, 0, C.grass, { roughness: 1 });
+    for (const [x,z] of [[-27,-16],[27,-16],[-27,16],[27,16]]) box(scene, 3.2, 5.0, 3.2, x, 2.1, z, C.woodDark);
+    for (let i = -25; i <= 25; i += 5) box(scene, 4.6, 0.12, 39.8, i, 5.29, 0, i % 10 === 0 ? 0xa76b3f : 0x91562f, { castShadow: false });
+
+    // Rivers, roads and paved zones under the railway districts.
+    box(scene, 14, 0.12, 10, -18, 5.88, 7.5, C.water, { roughness: 0.28, metalness: 0.06 });
+    for (let i = 0; i < 12; i++) box(scene, 0.09, 0.035, 9.4, -24.2 + i * 1.05, 5.96, 7.5, i % 2 ? 0x69a9bf : 0x83bfd0, { castShadow: false });
+    box(scene, 28, 0.1, 2.2, 4, 5.9, 4.1, C.road, { castShadow: false });
+    box(scene, 2.5, 0.1, 18, 3.2, 5.91, 0, C.road, { castShadow: false });
+    box(scene, 13, 0.11, 9, 15.5, 5.91, -7.2, 0x7c765f, { castShadow: false });
+    for (let x = -8; x < 17; x += 2.4) box(scene, 1.15, 0.03, 0.08, x, 5.97, 4.1, C.cream, { castShadow: false });
+
+    // Mainline: segmented rails preserve the model/voxel character.
+    const loopPoints = [];
+    for (let i = 0; i < 32; i++) {
+      const a = i / 32 * Math.PI * 2;
+      const cx = Math.cos(a), sz = Math.sin(a);
+      loopPoints.push(new THREE.Vector3(25.4 * Math.sign(cx) * Math.pow(Math.abs(cx), 0.72), 6.12, 14.4 * Math.sign(sz) * Math.pow(Math.abs(sz), 0.72)));
+    }
+    const mainCurve = new THREE.CatmullRomCurve3(loopPoints, true, 'catmullrom', 0.22);
+    function layCurveTrack(curve, count = 250) {
+      for (let i = 0; i < count; i++) {
+        const t = i / count, t2 = (i + 1) / count;
+        const p = curve.getPointAt(t), q = curve.getPointAt(t2), tan = curve.getTangentAt(t).normalize();
+        const yaw = Math.atan2(tan.x, tan.z); const right = new THREE.Vector3(tan.z, 0, -tan.x);
+        if (i % 2 === 0) box(scene, 1.9, 0.11, 0.25, p.x, p.y - 0.16, p.z, C.sleeper, { rotation: [0,yaw,0] });
+        const len = p.distanceTo(q) * 1.12;
+        for (const side of [-0.56, 0.56]) box(scene, 0.12, 0.13, len, p.x + right.x * side, p.y, p.z + right.z * side, C.rail, { rotation: [0,yaw,0], metalness: 0.52, roughness: 0.42 });
+      }
+    }
+    layCurveTrack(mainCurve);
+
+    function straightTrack(x1, x2, z) {
+      box(scene, x2-x1, 0.08, 1.55, (x1+x2)/2, 5.96, z, C.ballast, { castShadow: false });
+      box(scene, x2-x1, 0.12, 0.1, (x1+x2)/2, 6.11, z-0.5, C.rail, { metalness: 0.5 });
+      box(scene, x2-x1, 0.12, 0.1, (x1+x2)/2, 6.11, z+0.5, C.rail, { metalness: 0.5 });
+      for (let x=x1+0.4; x<x2; x+=0.72) box(scene, 0.18, 0.09, 1.65, x, 6.0, z, C.sleeper);
+    }
+    straightTrack(-19, 9, -4.5); straightTrack(-19, 8, -2.4); straightTrack(-8, 18, -7.7);
+
+    function wheel(parent, x, z) { return cyl(parent, 0.34, 0.16, x, 0.27, z, C.black, { segments: 8, rotation: [0,0,Math.PI/2], metalness: 0.35 }); }
+    function locomotive(color = C.red, accent = C.yellow) {
+      const g = new THREE.Group();
+      box(g, 1.65, 0.55, 3.15, 0, 0.62, 0, color);
+      box(g, 1.48, 1.15, 1.32, 0, 1.35, 0.72, color);
+      box(g, 1.25, 0.75, 1.35, 0, 1.06, -0.86, C.black);
+      box(g, 1.72, 0.16, 1.55, 0, 2.0, 0.72, accent);
+      cyl(g, 0.18, 0.75, 0, 1.76, -0.8, C.black, { segments: 8 });
+      box(g, 0.18, 0.34, 0.12, -0.46, 1.49, 1.4, C.cream, { emissive: 0xffdb80 });
+      box(g, 0.18, 0.34, 0.12, 0.46, 1.49, 1.4, C.cream, { emissive: 0xffdb80 });
+      for (const x of [-0.75,0.75]) for (const z of [-0.92,0.82]) wheel(g,x,z);
+      return g;
+    }
+    function carriage(color, passenger = true) {
+      const g = new THREE.Group();
+      box(g, 1.7, 0.55, 3.45, 0, 0.62, 0, color);
+      box(g, 1.62, 0.85, 3.25, 0, 1.28, 0, passenger ? color : C.wood);
+      box(g, 1.8, 0.18, 3.55, 0, 1.82, 0, passenger ? C.cream : C.roof);
+      if (passenger) for (const x of [-0.51,0,0.51]) { windowBox(g, x, 1.36, 1.64, 0.32, 0.42); windowBox(g, x, 1.36, -1.64, 0.32, 0.42); }
+      for (const x of [-0.75,0.75]) for (const z of [-1.05,1.05]) wheel(g,x,z);
+      return g;
+    }
+    function buildTrain(colors, phase, passenger = true) {
+      const units = [locomotive(colors[0], colors[1])];
+      units.push(carriage(colors[2], passenger), carriage(colors[3], passenger), carriage(colors[4], passenger));
+      units.forEach(u => scene.add(u));
+      return { units, phase, passenger };
+    }
+    const passengerTrain = buildTrain([C.red,C.yellow,C.cream,C.blue,C.red], 0.02, true);
+    const freightTrain = buildTrain([C.green,C.cream,C.orange,C.woodDark,C.navy], 0.51, false);
+    function placeTrain(train) {
+      train.units.forEach((unit, i) => {
+        const t = (train.phase - i * 0.019 + 1) % 1;
+        const p = mainCurve.getPointAt(t), tan = mainCurve.getTangentAt(t);
+        unit.position.set(p.x, p.y + 0.17, p.z);
+        unit.rotation.y = Math.atan2(tan.x, tan.z);
+      });
+    }
+
+    // Station and platforms.
+    box(scene, 12.5, 0.32, 2.2, 9.5, 6.05, 10.9, C.stone);
+    building(10.5, 9.1, 6.4, 3.1, 2.8, C.cream, C.red, 'MARLOW CENTRAL', 1);
+    for (let x=5; x<15; x+=2.1) {
+      box(scene, 0.13, 2.3, 0.13, x, 7.25, 11.2, C.darkGreen);
+      box(scene, 2.0, 0.12, 1.65, x+0.8, 8.38, 11.2, C.darkGreen);
+    }
+    box(scene, 1.8, 0.12, 0.55, 8.2, 6.42, 10.2, C.woodDark);
+    box(scene, 0.12, 0.75, 0.12, 7.45, 6.78, 10.2, C.woodDark); box(scene, 0.12, 0.75, 0.12, 8.95, 6.78, 10.2, C.woodDark);
+
+    // Town: tight but non-overlapping blocks around a square.
+    building(5.5, 1.6, 3.3, 3.0, 3.6, C.red, C.roof, 'POST', 2);
+    building(9.5, 1.4, 3.0, 3.2, 3.0, C.blue, C.navy, 'HOTEL', 2);
+    building(8.7, 6.7, 3.8, 2.7, 3.3, C.yellow, C.roof, 'BAKERY', 2);
+    building(1.0, 7.0, 3.3, 2.7, 2.8, C.cream, C.green, 'MARKET', 1);
+    const clockTower = new THREE.Group(); clockTower.position.set(3.2,5.72,1.1); scene.add(clockTower);
+    box(clockTower,2.2,4.2,2.2,0,2.1,0,C.stone); voxelRoof(clockTower,0,4.25,0,2.4,2.4,C.navy,true);
+    const clockMat = new THREE.MeshBasicMaterial({color:0xf5e7bd});
+    box(clockTower,1.1,1.1,0.08,0,3.25,1.14,0,{material:clockMat});
+    box(clockTower,0.08,0.38,0.1,0,3.25,1.2,C.black); box(clockTower,0.32,0.08,0.1,0.12,3.25,1.2,C.black);
+
+    function tree(x,z,s=1, autumn=false) {
+      const g = new THREE.Group(); g.position.set(x,5.75,z); scene.add(g);
+      box(g,0.42*s,1.8*s,0.42*s,0,0.9*s,0,C.woodDark);
+      const colors = autumn ? [0xd78932,0xc95b37,0xe3ad3f] : [0x2f7248,0x438452,0x65a357];
+      box(g,1.8*s,0.85*s,1.8*s,0,1.95*s,0,colors[0]);
+      box(g,1.35*s,0.85*s,1.35*s,-0.25*s,2.65*s,0.15*s,colors[1]);
+      box(g,0.85*s,0.8*s,0.85*s,0.25*s,3.2*s,-0.15*s,colors[2]);
+    }
+    [[-5,7,1,0],[-3,9,.8,0],[-7,3,.9,1],[0,-2,.8,0],[14,4,.7,1],[18,6,.9,0],[21,-1,.8,0],[-4,-10,.8,0],[-8,-12,1,0],[-21,-6,.9,1],[19,10,.75,0],[-1,11,.8,1]].forEach(v=>tree(...v));
+
+    // Engine shed, turntable and yard details.
+    const shed = building(-17.5,-9.3,8.0,5.4,3.4,C.woodDark,C.roof,'ROUNDHOUSE',1);
+    box(scene, 2.1, 2.7, 0.12, -19.8, 7.0, -6.55, C.black);
+    box(scene, 2.1, 2.7, 0.12, -15.2, 7.0, -6.55, C.black);
+    const turntable = new THREE.Group(); turntable.position.set(-13.0,6.04,-4.5); scene.add(turntable);
+    cyl(turntable,2.55,0.25,0,0,0,C.stone,{segments:16});
+    const turnBridge = new THREE.Group(); turntable.add(turnBridge);
+    box(turnBridge,5.0,0.2,0.85,0,0.22,0,C.woodDark);
+    box(turnBridge,5.0,0.12,0.1,0,0.4,-0.28,C.rail,{metalness:.5}); box(turnBridge,5.0,0.12,0.1,0,0.4,0.28,C.rail,{metalness:.5});
+    const depotLoco = locomotive(C.navy,C.brass); depotLoco.scale.set(.82,.82,.82); depotLoco.rotation.y=Math.PI/2; depotLoco.position.y=.25; turnBridge.add(depotLoco);
+    for (let i=0;i<16;i++) { const x=-10+i*1.0; box(scene,.12,.65,.12,x,6.25,-.9,C.woodDark); box(scene,.7,.08,.08,x,6.6,-.9,C.cream); }
+    for (let i=0;i<7;i++) box(scene,1.15,.65,.9,-7+i*1.45,6.24,-1.7,[C.red,C.blue,C.green,C.yellow][i%4]);
+
+    // Industrial district.
+    building(14.0,-6.0,7.0,4.4,3.5,0x8b6a4f,C.navy,'MARLOW WORKS',1);
+    const factory = new THREE.Group(); factory.position.set(18.3,5.6,-9.0); scene.add(factory);
+    for (const x of [-1.4,0,1.4]) cyl(factory,.46,5.2,x,2.6,0,0x9e6a4e,{segments:8});
+    for (const x of [-1.4,0,1.4]) box(factory,.7,.45,.7,x,5.32,0,C.black);
+    const tanks = new THREE.Group(); tanks.position.set(10.4,5.8,-10.3); scene.add(tanks);
+    for (const x of [-1.7,0,1.7]) { cyl(tanks,1.0,2.8,x,1.4,0,C.cream,{segments:12,metalness:.18}); box(tanks,2.2,.12,.18,x,2.2,1.0,C.darkGreen); }
+    for (let i=0;i<6;i++) box(scene,1.2,1.2,1.2,8+i%3*1.35,6.25,-5.8-Math.floor(i/3)*1.35,[C.red,C.blue,C.yellow][i%3]);
+
+    // Harbour, cranes, warehouse, ship and lighthouse.
+    building(-18.0,1.0,8.0,3.4,3.0,C.red,C.navy,'DOCK No. 4',1);
+    box(scene,13.5,.32,2.7,-18,6.02,2.7,C.stone);
+    const crane = new THREE.Group(); crane.position.set(-18,6.15,3.4); scene.add(crane);
+    box(crane,1.8,.38,1.8,0,.2,0,C.road); box(crane,.55,5,.55,0,2.8,0,C.yellow);
+    const craneArm = new THREE.Group(); craneArm.position.y=5.0; crane.add(craneArm);
+    box(craneArm,7,.38,.38,1.8,0,0,C.yellow); box(craneArm,.85,.65,.85,-1.55,.15,0,C.black);
+    const hookLine=box(craneArm,.08,2.8,.08,4.8,-1.4,0,C.black,{castShadow:false});
+    const hook=box(craneArm,.45,.45,.45,4.8,-2.85,0,C.red);
+    const ship = new THREE.Group(); ship.position.set(-18,6.0,8.4); scene.add(ship);
+    box(ship,7.4,.7,2.7,0,.35,0,C.navy); box(ship,5.4,.65,2.15,-.2,1.02,0,C.cream);
+    box(ship,1.8,1.5,1.7,-1.55,1.85,0,C.white); box(ship,.55,2.3,.55,.8,2.3,0,C.red);
+    for(let i=0;i<4;i++) box(ship,.9,.6,.7,1.5+i*.85,1.55,0,[C.red,C.blue,C.yellow,C.green][i]);
+    const lighthouse = new THREE.Group(); lighthouse.position.set(-24.3,5.8,10.3); scene.add(lighthouse);
+    for(let i=0;i<6;i++) box(lighthouse,1.55-i*.08,.55,1.55-i*.08,0,.3+i*.55,0,i%2?C.white:C.red);
+    box(lighthouse,2,.18,2,0,3.72,0,C.navy); box(lighthouse,1.2,.75,1.2,0,3.3,0,C.cream);
+    const beacon = new THREE.PointLight(0xffd16b,0,12,2); beacon.position.set(0,3.5,0); lighthouse.add(beacon); lampBulbs.push(beacon);
+
+    // Farms and landscape blocks.
+    box(scene,11,.08,5.4,-7.8,5.94,-9.4,0x9b773e,{castShadow:false});
+    for(let z=-11.4;z<-7.3;z+=.55) for(let x=-12.5;x<-3.4;x+=.85) box(scene,.16,.35,.16,x,6.13,z,(Math.round((x+z)*4)%2)?0xe2b846:0x6a9d47);
+    const barn=building(-2.2,-8.7,4.2,3.4,2.8,C.red,C.roof,'FARM',1);
+    for(let i=0;i<6;i++){ const x=-10.5+i*1.2; box(scene,.5,.42,.85,x,6.18,-6.7,C.white); box(scene,.22,.2,.22,x-.22,6.52,-7.05,C.black); }
+    for(let i=0;i<9;i++){ box(scene,.12,.8,.12,-13+i*1.35,6.25,-6,C.woodDark); box(scene,1.35,.08,.08,-12.35+i*1.35,6.42,-6,C.woodDark); }
+
+    // Hills conceal the far corners and create depth without intersecting the railway.
+    function hill(x,z,color=C.grass2){
+      for(let y=0;y<4;y++) box(scene,6.5-y*1.1,1.05,5.2-y*.8,x,6.1+y*.72,z,color);
+      box(scene,1.5,1.7,1.5,x+.4,9.3,z-.2,0x738b78);
+    }
+    hill(-23,-10); hill(23,-10,0x719654);
+
+    // Lamps, signals, people, cars and utility details.
+    function lamp(x,z,h=2.6){
+      const g=new THREE.Group(); g.position.set(x,5.9,z); scene.add(g);
+      box(g,.12,h,.12,0,h/2,0,C.black); box(g,.7,.11,.11,.28,h-.12,0,C.black);
+      const bulbMat=new THREE.MeshStandardMaterial({color:0xf6e3a7,emissive:0xffc85b,emissiveIntensity:0});
+      box(g,.28,.28,.28,.56,h-.27,0,0,{material:bulbMat}); windowMaterials.push(bulbMat);
+      const l=new THREE.PointLight(0xffc45a,0,5.2,2); l.position.set(.56,h-.2,0); g.add(l); lampBulbs.push(l);
+    }
+    [[5,10],[9,10],[13,10],[2,4],[6,4],[10,4],[-15,2],[-21,2],[13,-3],[18,-4],[-8,-3]].forEach(p=>lamp(...p));
+    const signals=[];
+    function signal(x,z,rot=0){
+      const g=new THREE.Group();g.position.set(x,6.05,z);g.rotation.y=rot;scene.add(g);
+      box(g,.16,2.1,.16,0,1.05,0,C.black);box(g,.62,1.15,.35,0,2.05,0,C.black);
+      const red=new THREE.MeshStandardMaterial({color:0x4b1515,emissive:0xff231c,emissiveIntensity:0});
+      const green=new THREE.MeshStandardMaterial({color:0x163b1e,emissive:0x30f36a,emissiveIntensity:2.5});
+      box(g,.3,.3,.12,0,2.34,.23,0,{material:red});box(g,.3,.3,.12,0,1.8,.23,0,{material:green});
+      signals.push({red,green});
+    }
+    signal(-21,13.6,Math.PI/2); signal(18,13.6,Math.PI/2); signal(24,-8,0); signal(-24,-7,0);
+
+    function person(x,z,shirt,rot=0){
+      const g=new THREE.Group();g.position.set(x,6.05,z);g.rotation.y=rot;scene.add(g);
+      box(g,.34,.72,.3,0,.62,0,shirt);box(g,.3,.3,.3,0,1.14,0,0xd6a16f);
+      box(g,.13,.55,.16,-.11,.18,0,C.navy);box(g,.13,.55,.16,.11,.18,0,C.navy);
+    }
+    [[6,10,C.red],[8,10,C.blue],[12,10,C.green],[-17,2,C.yellow],[-20,2,C.blue],[2,5,C.red],[4,3,C.green],[10,5,C.yellow],[14,-3,C.blue]].forEach(v=>person(...v));
+
+    function car(color){
+      const g=new THREE.Group();box(g,1.15,.38,2.1,0,.42,0,color);box(g,.95,.48,1.05,0,.8,-.1,C.cream);
+      for(const x of [-.56,.56])for(const z of [-.65,.65])cyl(g,.22,.12,x,.28,z,C.black,{rotation:[0,0,Math.PI/2],segments:8});
+      return g;
+    }
+    const roadCars=[];
+    [C.red,C.blue,C.yellow,C.green].forEach((color,i)=>{const v=car(color);scene.add(v);roadCars.push({mesh:v,t:i*.25});});
+    const truck=car(C.orange); truck.scale.set(1.15,1.15,1.35); scene.add(truck);
+
+    // Yard shunter.
+    const shunter=locomotive(C.yellow,C.black); shunter.scale.set(.72,.72,.72); scene.add(shunter);
+
+    // Physical control console on the front fascia.
+    const consoleGroup=new THREE.Group();consoleGroup.position.set(0,5.4,19.5);scene.add(consoleGroup);
+    box(consoleGroup,24,1.25,4.6,0,.1,0,C.darkGreen,{roughness:.55});
+    box(consoleGroup,23.3,.18,3.85,0,.82,-.08,C.black,{metalness:.12});
+    labelPlane(consoleGroup,'MARLOW HARBOUR · MASTER CONTROL',8.6,.64,0,1.0,-1.45,[-Math.PI/2,0,0],'#213f32','#e8b95c');
+    // Lever gate and pivot.
+    box(consoleGroup,5.2,.1,2.1,-7.5,.98,.2,C.brass,{metalness:.65,roughness:.3});
+    box(consoleGroup,4.6,.12,1.55,-7.5,1.07,.2,C.black,{metalness:.2});
+    for(let i=0;i<9;i++)box(consoleGroup,.06,.08,.28,-9.5+i*.5,1.16,-.55,C.cream,{castShadow:false});
+    const leverPivot=new THREE.Group();leverPivot.position.set(-7.5,1.12,.2);consoleGroup.add(leverPivot);
+    cyl(leverPivot,.38,.38,0,0,0,C.brass,{segments:12,rotation:[Math.PI/2,0,0],metalness:.7,roughness:.24});
+    box(leverPivot,.25,2.35,.25,0,1.05,0,C.brass,{metalness:.7,roughness:.22});
+    const leverHandle=box(leverPivot,.74,.62,.74,0,2.25,0,C.red,{roughness:.35});
+    leverHandle.userData={type:'lever'};interactive.push(leverHandle);
+    labelPlane(consoleGroup,'SPEED',2.2,.5,-7.5,1.12,1.45,[-Math.PI/2,0,0],'#1d2422','#f1dfb7');
+
+    function consoleButton(x,color,label,action){
+      const base=cyl(consoleGroup,.72,.22,x,1.08,.25,C.brass,{segments:12,metalness:.55});
+      const m=new THREE.MeshStandardMaterial({color,roughness:.32,metalness:.08,emissive:color,emissiveIntensity:.12});
+      const b=cyl(consoleGroup,.5,.34,x,1.29,.25,0,{segments:12,material:m});
+      b.userData={type:'button',action,baseY:b.position.y,material:m};interactive.push(b);
+      labelPlane(consoleGroup,label,2.35,.5,x,1.12,1.45,[-Math.PI/2,0,0],'#1d2422','#f1dfb7');
+      return b;
+    }
+    const nightButton=consoleButton(-2.8,C.blue,'DAY / NIGHT','cycle');
+    const lightButton=consoleButton(.2,C.yellow,'LIGHTS','lights');
+    const signalButton=consoleButton(3.2,C.green,'SIGNALS','signals');
+    const whistleButton=consoleButton(6.2,C.red,'WHISTLE','whistle');
+    const craneButton=consoleButton(9.2,C.orange,'CRANE','crane');
+    // Brass screws and meters.
+    for(const x of [-11,11])for(const z of [-1.6,1.55])cyl(consoleGroup,.13,.08,x,1.02,z,C.brass,{segments:10,metalness:.75});
+    const meterFace=box(consoleGroup,2.6,.12,1.45,-10.2,1.05,-.1,C.cream);
+    labelPlane(consoleGroup,'VOLTS',1.8,.34,-10.2,1.12,.4,[-Math.PI/2,0,0],'#f1dfb7','#213f32');
+    const meterNeedle=new THREE.Group();meterNeedle.position.set(-10.2,1.22,-.4);consoleGroup.add(meterNeedle);
+    box(meterNeedle,.07,.08,1.0,0,0,.45,C.red,{rotation:[0,0,0]});
+
+    // Stars are generated geometry, no external assets.
+    const starPositions=[];
+    for(let i=0;i<280;i++){const a=Math.random()*Math.PI*2,r=55+Math.random()*35,y=20+Math.random()*34;starPositions.push(Math.cos(a)*r,y,Math.sin(a)*r);}
+    const starGeo=new THREE.BufferGeometry();starGeo.setAttribute('position',new THREE.Float32BufferAttribute(starPositions,3));
+    const stars=new THREE.Points(starGeo,new THREE.PointsMaterial({color:0xfff2c2,size:.34,transparent:true,opacity:0,depthWrite:false}));scene.add(stars);
+
+    // Chimney smoke cubes.
+    const smoke=[];
+    for(let i=0;i<14;i++){
+      const m=box(scene,.38+i*.035,.38+i*.035,.38+i*.035,16.9,11.2+i*.4,-9,C.stone,{castShadow:false});
+      m.material=material(i%2?0x88867d:0xa4a198); smoke.push({mesh:m,phase:i/14});
+    }
+
+    // Interaction state.
+    const raycaster=new THREE.Raycaster();const pointer=new THREE.Vector2();
+    let trainSpeed=.65, dayPhase=.23, autoCycle=true, manualLights=false, signalsGreen=true, craneRunning=true;
+    let draggingLever=false, orbiting=false, pointerStart={x:0,y:0}, startTheta=0,startPhi=0,startSpeed=.65;
+    let lastTime=performance.now(), elapsed=0;
+
+    function setPointer(e){const r=renderer.domElement.getBoundingClientRect();pointer.x=((e.clientX-r.left)/r.width)*2-1;pointer.y=-((e.clientY-r.top)/r.height)*2+1;}
+    function hitControl(e){setPointer(e);raycaster.setFromCamera(pointer,camera);return raycaster.intersectObjects(interactive,false)[0];}
+    renderer.domElement.addEventListener('pointerdown',e=>{
+      const hit=hitControl(e);
+      pointerStart={x:e.clientX,y:e.clientY};
+      if(hit){renderer.domElement.setPointerCapture(e.pointerId);const data=hit.object.userData;
+        if(data.type==='lever'){draggingLever=true;startSpeed=trainSpeed;renderer.domElement.classList.add('is-dragging');}
+        else activateButton(hit.object);
+      }else{orbiting=true;startTheta=orbitTheta;startPhi=orbitPhi;renderer.domElement.setPointerCapture(e.pointerId);renderer.domElement.classList.add('is-dragging');}
+    });
+    renderer.domElement.addEventListener('pointermove',e=>{
+      if(draggingLever){trainSpeed=THREE.MathUtils.clamp(startSpeed-(e.clientY-pointerStart.y)*.006,0,1);updateLever();}
+      else if(orbiting){orbitTheta=THREE.MathUtils.clamp(startTheta-(e.clientX-pointerStart.x)*.0045,-1.0,1.0);orbitPhi=THREE.MathUtils.clamp(startPhi+(e.clientY-pointerStart.y)*.0035,.93,1.47);}
+    });
+    function releasePointer(){draggingLever=false;orbiting=false;renderer.domElement.classList.remove('is-dragging');}
+    renderer.domElement.addEventListener('pointerup',releasePointer);renderer.domElement.addEventListener('pointercancel',releasePointer);
+    renderer.domElement.addEventListener('wheel',e=>{e.preventDefault();orbitRadius=THREE.MathUtils.clamp(orbitRadius+e.deltaY*.02,30,57);},{passive:false});
+
+    function activateButton(button){
+      button.position.y=button.userData.baseY-.12;button.userData.material.emissiveIntensity=1.8;
+      setTimeout(()=>{button.position.y=button.userData.baseY;button.userData.material.emissiveIntensity=.12;},150);
+      switch(button.userData.action){
+        case 'cycle': autoCycle=false; dayPhase=dayPhase>.5?.24:.76; break;
+        case 'lights': manualLights=!manualLights; lightReadout.textContent=manualLights?'手动开启':(autoCycle?'自动':'关闭'); break;
+        case 'signals': signalsGreen=!signalsGreen; signals.forEach(s=>{s.green.emissiveIntensity=signalsGreen?2.5:0;s.red.emissiveIntensity=signalsGreen?0:2.5;}); break;
+        case 'whistle': playWhistle(); break;
+        case 'crane': craneRunning=!craneRunning; break;
+      }
+    }
+    function playWhistle(){
+      const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;const ctx=new AC();const gain=ctx.createGain();gain.connect(ctx.destination);
+      const now=ctx.currentTime;gain.gain.setValueAtTime(.0001,now);gain.gain.exponentialRampToValueAtTime(.13,now+.05);gain.gain.exponentialRampToValueAtTime(.0001,now+.7);
+      [392,523].forEach((f,i)=>{const o=ctx.createOscillator();o.type='triangle';o.frequency.setValueAtTime(f,now);o.frequency.linearRampToValueAtTime(f*(1-.025*i),now+.65);o.connect(gain);o.start(now);o.stop(now+.72);});
+      setTimeout(()=>ctx.close(),900);
+    }
+    function updateLever(){
+      leverPivot.rotation.x=THREE.MathUtils.lerp(-.78,.62,trainSpeed);
+      meterNeedle.rotation.y=THREE.MathUtils.lerp(-.62,.62,trainSpeed);
+      speedReadout.textContent=`${Math.round(trainSpeed*100)}%`;
+    }
+    updateLever();
+
+    function updateCamera(){
+      camera.position.set(
+        cameraTarget.x+Math.sin(orbitTheta)*Math.sin(orbitPhi)*orbitRadius,
+        cameraTarget.y+Math.cos(orbitPhi)*orbitRadius,
+        cameraTarget.z+Math.cos(orbitTheta)*Math.sin(orbitPhi)*orbitRadius
+      );camera.lookAt(cameraTarget);
+    }
+    updateCamera();placeTrain(passengerTrain);placeTrain(freightTrain);
+
+    function updateDayNight(dt){
+      if(autoCycle)dayPhase=(dayPhase+dt*.008)%1;
+      const sunWave=Math.sin(dayPhase*Math.PI*2-Math.PI/2);const daylight=THREE.MathUtils.smoothstep(sunWave,-.25,.35);
+      const dusk=Math.max(0,1-Math.abs(sunWave+.15)*2.1)*(1-daylight*.35);
+      const daySky=new THREE.Color(0xb7d9ea),nightSky=new THREE.Color(0x101a2c),duskSky=new THREE.Color(0xcf795d);
+      const sky=nightSky.clone().lerp(daySky,daylight).lerp(duskSky,dusk*.38);
+      scene.background.copy(sky);scene.fog.color.copy(sky);
+      hemi.intensity=.26+daylight*1.6;hemi.color.set(daylight>.45?0xbfe1ff:0x52698c);hemi.groundColor.set(daylight>.45?0x5f4b32:0x171c25);
+      sun.intensity=.05+daylight*3.05;sun.color.set(daylight>.5?0xfff1c3:0xff8a59);
+      const a=dayPhase*Math.PI*2;sun.position.set(Math.cos(a)*28,8+Math.max(0,Math.sin(a))*29,Math.sin(a)*24);
+      const lightsOn=manualLights||daylight<.42;
+      windowMaterials.forEach(m=>m.emissiveIntensity=lightsOn?1.65:0);
+      lampBulbs.forEach(l=>l.intensity=lightsOn?1.55:0);
+      beacon.intensity=lightsOn?2.3:0;
+      stars.material.opacity=THREE.MathUtils.lerp(stars.material.opacity,lightsOn?.88:0,.035);
+      renderer.toneMappingExposure=.78+daylight*.34;
+      const totalMinutes=Math.floor(dayPhase*24*60);const hh=String(Math.floor(totalMinutes/60)).padStart(2,'0'),mm=String(totalMinutes%60).padStart(2,'0');
+      timeReadout.textContent=`${hh}:${mm}`;
+      if(!manualLights)lightReadout.textContent=autoCycle?'自动':(lightsOn?'开启':'关闭');
+    }
+
+    const roadPath=[new THREE.Vector3(-9,6.18,4.1),new THREE.Vector3(16,6.18,4.1),new THREE.Vector3(16,6.18,-.2),new THREE.Vector3(3.2,6.18,-.2),new THREE.Vector3(3.2,6.18,8),new THREE.Vector3(-9,6.18,8)];
+    const roadCurve=new THREE.CatmullRomCurve3(roadPath,true,'catmullrom',.12);
+
+    function animate(now){
+      requestAnimationFrame(animate);
+      const dt=Math.min((now-lastTime)/1000,.05);lastTime=now;elapsed+=dt;
+      updateCamera();updateDayNight(dt);
+      passengerTrain.phase=(passengerTrain.phase+dt*.045*trainSpeed)%1;
+      freightTrain.phase=(freightTrain.phase+dt*.032*trainSpeed)%1;
+      placeTrain(passengerTrain);placeTrain(freightTrain);
+      roadCars.forEach((v,i)=>{v.t=(v.t+dt*(.026+i*.002))%1;const p=roadCurve.getPointAt(v.t),tan=roadCurve.getTangentAt(v.t);v.mesh.position.copy(p);v.mesh.rotation.y=Math.atan2(tan.x,tan.z);});
+      truck.position.set(11+Math.sin(elapsed*.28)*5.5,6.2,-9.8);truck.rotation.y=Math.PI/2*(Math.sin(elapsed*.28)>0?1:-1);
+      shunter.position.set(-10+Math.sin(elapsed*.35)*7.2,6.22,-2.4);shunter.rotation.y=Math.PI/2*(Math.cos(elapsed*.35)>0?1:-1);
+      turnBridge.rotation.y+=dt*.12;
+      if(craneRunning){craneArm.rotation.y=Math.sin(elapsed*.23)*.62;hookLine.scale.y=.72+Math.sin(elapsed*.8)*.16;hook.position.y=-2.7-Math.sin(elapsed*.8)*.23;}
+      beacon.rotation.y+=dt*1.7;
+      smoke.forEach((s,i)=>{const t=(s.phase+elapsed*.045)%1;s.mesh.position.y=10.6+t*6;s.mesh.position.x=16.9+Math.sin(t*8+i)*.45;s.mesh.material.opacity=1-t;});
+      stars.rotation.y+=dt*.008;
+      renderer.render(scene,camera);
+    }
+
+    addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);});
+    requestAnimationFrame(animate);
+    setTimeout(()=>loading.classList.add('is-hidden'),500);
+  })();
+  </script>
+</body>
+</html>

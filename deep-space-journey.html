@@ -1,0 +1,1249 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>THE VOID · 深空之旅 — GSAP 沉浸式叙事</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;700&family=Noto+Serif+SC:wght@200;400;600;900&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   THE VOID · 深空之旅
+   基调：OLED 极暗 (#050507) + 辐射光晕 + 玻璃发丝线
+   动效：仅 transform / opacity / filter，自定义贝塞尔曲线
+   ============================================================ */
+:root {
+  --bg: #050507;
+  --ink: #f4f2ee;
+  --ink-dim: rgba(244, 242, 238, 0.55);
+  --ink-faint: rgba(244, 242, 238, 0.28);
+  --hairline: rgba(255, 255, 255, 0.09);
+  --violet: #8b5cf6;
+  --cyan: #22d3ee;
+  --amber: #fbbf24;
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --font-display: 'Noto Serif SC', 'Songti SC', serif;
+  --font-body: 'Space Grotesk', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html { scroll-behavior: auto; }
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-body);
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  line-height: 1.6;
+}
+
+::selection { background: rgba(139, 92, 246, 0.4); color: #fff; }
+
+/* ---------- 全局固定层 ---------- */
+
+/* 星空画布（最底层，固定） */
+#starfield {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* 噪点颗粒覆层（最顶层，固定，不响应事件） */
+.grain {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  pointer-events: none;
+  opacity: 0.05;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* 顶部进度条 */
+.progress {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 2px;
+  z-index: 30;
+  background: linear-gradient(90deg, var(--violet), var(--cyan), var(--amber));
+  transform-origin: left center;
+  transform: scaleX(0);
+}
+
+/* 悬浮玻璃导航岛 */
+.nav-island {
+  position: fixed;
+  top: 1.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.6rem 1.4rem;
+  border-radius: 999px;
+  background: rgba(10, 10, 14, 0.55);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--hairline);
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.07), 0 12px 40px rgba(0, 0, 0, 0.5);
+  font-size: 0.7rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.nav-island .dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--cyan);
+  box-shadow: 0 0 10px var(--cyan);
+}
+.nav-island .chapter-label { color: var(--ink-dim); }
+
+/* 左下角章节计数 */
+.chapter-counter {
+  position: fixed;
+  left: 2rem; bottom: 2rem;
+  z-index: 30;
+  font-size: 0.68rem;
+  letter-spacing: 0.3em;
+  color: var(--ink-faint);
+  text-transform: uppercase;
+}
+.chapter-counter strong { color: var(--ink); font-weight: 500; }
+
+/* 自定义光标光晕（触屏隐藏） */
+.cursor-glow {
+  position: fixed;
+  top: 0; left: 0;
+  width: 360px; height: 360px;
+  z-index: 5;
+  pointer-events: none;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(139, 92, 246, 0.12) 0%, transparent 65%);
+  transform: translate(-50%, -50%);
+  mix-blend-mode: screen;
+}
+@media (pointer: coarse) { .cursor-glow { display: none; } }
+
+/* ---------- 通用排版 ---------- */
+main { position: relative; z-index: 1; }
+
+.scene {
+  position: relative;
+  min-height: 100svh;
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.9rem;
+  border-radius: 999px;
+  border: 1px solid var(--hairline);
+  background: rgba(255, 255, 255, 0.04);
+  font-size: 0.62rem;
+  font-weight: 500;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+  margin-bottom: 2rem;
+}
+.eyebrow::before {
+  content: '';
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.6;
+}
+
+.display {
+  font-family: var(--font-display);
+  font-weight: 900;
+  line-height: 1.12;
+  letter-spacing: 0.04em;
+}
+
+/* 逐字拆分的字符 */
+.char {
+  display: inline-block;
+  will-change: transform;
+}
+.split-mask { overflow: hidden; display: inline-block; vertical-align: bottom; }
+
+.lead {
+  color: var(--ink-dim);
+  font-weight: 300;
+  font-size: clamp(0.95rem, 1.6vw, 1.15rem);
+  max-width: 34em;
+}
+
+/* ---------- 第〇章 · 序 / Hero ---------- */
+#hero { flex-direction: column; text-align: center; padding: 0 1.5rem; }
+
+#hero .display {
+  font-size: clamp(3.2rem, 11vw, 9.5rem);
+  background: linear-gradient(180deg, #fff 30%, rgba(255, 255, 255, 0.45));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+#hero .hero-sub {
+  margin-top: 2.5rem;
+  color: var(--ink-dim);
+  font-weight: 300;
+  font-size: clamp(0.9rem, 1.5vw, 1.1rem);
+  letter-spacing: 0.12em;
+}
+
+.hero-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(90px);
+  pointer-events: none;
+}
+.hero-orb.violet {
+  width: 55vw; height: 55vw;
+  max-width: 700px; max-height: 700px;
+  background: radial-gradient(circle, rgba(139, 92, 246, 0.22), transparent 70%);
+  top: -15%; left: -10%;
+}
+.hero-orb.cyan {
+  width: 45vw; height: 45vw;
+  max-width: 560px; max-height: 560px;
+  background: radial-gradient(circle, rgba(34, 211, 238, 0.14), transparent 70%);
+  bottom: -10%; right: -8%;
+}
+
+.scroll-hint {
+  position: absolute;
+  bottom: 3rem;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.8rem;
+  font-size: 0.62rem;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+.scroll-hint .line {
+  width: 1px; height: 56px;
+  background: linear-gradient(180deg, var(--ink-dim), transparent);
+  overflow: hidden;
+  position: relative;
+}
+.scroll-hint .line::after {
+  content: '';
+  position: absolute;
+  top: -100%; left: 0;
+  width: 100%; height: 100%;
+  background: linear-gradient(180deg, transparent, #fff);
+  animation: hint-drop 2.2s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+}
+@keyframes hint-drop { to { top: 100%; } }
+
+/* ---------- 第一章 · 告别 ---------- */
+#scene-earth { flex-direction: column; text-align: center; }
+
+.earth {
+  position: absolute;
+  bottom: -42vw;
+  left: 50%;
+  width: 84vw; height: 84vw;
+  min-width: 620px; min-height: 620px;
+  margin-left: max(-42vw, -310px);
+  border-radius: 50%;
+  background: radial-gradient(circle at 32% 28%, #5ba3e8 0%, #2563ab 28%, #123a66 52%, #071527 74%, #02060e 100%);
+  box-shadow:
+    inset -40px -60px 120px rgba(0, 0, 0, 0.8),
+    inset 8px 12px 60px rgba(160, 215, 255, 0.35),
+    0 0 140px rgba(80, 150, 255, 0.28);
+  will-change: transform;
+}
+.earth::after {
+  /* 大气层辉光边缘 */
+  content: '';
+  position: absolute;
+  inset: -2.5%;
+  border-radius: 50%;
+  background: radial-gradient(circle, transparent 62%, rgba(120, 190, 255, 0.18) 70%, transparent 76%);
+}
+
+#scene-earth .scene-copy { position: relative; z-index: 2; padding: 0 1.5rem; }
+#scene-earth .display { font-size: clamp(2.2rem, 6.5vw, 5.5rem); }
+#scene-earth .lead { margin: 2rem auto 0; }
+
+/* ---------- 第二章 · 光速 ---------- */
+#scene-warp { flex-direction: column; text-align: center; padding: 0 1.5rem; }
+
+.speed-readout {
+  font-family: var(--font-body);
+  font-weight: 300;
+  font-size: clamp(3.4rem, 12vw, 11rem);
+  letter-spacing: -0.02em;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  background: linear-gradient(180deg, #fff, rgba(255, 255, 255, 0.35));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.speed-unit {
+  margin-top: 1rem;
+  font-size: 0.72rem;
+  letter-spacing: 0.4em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+}
+#scene-warp .display {
+  margin-top: 3.5rem;
+  font-size: clamp(1.4rem, 3.4vw, 2.6rem);
+  font-weight: 400;
+  color: var(--ink-dim);
+}
+
+/* ---------- 第三章 · 星云 ---------- */
+#scene-nebula { flex-direction: column; text-align: center; padding: 0 1.5rem; }
+
+.nebula-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(70px);
+  pointer-events: none;
+  will-change: transform;
+}
+.nebula-orb.n1 {
+  width: 60vw; height: 60vw;
+  max-width: 760px; max-height: 760px;
+  background: radial-gradient(circle, rgba(168, 85, 247, 0.34), transparent 68%);
+  top: 4%; left: -14%;
+}
+.nebula-orb.n2 {
+  width: 50vw; height: 50vw;
+  max-width: 640px; max-height: 640px;
+  background: radial-gradient(circle, rgba(34, 211, 238, 0.26), transparent 68%);
+  bottom: -4%; right: -10%;
+}
+.nebula-orb.n3 {
+  width: 34vw; height: 34vw;
+  max-width: 440px; max-height: 440px;
+  background: radial-gradient(circle, rgba(251, 113, 133, 0.2), transparent 68%);
+  top: 36%; left: 56%;
+}
+
+.poem { position: relative; z-index: 2; }
+.poem .verse {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: clamp(1.7rem, 4.6vw, 3.8rem);
+  line-height: 1.7;
+  letter-spacing: 0.08em;
+}
+.poem .verse + .verse { margin-top: 1.2rem; }
+.poem .credit {
+  margin-top: 3.5rem;
+  font-size: 0.66rem;
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+/* ---------- 第四章 · 横向巡航 ---------- */
+#scene-planets { display: block; }
+
+.h-viewport {
+  height: 100svh;
+  height: 100dvh;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+}
+
+.h-track {
+  display: flex;
+  align-items: center;
+  gap: clamp(2rem, 5vw, 5rem);
+  padding: 0 clamp(1.5rem, 6vw, 7rem);
+  will-change: transform;
+}
+
+.h-intro { flex: 0 0 auto; width: min(560px, 78vw); }
+.h-intro .display { font-size: clamp(2.4rem, 6vw, 5rem); }
+.h-intro .lead { margin-top: 1.8rem; }
+.h-intro .h-arrow {
+  margin-top: 2.6rem;
+  font-size: 0.66rem;
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+/* 双层嵌套结构（Double-Bezel）：外壳托盘 + 内核玻璃面板 */
+.planet-card {
+  flex: 0 0 auto;
+  width: min(420px, 80vw);
+  padding: 0.5rem;
+  border-radius: 2rem;
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid var(--hairline);
+}
+.planet-card .card-core {
+  border-radius: calc(2rem - 0.5rem);
+  background: linear-gradient(170deg, rgba(22, 22, 30, 0.92), rgba(8, 8, 12, 0.96));
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.08);
+  padding: 2.6rem 2.2rem 2.2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.planet-visual {
+  position: relative;
+  width: 180px; height: 180px;
+  margin-bottom: 2.2rem;
+}
+.planet-sphere {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  box-shadow: inset -22px -26px 60px rgba(0, 0, 0, 0.75);
+}
+.planet-glow {
+  position: absolute;
+  inset: -28%;
+  border-radius: 50%;
+  filter: blur(34px);
+  opacity: 0.5;
+}
+
+/* 木星 */
+.p-jupiter .planet-sphere {
+  background:
+    radial-gradient(circle at 34% 30%, rgba(255,255,255,0.32), transparent 42%),
+    repeating-linear-gradient(8deg, #c4a075 0 14px, #8f6b46 14px 24px, #d8b98e 24px 40px, #a3744d 40px 52px);
+}
+.p-jupiter .planet-glow { background: radial-gradient(circle, rgba(216, 165, 110, 0.55), transparent 70%); }
+
+/* 土星 */
+.p-saturn .planet-sphere {
+  inset: 14% 14%;
+  background:
+    radial-gradient(circle at 34% 30%, rgba(255,255,255,0.3), transparent 45%),
+    linear-gradient(12deg, #e8d5a8, #b89a62 55%, #6e5532);
+}
+.p-saturn .planet-ring {
+  position: absolute;
+  top: 50%; left: 50%;
+  width: 132%; height: 132%;
+  border-radius: 50%;
+  border: 10px solid rgba(214, 188, 138, 0.5);
+  box-shadow: 0 0 24px rgba(214, 188, 138, 0.2);
+  transform: translate(-50%, -50%) rotateX(74deg);
+}
+.p-saturn .planet-glow { background: radial-gradient(circle, rgba(232, 213, 168, 0.45), transparent 70%); }
+
+/* 冰巨星 */
+.p-ice .planet-sphere {
+  background:
+    radial-gradient(circle at 34% 30%, rgba(255,255,255,0.4), transparent 45%),
+    linear-gradient(160deg, #9ee6f5, #2c8db4 55%, #0b3a55);
+}
+.p-ice .planet-glow { background: radial-gradient(circle, rgba(110, 220, 245, 0.5), transparent 70%); }
+
+/* 系外行星 */
+.p-exo .planet-sphere {
+  background:
+    radial-gradient(circle at 60% 65%, rgba(251, 146, 60, 0.55), transparent 50%),
+    radial-gradient(circle at 34% 30%, rgba(255,255,255,0.18), transparent 45%),
+    linear-gradient(200deg, #3b1d54, #1a0b2e 60%, #07030f);
+}
+.p-exo .planet-glow { background: radial-gradient(circle, rgba(168, 85, 247, 0.5), transparent 70%); }
+
+.planet-card h3 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1.7rem;
+  letter-spacing: 0.1em;
+}
+.planet-card .latin {
+  margin-top: 0.3rem;
+  font-size: 0.62rem;
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+.planet-card p {
+  margin-top: 1.4rem;
+  font-size: 0.85rem;
+  font-weight: 300;
+  color: var(--ink-dim);
+}
+.planet-card .stat {
+  margin-top: 1.8rem;
+  padding-top: 1.4rem;
+  width: 100%;
+  border-top: 1px solid var(--hairline);
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.66rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+.planet-card .stat strong { color: var(--ink); font-weight: 500; letter-spacing: 0.05em; }
+
+/* ---------- 第五章 · 事件视界 ---------- */
+#scene-blackhole { flex-direction: column; text-align: center; }
+
+.bh-stage {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+.bh-disk {
+  position: absolute;
+  width: min(120vmin, 900px);
+  height: min(120vmin, 900px);
+  border-radius: 50%;
+  background: conic-gradient(
+    from 0deg,
+    transparent 0deg,
+    rgba(251, 191, 36, 0.55) 60deg,
+    rgba(249, 115, 22, 0.85) 120deg,
+    rgba(255, 240, 200, 0.95) 180deg,
+    rgba(249, 115, 22, 0.85) 240deg,
+    rgba(251, 191, 36, 0.55) 300deg,
+    transparent 360deg
+  );
+  -webkit-mask: radial-gradient(circle, transparent 33%, #000 40%, #000 52%, transparent 64%);
+  mask: radial-gradient(circle, transparent 33%, #000 40%, #000 52%, transparent 64%);
+  filter: blur(10px);
+  will-change: transform;
+}
+.bh-photon-ring {
+  position: absolute;
+  width: min(46vmin, 350px);
+  height: min(46vmin, 350px);
+  border-radius: 50%;
+  border: 2px solid rgba(255, 244, 214, 0.9);
+  box-shadow: 0 0 30px rgba(255, 220, 150, 0.8), inset 0 0 22px rgba(255, 220, 150, 0.55);
+  filter: blur(1px);
+}
+.bh-core {
+  position: absolute;
+  width: min(44vmin, 334px);
+  height: min(44vmin, 334px);
+  border-radius: 50%;
+  background: #000;
+}
+
+#scene-blackhole .scene-copy { position: relative; z-index: 2; padding: 0 1.5rem; }
+#scene-blackhole .display { font-size: clamp(2.4rem, 7vw, 6rem); }
+#scene-blackhole .lead { margin: 2rem auto 0; }
+
+/* 末尾全黑过渡幕 */
+.blackout {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  background: #000;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* ---------- 终章 ---------- */
+#finale { flex-direction: column; text-align: center; padding: 4rem 1.5rem 7rem; }
+
+.finale-star {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 24px 6px rgba(255, 255, 255, 0.7), 0 0 80px 20px rgba(139, 92, 246, 0.4);
+  margin-bottom: 4rem;
+}
+#finale .display {
+  font-size: clamp(2.8rem, 8vw, 7rem);
+  background: linear-gradient(180deg, #fff 35%, rgba(255, 255, 255, 0.4));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+#finale .lead { margin: 2.4rem auto 0; }
+
+/* 嵌套式 CTA：药丸按钮 + 内嵌圆形箭头岛 */
+.cta {
+  margin-top: 3.6rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.55rem 0.55rem 0.55rem 1.8rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.05);
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.1);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 0.88rem;
+  letter-spacing: 0.14em;
+  cursor: pointer;
+  transition: transform 0.7s var(--ease-out), background 0.7s var(--ease-out), border-color 0.7s var(--ease-out);
+}
+.cta .cta-icon {
+  width: 2.4rem; height: 2.4rem;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  transition: transform 0.7s var(--ease-out), background 0.7s var(--ease-out);
+}
+.cta:hover {
+  background: rgba(255, 255, 255, 0.09);
+  border-color: rgba(255, 255, 255, 0.26);
+  transform: translateY(-2px);
+}
+.cta:hover .cta-icon {
+  background: rgba(255, 255, 255, 0.2);
+  transform: translate(2px, -2px) scale(1.06);
+}
+.cta:active { transform: scale(0.97); }
+
+.footer-note {
+  margin-top: 6rem;
+  font-size: 0.62rem;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+/* ---------- 响应式 ---------- */
+@media (max-width: 768px) {
+  .chapter-counter { left: 1.25rem; bottom: 1.25rem; }
+  .nav-island { gap: 0.6rem; padding: 0.5rem 1rem; font-size: 0.6rem; }
+  .planet-visual { width: 140px; height: 140px; }
+}
+
+/* ---------- 降级：减少动态 ---------- */
+@media (prefers-reduced-motion: reduce) {
+  .scroll-hint .line::after { animation: none; }
+  .cta, .cta .cta-icon { transition: none; }
+}
+</style>
+</head>
+<body>
+
+<canvas id="starfield"></canvas>
+<div class="cursor-glow" aria-hidden="true"></div>
+
+<div class="progress" aria-hidden="true"></div>
+
+<nav class="nav-island">
+  <span class="dot"></span>
+  <span>The Void</span>
+  <span class="chapter-label" id="nav-chapter">序章 · 启程</span>
+</nav>
+
+<div class="chapter-counter" aria-hidden="true">
+  <strong id="chapter-num">00</strong>&nbsp;/&nbsp;06
+</div>
+
+<main>
+
+  <!-- ======== 序章 · Hero ======== -->
+  <section class="scene" id="hero" data-chapter="00" data-title="序章 · 启程">
+    <div class="hero-orb violet" aria-hidden="true"></div>
+    <div class="hero-orb cyan" aria-hidden="true"></div>
+    <div class="hero-inner">
+      <div class="eyebrow">An Immersive Scroll Story</div>
+      <h1 class="display split" id="hero-title">坠入深空</h1>
+      <p class="hero-sub" id="hero-sub">这是一场没有返程票的旅行 —— 向下滚动，离开地球。</p>
+    </div>
+    <div class="scroll-hint" id="scroll-hint">
+      <span>Scroll</span>
+      <span class="line"></span>
+    </div>
+  </section>
+
+  <!-- ======== 第一章 · 告别 ======== -->
+  <section class="scene" id="scene-earth" data-chapter="01" data-title="第一章 · 告别">
+    <div class="earth" aria-hidden="true"></div>
+    <div class="scene-copy">
+      <div class="eyebrow">Chapter 01 · Farewell</div>
+      <h2 class="display split" id="earth-title">再见，蓝色摇篮</h2>
+      <p class="lead">你脚下熟悉的一切——海洋、山脉、七十亿人的悲欢——<br>正在缩成一枚悬浮在黑暗中的尘埃。</p>
+    </div>
+  </section>
+
+  <!-- ======== 第二章 · 光速 ======== -->
+  <section class="scene" id="scene-warp" data-chapter="02" data-title="第二章 · 光速">
+    <div class="scene-copy">
+      <div class="eyebrow">Chapter 02 · Velocity</div>
+      <div class="speed-readout" id="speed-readout">0</div>
+      <div class="speed-unit">km / s · 接近光速</div>
+      <h2 class="display split" id="warp-title">连光，也需要时间</h2>
+    </div>
+  </section>
+
+  <!-- ======== 第三章 · 星云 ======== -->
+  <section class="scene" id="scene-nebula" data-chapter="03" data-title="第三章 · 星云">
+    <div class="nebula-orb n1" aria-hidden="true"></div>
+    <div class="nebula-orb n2" aria-hidden="true"></div>
+    <div class="nebula-orb n3" aria-hidden="true"></div>
+    <div class="poem">
+      <div class="eyebrow">Chapter 03 · Nebula</div>
+      <div class="verse split" id="verse-1">我们都是星尘所铸，</div>
+      <div class="verse split" id="verse-2">此刻，只是回到了故乡。</div>
+      <div class="credit">— Carl Sagan, paraphrased</div>
+    </div>
+  </section>
+
+  <!-- ======== 第四章 · 巡航（横向卷轴） ======== -->
+  <section id="scene-planets" data-chapter="04" data-title="第四章 · 巡航">
+    <div class="h-viewport">
+      <div class="h-track" id="h-track">
+
+        <div class="h-intro">
+          <div class="eyebrow">Chapter 04 · The Grand Tour</div>
+          <h2 class="display">掠过<br>巨行星之间</h2>
+          <p class="lead">继续滚动，舷窗外的世界将一一掠过。每一颗，都是一种孤独的极致。</p>
+          <div class="h-arrow">Keep Scrolling →</div>
+        </div>
+
+        <div class="planet-card p-jupiter">
+          <div class="card-core">
+            <div class="planet-visual">
+              <div class="planet-glow"></div>
+              <div class="planet-sphere"></div>
+            </div>
+            <h3>木星</h3>
+            <div class="latin">Jupiter</div>
+            <p>一场持续了三百年的风暴，大到可以吞下三个地球。它沉默地守在内太阳系门口，替我们挡下无数颗彗星。</p>
+            <div class="stat"><span>距离</span><strong>7.78 亿 km</strong></div>
+          </div>
+        </div>
+
+        <div class="planet-card p-saturn">
+          <div class="card-core">
+            <div class="planet-visual">
+              <div class="planet-glow"></div>
+              <div class="planet-ring"></div>
+              <div class="planet-sphere"></div>
+            </div>
+            <h3>土星</h3>
+            <div class="latin">Saturn</div>
+            <p>它的环薄得不可思议——直径二十八万公里，厚度却不足一公里。像宇宙随手画下的一笔工笔画。</p>
+            <div class="stat"><span>距离</span><strong>14.3 亿 km</strong></div>
+          </div>
+        </div>
+
+        <div class="planet-card p-ice">
+          <div class="card-core">
+            <div class="planet-visual">
+              <div class="planet-glow"></div>
+              <div class="planet-sphere"></div>
+            </div>
+            <h3>海王星</h3>
+            <div class="latin">Neptune</div>
+            <p>太阳到这里只剩一粒亮一点的星。时速两千公里的钻石雨，落在没有人见过的海上。</p>
+            <div class="stat"><span>距离</span><strong>45 亿 km</strong></div>
+          </div>
+        </div>
+
+        <div class="planet-card p-exo">
+          <div class="card-core">
+            <div class="planet-visual">
+              <div class="planet-glow"></div>
+              <div class="planet-sphere"></div>
+            </div>
+            <h3>未名行星</h3>
+            <div class="latin">Exoplanet · Unnamed</div>
+            <p>在星表里它只是一串编号。但此刻它悬在你的舷窗外，潮汐锁定的暗面，正对着永恒的夜。</p>
+            <div class="stat"><span>距离</span><strong>4.2 光年</strong></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ======== 第五章 · 事件视界 ======== -->
+  <section class="scene" id="scene-blackhole" data-chapter="05" data-title="第五章 · 事件视界">
+    <div class="bh-stage" aria-hidden="true">
+      <div class="bh-disk" id="bh-disk"></div>
+      <div class="bh-photon-ring" id="bh-ring"></div>
+      <div class="bh-core" id="bh-core"></div>
+    </div>
+    <div class="scene-copy" id="bh-copy">
+      <div class="eyebrow">Chapter 05 · Event Horizon</div>
+      <h2 class="display split" id="bh-title">事件视界</h2>
+      <p class="lead" id="bh-lead">越过这条边界，连光都无法回头。<br>时间在这里，慢成了一句没有说完的话。</p>
+    </div>
+    <div class="blackout" id="blackout"></div>
+  </section>
+
+  <!-- ======== 终章 ======== -->
+  <section class="scene" id="finale" data-chapter="06" data-title="终章 · 奇点之后">
+    <div class="finale-inner" id="finale-inner" style="display:flex;flex-direction:column;align-items:center;">
+      <div class="finale-star" aria-hidden="true"></div>
+      <div class="eyebrow">Epilogue</div>
+      <h2 class="display split" id="finale-title">尽头，亦是开始</h2>
+      <p class="lead">奇点之内没有故事，但奇点之外，每一次大爆炸都是一次新生。<br>宇宙最浪漫的地方在于：结束与开始，常常是同一件事。</p>
+      <button class="cta" id="restart">
+        重新启程
+        <span class="cta-icon">↗</span>
+      </button>
+      <div class="footer-note">GSAP × ScrollTrigger · Single-File Demo · The Void</div>
+    </div>
+  </section>
+
+</main>
+
+<div class="grain" aria-hidden="true"></div>
+
+<noscript><p style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#050507;color:#fff;z-index:99;">本演示需要启用 JavaScript。</p></noscript>
+
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+<script>window.gsap || document.write('<script src="https://unpkg.com/gsap@3.12.5/dist/gsap.min.js"><\/script>')</script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/ScrollTrigger.min.js"></script>
+<script>window.ScrollTrigger || document.write('<script src="https://unpkg.com/gsap@3.12.5/dist/ScrollTrigger.min.js"><\/script>')</script>
+
+<script>
+/* ============================================================
+   THE VOID · 交互编排
+   ============================================================ */
+gsap.registerPlugin(ScrollTrigger);
+
+const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ---------- 工具：逐字拆分 ---------- */
+function splitChars(el) {
+  const text = el.textContent;
+  el.textContent = '';
+  el.setAttribute('aria-label', text);
+  const chars = [];
+  for (const ch of text) {
+    const span = document.createElement('span');
+    span.className = 'char';
+    span.textContent = ch === ' ' ? ' ' : ch;
+    span.setAttribute('aria-hidden', 'true');
+    el.appendChild(span);
+    chars.push(span);
+  }
+  return chars;
+}
+
+const charMap = {};
+document.querySelectorAll('.split').forEach(el => { charMap[el.id] = splitChars(el); });
+
+/* ============================================================
+   星空粒子画布：滚动速度 → 曲速拉伸；黑洞段 → 螺旋吸入
+   ============================================================ */
+const canvas = document.getElementById('starfield');
+const ctx = canvas.getContext('2d');
+const DPR = Math.min(window.devicePixelRatio || 1, 2);
+let W = 0, H = 0, CX = 0, CY = 0, FOCAL = 0;
+
+const state = { warp: 0, attract: 0, speed: 0.6 };
+const STAR_COUNT = reduced ? 0 : (window.innerWidth < 768 ? 320 : 640);
+const stars = [];
+
+function resizeCanvas() {
+  W = window.innerWidth;
+  H = window.innerHeight;
+  CX = W / 2; CY = H / 2;
+  FOCAL = Math.min(W, H) * 0.9;
+  canvas.width = W * DPR;
+  canvas.height = H * DPR;
+  canvas.style.width = W + 'px';
+  canvas.style.height = H + 'px';
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+}
+resizeCanvas();
+window.addEventListener('resize', resizeCanvas);
+
+function spawnStar(s, randomZ) {
+  s.x = (Math.random() * 2 - 1) * W;
+  s.y = (Math.random() * 2 - 1) * H;
+  s.z = randomZ ? Math.random() * W : W;
+  s.pz = s.z;
+  s.tint = Math.random();
+}
+for (let i = 0; i < STAR_COUNT; i++) {
+  const s = {};
+  spawnStar(s, true);
+  stars.push(s);
+}
+
+/* 滚动速度耦合 */
+let lastScrollY = window.scrollY;
+let scrollVel = 0;
+
+function swirl(x, y, a) {
+  /* 围绕屏幕中心：半径收缩 + 角度偏转 → 螺旋吸入 */
+  const dx = x - CX, dy = y - CY;
+  const ang = Math.atan2(dy, dx) + a * 1.6;
+  const r = Math.hypot(dx, dy) * (1 - a * 0.8);
+  return [CX + Math.cos(ang) * r, CY + Math.sin(ang) * r];
+}
+
+function renderStars() {
+  /* 半透明清屏 → 自然运动拖尾 */
+  ctx.fillStyle = 'rgba(5, 5, 9, 0.46)';
+  ctx.fillRect(0, 0, W, H);
+
+  const dy = window.scrollY - lastScrollY;
+  lastScrollY = window.scrollY;
+  scrollVel += (Math.min(Math.abs(dy) * 0.06, 14) - scrollVel) * 0.08;
+
+  const targetSpeed = 0.6 + scrollVel + state.warp * 38;
+  state.speed += (targetSpeed - state.speed) * 0.07;
+
+  for (const s of stars) {
+    s.pz = s.z;
+    s.z -= state.speed;
+    if (s.z < 1) { spawnStar(s, false); continue; }
+
+    let sx = (s.x / s.z) * FOCAL + CX;
+    let sy = (s.y / s.z) * FOCAL + CY;
+    let px = (s.x / s.pz) * FOCAL + CX;
+    let py = (s.y / s.pz) * FOCAL + CY;
+
+    if (state.attract > 0.01) {
+      [sx, sy] = swirl(sx, sy, state.attract);
+      [px, py] = swirl(px, py, state.attract * 0.96);
+    }
+
+    if (sx < -50 || sx > W + 50 || sy < -50 || sy > H + 50) { spawnStar(s, false); continue; }
+
+    const depth = 1 - s.z / W;                       // 0 远 → 1 近
+    const alpha = Math.min(1, depth * 1.3) * (1 - state.attract * 0.55);
+    const hue = s.tint < 0.12 ? '180, 220, 255' : s.tint > 0.9 ? '230, 200, 255' : '255, 255, 255';
+
+    ctx.strokeStyle = `rgba(${hue}, ${alpha})`;
+    ctx.lineWidth = Math.max(depth * 2, 0.4);
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(px, py);
+    ctx.lineTo(sx, sy);
+    ctx.stroke();
+  }
+}
+
+if (reduced) {
+  /* 降级：一次性绘制静态星点 */
+  ctx.fillStyle = '#050509';
+  ctx.fillRect(0, 0, W, H);
+  for (let i = 0; i < 180; i++) {
+    ctx.fillStyle = `rgba(255,255,255,${0.2 + Math.random() * 0.6})`;
+    ctx.beginPath();
+    ctx.arc(Math.random() * W, Math.random() * H, Math.random() * 1.2 + 0.3, 0, 7);
+    ctx.fill();
+  }
+} else {
+  ctx.fillStyle = '#050509';
+  ctx.fillRect(0, 0, W, H);
+  gsap.ticker.add(renderStars);
+}
+
+/* ============================================================
+   光标光晕
+   ============================================================ */
+if (!reduced && window.matchMedia('(pointer: fine)').matches) {
+  const glow = document.querySelector('.cursor-glow');
+  const qx = gsap.quickTo(glow, 'x', { duration: 0.6, ease: 'power3.out' });
+  const qy = gsap.quickTo(glow, 'y', { duration: 0.6, ease: 'power3.out' });
+  window.addEventListener('mousemove', e => { qx(e.clientX); qy(e.clientY); });
+}
+
+/* ============================================================
+   全局进度条 & 章节指示
+   ============================================================ */
+gsap.to('.progress', {
+  scaleX: 1,
+  ease: 'none',
+  scrollTrigger: { trigger: document.body, start: 'top top', end: 'bottom bottom', scrub: 0.4 }
+});
+
+const navChapter = document.getElementById('nav-chapter');
+const chapterNum = document.getElementById('chapter-num');
+document.querySelectorAll('[data-chapter]').forEach(sec => {
+  ScrollTrigger.create({
+    trigger: sec,
+    start: 'top 55%',
+    end: 'bottom 45%',
+    onToggle(self) {
+      if (self.isActive) {
+        chapterNum.textContent = sec.dataset.chapter;
+        navChapter.textContent = sec.dataset.title;
+      }
+    }
+  });
+});
+
+/* ============================================================
+   序章：载入编排 + 滚动退场
+   ============================================================ */
+const heroChars = charMap['hero-title'];
+if (!reduced) {
+  const intro = gsap.timeline({ defaults: { ease: 'expo.out' } });
+  intro
+    .from('.nav-island', { y: -24, opacity: 0, duration: 1 }, 0.1)
+    .from('#hero .eyebrow', { y: 20, opacity: 0, duration: 0.9 }, 0.25)
+    .from(heroChars, {
+      yPercent: 110,
+      opacity: 0,
+      filter: 'blur(12px)',
+      duration: 1.4,
+      stagger: 0.09
+    }, 0.4)
+    .from('#hero-sub', { y: 24, opacity: 0, filter: 'blur(6px)', duration: 1.1 }, 1.1)
+    .from('#scroll-hint', { opacity: 0, duration: 1 }, 1.5);
+
+  gsap.to('#hero .hero-inner', {
+    yPercent: -28,
+    opacity: 0,
+    filter: 'blur(8px)',
+    ease: 'none',
+    scrollTrigger: { trigger: '#hero', start: 'top top', end: 'bottom 30%', scrub: 0.6 }
+  });
+  gsap.to('#scroll-hint', {
+    opacity: 0,
+    ease: 'none',
+    scrollTrigger: { trigger: '#hero', start: 'top top', end: '12% top', scrub: true }
+  });
+}
+
+/* ============================================================
+   第一章 · 告别：地球远去（Pin + Scrub）
+   ============================================================ */
+{
+  const tl = gsap.timeline({
+    scrollTrigger: {
+      trigger: '#scene-earth',
+      start: 'top top',
+      end: '+=190%',
+      scrub: reduced ? true : 0.8,
+      pin: true
+    }
+  });
+  tl.from(charMap['earth-title'], {
+      yPercent: 110, opacity: 0, filter: reduced ? 'none' : 'blur(10px)',
+      stagger: 0.06, duration: 0.9, ease: 'expo.out'
+    }, 0)
+    .from('#scene-earth .eyebrow', { opacity: 0, y: 16, duration: 0.5 }, 0)
+    .from('#scene-earth .lead', { opacity: 0, y: 30, duration: 0.8 }, 0.4)
+    /* 地球缩小坠离 —— 真正的"离开" */
+    .to('.earth', { scale: 0.22, y: '38vh', ease: 'power2.inOut', duration: 2.4 }, 0.9)
+    .to('.earth', { opacity: 0, duration: 0.7 }, 2.7)
+    .to('#scene-earth .scene-copy', { opacity: 0, y: -60, filter: 'blur(6px)', duration: 0.8 }, 2.7);
+}
+
+/* ============================================================
+   第二章 · 光速：速度计数 + 曲速星流（Pin + Scrub）
+   ============================================================ */
+{
+  const speedEl = document.getElementById('speed-readout');
+  const speedObj = { v: 0 };
+  const tl = gsap.timeline({
+    scrollTrigger: {
+      trigger: '#scene-warp',
+      start: 'top top',
+      end: '+=240%',
+      scrub: reduced ? true : 0.8,
+      pin: true
+    }
+  });
+  tl.from('#scene-warp .eyebrow', { opacity: 0, y: 16, duration: 0.5 }, 0)
+    .from('#speed-readout', { opacity: 0, scale: 0.85, duration: 0.8, ease: 'expo.out' }, 0.1)
+    .from('.speed-unit', { opacity: 0, duration: 0.6 }, 0.4)
+    .to(speedObj, {
+      v: 299792,
+      duration: 2.6,
+      ease: 'power2.inOut',
+      onUpdate: () => { speedEl.textContent = Math.floor(speedObj.v).toLocaleString('en-US'); }
+    }, 0.5)
+    .to(state, { warp: 1, duration: 1.6, ease: 'power2.in' }, 0.7)
+    .from(charMap['warp-title'], {
+      yPercent: 100, opacity: 0, stagger: 0.05, duration: 0.8, ease: 'expo.out'
+    }, 2.4)
+    .to(state, { warp: 0.05, duration: 1.2, ease: 'power2.out' }, 3.6)
+    .to('#scene-warp .scene-copy', { opacity: 0, y: -50, filter: 'blur(6px)', duration: 0.8 }, 3.9);
+}
+
+/* ============================================================
+   第三章 · 星云：色彩光团呼吸 + 诗句逐字（Pin + Scrub）
+   ============================================================ */
+{
+  const tl = gsap.timeline({
+    scrollTrigger: {
+      trigger: '#scene-nebula',
+      start: 'top top',
+      end: '+=230%',
+      scrub: reduced ? true : 0.8,
+      pin: true
+    }
+  });
+  tl.from('.nebula-orb.n1', { scale: 0.3, opacity: 0, rotation: -40, duration: 2, ease: 'power2.out' }, 0)
+    .from('.nebula-orb.n2', { scale: 0.3, opacity: 0, rotation: 50, duration: 2, ease: 'power2.out' }, 0.2)
+    .from('.nebula-orb.n3', { scale: 0.2, opacity: 0, duration: 2, ease: 'power2.out' }, 0.4)
+    .from('#scene-nebula .eyebrow', { opacity: 0, y: 16, duration: 0.5 }, 0.3)
+    .from(charMap['verse-1'], {
+      yPercent: 110, opacity: 0, filter: reduced ? 'none' : 'blur(8px)',
+      stagger: 0.07, duration: 1, ease: 'expo.out'
+    }, 0.7)
+    .from(charMap['verse-2'], {
+      yPercent: 110, opacity: 0, filter: reduced ? 'none' : 'blur(8px)',
+      stagger: 0.07, duration: 1, ease: 'expo.out'
+    }, 1.7)
+    .from('.poem .credit', { opacity: 0, duration: 0.8 }, 2.7)
+    /* 星云缓慢漂移，制造"穿行而过"的纵深 */
+    .to('.nebula-orb.n1', { xPercent: 30, yPercent: 18, scale: 1.25, duration: 2.4, ease: 'none' }, 1)
+    .to('.nebula-orb.n2', { xPercent: -26, yPercent: -14, scale: 1.2, duration: 2.4, ease: 'none' }, 1)
+    .to('.poem', { opacity: 0, y: -50, filter: 'blur(6px)', duration: 0.8 }, 3.4)
+    .to('.nebula-orb', { opacity: 0, duration: 0.8 }, 3.5);
+}
+
+/* ============================================================
+   第四章 · 巡航：纵向滚动 → 横向卷轴（Pin + 水平推移）
+   ============================================================ */
+{
+  const track = document.getElementById('h-track');
+  const getDistance = () => track.scrollWidth - window.innerWidth;
+
+  const hScroll = gsap.to(track, {
+    x: () => -getDistance(),
+    ease: 'none',
+    scrollTrigger: {
+      trigger: '#scene-planets',
+      start: 'top top',
+      end: () => '+=' + getDistance(),
+      scrub: reduced ? true : 0.7,
+      pin: true,
+      invalidateOnRefresh: true
+    }
+  });
+
+  /* 卡片在横移中轻微视差登场（绑定到水平推移的 containerAnimation） */
+  document.querySelectorAll('.planet-card').forEach(card => {
+    gsap.from(card, {
+      y: 70,
+      opacity: 0,
+      ease: 'none',
+      scrollTrigger: {
+        trigger: card,
+        containerAnimation: hScroll,
+        start: 'left 92%',
+        end: 'left 58%',
+        scrub: true
+      }
+    });
+  });
+}
+
+/* ============================================================
+   第五章 · 事件视界：吸积盘 + 螺旋吸入 + 文字坍缩（Pin + Scrub）
+   ============================================================ */
+{
+  /* 吸积盘恒定自转（独立于 scrub，叠加在子层旋转上） */
+  if (!reduced) {
+    gsap.to('#bh-disk', { rotation: 360, duration: 24, ease: 'none', repeat: -1 });
+  }
+
+  const bhChars = charMap['bh-title'];
+  const copyEl = document.getElementById('bh-copy');
+
+  const tl = gsap.timeline({
+    scrollTrigger: {
+      trigger: '#scene-blackhole',
+      start: 'top top',
+      end: '+=330%',
+      scrub: reduced ? true : 0.9,
+      pin: true
+    }
+  });
+
+  tl.from('.bh-stage', { scale: 0.12, opacity: 0, duration: 2.2, ease: 'power2.out' }, 0)
+    .from('#scene-blackhole .eyebrow', { opacity: 0, y: 16, duration: 0.5 }, 0.5)
+    .from(bhChars, {
+      yPercent: 120, opacity: 0, filter: reduced ? 'none' : 'blur(10px)',
+      stagger: 0.1, duration: 1, ease: 'expo.out'
+    }, 0.8)
+    .from('#bh-lead', { opacity: 0, y: 30, duration: 0.8 }, 1.6)
+    /* 星流开始被引力捕获 */
+    .to(state, { attract: 1, duration: 2.6, ease: 'power2.in' }, 1.8)
+    /* 黑洞胀大，逼近观察者 */
+    .to('.bh-stage', { scale: 2.4, duration: 2.8, ease: 'power2.in' }, 2.4)
+    /* 文字被逐字撕碎、卷入中心 */
+    .to(bhChars, {
+      x: (i, el) => {
+        const r = el.getBoundingClientRect();
+        return window.innerWidth / 2 - (r.left + r.width / 2);
+      },
+      y: (i, el) => {
+        const r = el.getBoundingClientRect();
+        return window.innerHeight / 2 - (r.top + r.height / 2);
+      },
+      rotation: () => gsap.utils.random(-160, 160),
+      scale: 0,
+      opacity: 0,
+      duration: 1.6,
+      ease: 'power3.in',
+      stagger: { each: 0.07, from: 'random' }
+    }, 2.6)
+    .to('#bh-lead, #scene-blackhole .eyebrow', { opacity: 0, filter: 'blur(8px)', duration: 0.8 }, 2.8)
+    /* 吞噬完成 → 全黑 */
+    .to('#blackout', { opacity: 1, duration: 1.2, ease: 'power2.in' }, 4.2)
+    .to(state, { attract: 0, speed: 0.4, duration: 0.6 }, 5.0);
+}
+
+/* ============================================================
+   终章：从黑暗中亮起
+   ============================================================ */
+{
+  const tl = gsap.timeline({
+    scrollTrigger: {
+      trigger: '#finale',
+      start: 'top 70%',
+      end: 'top 15%',
+      scrub: reduced ? true : 0.8
+    }
+  });
+  tl.from('.finale-star', { scale: 0, opacity: 0, duration: 0.8, ease: 'expo.out' }, 0)
+    .from('#finale .eyebrow', { opacity: 0, y: 16, duration: 0.5 }, 0.3)
+    .from(charMap['finale-title'], {
+      yPercent: 110, opacity: 0, filter: reduced ? 'none' : 'blur(10px)',
+      stagger: 0.08, duration: 1, ease: 'expo.out'
+    }, 0.5)
+    .from('#finale .lead', { opacity: 0, y: 30, duration: 0.8 }, 1.2)
+    .from('.cta', { opacity: 0, y: 24, duration: 0.8 }, 1.6)
+    .from('.footer-note', { opacity: 0, duration: 0.8 }, 1.9);
+}
+
+/* 重新启程 */
+document.getElementById('restart').addEventListener('click', () => {
+  window.scrollTo({ top: 0, behavior: reduced ? 'auto' : 'smooth' });
+});
+
+/* 字体加载完成后重新计算 pin 距离 */
+window.addEventListener('load', () => ScrollTrigger.refresh());
+</script>
+</body>
+</html>

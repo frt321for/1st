@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#dfedf0">
+  <title>大象的顺风车</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #36535d;
+      --progress: 0%;
+      font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100svh;
+      overflow: hidden;
+      color: var(--ink);
+      background: linear-gradient(180deg, #dcecf2 0%, #e9efea 56%, #f4e5ce 100%);
+    }
+    .scene { position: fixed; inset: 0; }
+    .scene > svg { display: block; width: 100%; height: 100%; }
+    .heading {
+      position: fixed;
+      top: clamp(28px, 4.8vw, 62px);
+      left: clamp(24px, 5vw, 80px);
+      pointer-events: none;
+    }
+    h1 {
+      margin: 0;
+      font-size: clamp(23px, 2.25vw, 34px);
+      font-weight: 650;
+      letter-spacing: .09em;
+    }
+    .heading p {
+      margin: 12px 0 0;
+      font-size: 13px;
+      letter-spacing: .22em;
+      color: #69828a;
+    }
+    .controls {
+      position: fixed;
+      left: 50%;
+      bottom: max(24px, env(safe-area-inset-bottom));
+      transform: translateX(-50%);
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      width: min(452px, calc(100% - 36px));
+      padding: 12px 15px 12px 12px;
+      border: 1px solid #ffffffbd;
+      border-radius: 48px;
+      background: #fffdf6de;
+      box-shadow: 0 8px 36px #47646812, inset 0 1px 0 #fff;
+      backdrop-filter: blur(16px);
+    }
+    button {
+      display: grid;
+      place-items: center;
+      flex: none;
+      padding: 0;
+      border: 0;
+      border-radius: 50%;
+      color: var(--ink);
+      background: transparent;
+      cursor: pointer;
+      transition: background .18s, transform .18s;
+    }
+    button:hover { background: #36535d0b; }
+    button:active { transform: scale(.94); }
+    button svg { width: 19px; height: 19px; }
+    #toggle { width: 44px; height: 44px; background: var(--ink); color: #fffdf6; }
+    #toggle:hover { background: #496d76; }
+    #replay { width: 36px; height: 36px; }
+    :focus-visible { outline: 3px solid #df9a49; outline-offset: 4px; }
+    .transport { flex: 1; min-width: 0; }
+    .readout { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    #status { font-size: 12px; font-weight: 600; letter-spacing: .06em; }
+    #time { color: #84928f; font: 10px/1.2 Consolas, monospace; font-variant-numeric: tabular-nums; }
+    input[type="range"] {
+      appearance: none;
+      display: block;
+      width: 100%;
+      height: 4px;
+      margin: 11px 0 3px;
+      border: 0;
+      border-radius: 8px;
+      background: linear-gradient(to right, #527581 0% var(--progress), #dce2d8 var(--progress) 100%);
+      cursor: pointer;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      appearance: none;
+      width: 10px;
+      height: 10px;
+      border: 2px solid #fffdf6;
+      border-radius: 50%;
+      background: #527581;
+      box-shadow: 0 0 0 1px #527581;
+    }
+    input[type="range"]::-moz-range-thumb {
+      width: 7px;
+      height: 7px;
+      border: 2px solid #fffdf6;
+      border-radius: 50%;
+      background: #527581;
+      box-shadow: 0 0 0 1px #527581;
+    }
+    @media (max-width: 520px) {
+      .heading p { font-size: 11px; margin-top: 10px; }
+      .controls { gap: 12px; }
+      #time { font-size: 9px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="scene" aria-label="大象的顺风车，二维动画">
+    <svg id="world" viewBox="0 0 1600 960" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="scene-title scene-description">
+      <title id="scene-title">大象的顺风车</title>
+      <desc id="scene-description">黄色四旋翼无人机用吊索和橙色吊带托住一头蓝灰色大象，从左侧草地起飞，穿过山谷，最后在右侧草地轻轻落下。</desc>
+      <defs>
+        <linearGradient id="sky" x2="0" y2="1">
+          <stop stop-color="#dcecf2"/>
+          <stop offset=".58" stop-color="#eaf0e9"/>
+          <stop offset="1" stop-color="#f6e4c9"/>
+        </linearGradient>
+        <linearGradient id="sun" x2=".3" y2="1">
+          <stop stop-color="#f7cd94"/>
+          <stop offset="1" stop-color="#f1b47e"/>
+        </linearGradient>
+        <linearGradient id="far-mountains" x2="0" y2="1">
+          <stop stop-color="#b8d1d0"/>
+          <stop offset="1" stop-color="#dce2cf"/>
+        </linearGradient>
+        <linearGradient id="valley" x2="0" y2="1">
+          <stop stop-color="#a8c7bd"/>
+          <stop offset="1" stop-color="#d2d9b5"/>
+        </linearGradient>
+        <linearGradient id="river" x2="0" y2="1">
+          <stop stop-color="#c8ded7"/>
+          <stop offset="1" stop-color="#b4d3cf"/>
+        </linearGradient>
+        <linearGradient id="cliff" x2=".2" y2="1">
+          <stop stop-color="#d8bd93"/>
+          <stop offset="1" stop-color="#bb997b"/>
+        </linearGradient>
+        <linearGradient id="elephant-skin" x1="0" y1="0" x2=".8" y2="1">
+          <stop stop-color="#a1b9c2"/>
+          <stop offset="1" stop-color="#819faa"/>
+        </linearGradient>
+        <linearGradient id="ear-color" x2="1" y2=".6">
+          <stop stop-color="#bdcdd1"/>
+          <stop offset="1" stop-color="#9eb8c3"/>
+        </linearGradient>
+        <linearGradient id="drone-shell" x2="0" y2="1">
+          <stop stop-color="#ffdc87"/>
+          <stop offset="1" stop-color="#eeb24d"/>
+        </linearGradient>
+        <g id="cloud" fill="#fffdf4">
+          <path d="M-95 16C-112 15-116-8-98-15C-99-41-65-52-47-33C-29-68 22-64 38-27C67-41 99-23 96-2C120 0 121 23 96 24H-88Z"/>
+        </g>
+        <g id="rotor" stroke-linecap="round">
+          <path d="M0 0V20" stroke="#3c5560" stroke-width="9"/>
+          <ellipse cy="17" rx="12" ry="7" fill="#78989f" stroke="#3c5560" stroke-width="2.5"/>
+          <ellipse rx="75" ry="11" fill="#edf6f0" opacity=".54"/>
+          <ellipse rx="72" ry="9" fill="none" stroke="#587580" stroke-width="1" opacity=".25"/>
+          <path id="rotor-blades" d="M-68 0H68M0-8V8" fill="none" stroke="#405e6b" stroke-width="4"/>
+          <ellipse rx="9" ry="5" fill="#f6cc70" stroke="#3c5560" stroke-width="2"/>
+          <ellipse cy="-1" rx="3" ry="1.5" fill="#fff6cf"/>
+        </g>
+        <g id="grass" fill="none" stroke="#839e79" stroke-width="2.5" stroke-linecap="round">
+          <path d="M0 0l-4-9M0 0l4-13M0 0l8-5"/>
+        </g>
+        <g id="flower">
+          <path d="M0 0V-14" stroke="#7e9e7b" stroke-width="2"/>
+          <g fill="#fff3ce">
+            <ellipse cy="-18" rx="2.5" ry="4"/>
+            <ellipse cy="-10" rx="2.5" ry="4"/>
+            <ellipse cx="-4" cy="-14" rx="4" ry="2.5"/>
+            <ellipse cx="4" cy="-14" rx="4" ry="2.5"/>
+          </g>
+          <circle cy="-14" r="2.8" fill="#d9aa51"/>
+        </g>
+      </defs>
+
+      <rect width="1600" height="960" fill="url(#sky)"/>
+      <circle cx="1215" cy="198" r="98" fill="#f6cb94" opacity=".13"/>
+      <circle cx="1215" cy="198" r="73" fill="url(#sun)"/>
+      <circle cx="1191" cy="175" r="5" fill="#ffdfb1" opacity=".45"/>
+      <circle cx="1244" cy="216" r="9" fill="#f6cb94" opacity=".6"/>
+
+      <g id="cloud-a" opacity=".84"><use href="#cloud" transform="translate(381 199) scale(.76)"/></g>
+      <g id="cloud-b" opacity=".72"><use href="#cloud" transform="translate(810 133) scale(.67)"/></g>
+      <g id="cloud-c" opacity=".85"><use href="#cloud" transform="translate(1353 354) scale(1.16)"/></g>
+      <g opacity=".4" fill="none" stroke="#fffdf4" stroke-width="2" stroke-linecap="round">
+        <path d="M104 311H202m17 0h27M947 286h75m16 0h23M538 373h42"/>
+        <path d="M1051 117h38m14 0h22M84 517h81"/>
+      </g>
+      <g fill="none" stroke="#72969c" stroke-width="3" stroke-linecap="round" opacity=".6">
+        <path d="M1046 342q10-10 19 0q10-10 20 0"/>
+        <path d="M1101 363q7-8 14 0q8-8 15 0"/>
+      </g>
+
+      <path d="M0 623L147 508L231 553L405 384Q420 368 434 384L588 553L720 444Q731 432 742 447L892 607L1052 425Q1067 409 1082 428L1234 578L1408 463L1600 610V960H0Z" fill="url(#far-mountains)"/>
+      <g fill="#edf0dc" opacity=".61">
+        <path d="M350 444l55-60q15-16 29 0l61 68-55-25-22 11-19-16Z"/>
+        <path d="M1004 481l48-56q15-16 30 3l55 66-51-25-19 10-17-16Z"/>
+      </g>
+      <g fill="#a7c7c8" opacity=".55">
+        <path d="M421 381L380 612l208-59-154-169Z"/>
+        <path d="M1068 418l-29 235 196-75-153-150Z"/>
+      </g>
+      <path d="M0 703Q126 609 268 667T513 662Q653 541 790 657T1072 666Q1195 567 1343 651T1600 655V960H0Z" fill="#a4c2b7"/>
+      <path d="M0 783Q141 664 322 753T645 714Q794 648 936 735T1240 723Q1424 646 1600 744V960H0Z" fill="url(#valley)"/>
+      <path d="M806 704C738 751 894 765 809 808S709 850 768 880S924 918 963 960H567C561 919 721 886 668 860S735 798 774 783S749 737 806 704Z" fill="url(#river)"/>
+      <g fill="none" stroke="#eaf1df" stroke-width="2.5" stroke-linecap="round" opacity=".7">
+        <path d="M786 796q-10 5-15 11m-49 57q16 3 24 9M794 919q34 5 49 17"/>
+        <path d="M683 930l-35 9m144-83h27m-69-17h15"/>
+      </g>
+      <g fill="#82a796" opacity=".55">
+        <path d="M535 761l10-36 12 36Z"/><path d="M556 765l8-25 9 25Z"/>
+        <path d="M1023 777l13-43 14 43Z"/><path d="M1048 783l9-31 10 31Z"/>
+        <path d="M943 737l7-25 9 25Z"/><path d="M647 718l7-22 8 22Z"/>
+      </g>
+
+      <path d="M0 772Q114 732 247 748Q361 733 423 774L394 804L384 900L359 960H0Z" fill="url(#cliff)"/>
+      <path d="M307 785l-12 86 22 39-19 50h61l25-60 10-96 29-30Z" fill="#b9967b" opacity=".44"/>
+      <path d="M0 765Q108 730 238 746Q354 730 423 768Q419 789 379 792L279 784L169 793L77 781L0 790Z" fill="#adc39c"/>
+      <path d="M0 775Q107 745 239 757Q355 742 411 771" fill="none" stroke="#dae0af" stroke-width="6" stroke-linecap="round"/>
+      <g fill="none" stroke="#ad8f75" stroke-width="3" opacity=".5" stroke-linecap="round">
+        <path d="M-10 833l86 12 47-5m29 1 96-5m-200 63 118 8 68-8m23-35 54-3m-165 74 94-7"/>
+        <path d="M345 817l-7 42m17 35-10 31M102 801l5 31M31 915l-3 45"/>
+      </g>
+      <path d="M1178 774Q1278 729 1400 746Q1513 734 1600 765V960H1235L1207 895L1202 808Z" fill="url(#cliff)"/>
+      <path d="M1178 774l24 34 5 87 28 65h59l-25-89 3-85Z" fill="#b49377" opacity=".4"/>
+      <path d="M1178 770Q1252 732 1384 744Q1507 733 1600 758V786L1512 780L1405 790L1315 780L1223 790Q1192 788 1178 770Z" fill="#adc39c"/>
+      <path d="M1190 771Q1280 744 1384 755Q1513 746 1600 768" fill="none" stroke="#dce0af" stroke-width="6" stroke-linecap="round"/>
+      <g fill="none" stroke="#ad8f75" stroke-width="3" opacity=".5" stroke-linecap="round">
+        <path d="M1260 828l77 8 92-7m28 1 69 8 74-9m-330 68 119 7 59-9m39 3 70-4M1331 949l118-10"/>
+        <path d="M1234 819l8 43m299-66-6 45m-134 27 5 23m-122 23 7 46"/>
+      </g>
+
+      <g stroke-linejoin="round" stroke-linecap="round">
+        <path d="M68 746l4-81m-2 32-20-15m22 3 18-20" stroke="#6d8d7b" stroke-width="9" fill="none"/>
+        <path d="M27 671Q8 639 41 620Q55 594 89 614Q129 607 130 642Q142 669 107 680Q78 695 59 678Q40 684 27 671Z" fill="#86a891"/>
+        <path d="M30 645Q49 613 85 634Q104 623 124 640" fill="none" stroke="#9bb99a" stroke-width="6"/>
+        <path d="M1500 747l-3-71m0 27-17-16m18-2 17-16" stroke="#6d8d7b" stroke-width="8" fill="none"/>
+        <path d="M1454 675Q1439 651 1468 633Q1487 612 1511 631Q1548 628 1549 660Q1558 681 1530 689Q1509 703 1488 687Q1466 695 1454 675Z" fill="#86a891"/>
+        <path d="M1464 655q22-22 48-5q15-8 28 4" stroke="#9dbb9b" stroke-width="5" fill="none"/>
+      </g>
+      <g fill="#91ae85">
+        <ellipse cx="22" cy="751" rx="37" ry="16"/>
+        <ellipse cx="98" cy="759" rx="30" ry="13"/>
+        <ellipse cx="1519" cy="757" rx="43" ry="16"/>
+        <ellipse cx="1584" cy="751" rx="32" ry="19"/>
+      </g>
+
+      <g fill="none" stroke="#f4ebcb">
+        <ellipse cx="270" cy="758" rx="111" ry="23" stroke-width="3" opacity=".95"/>
+        <ellipse cx="270" cy="758" rx="125" ry="29" stroke-width="1.5" stroke-dasharray="3 10" opacity=".65"/>
+        <ellipse cx="1320" cy="758" rx="111" ry="23" stroke-width="3" opacity=".95"/>
+        <ellipse cx="1320" cy="758" rx="125" ry="29" stroke-width="1.5" stroke-dasharray="3 10" opacity=".65"/>
+      </g>
+      <g stroke="#748e7b" stroke-width="3" stroke-linecap="round">
+        <path d="M133 746v-57"/><path d="M1467 744v-57"/>
+      </g>
+      <path d="M135 690q15-9 33 0l-4 22q-17-10-29 0Z" fill="#dc986d"/>
+      <path d="M1469 690q15-9 33 0l-4 22q-17-10-29 0Z" fill="#dc986d"/>
+      <g font-family="'Segoe UI','Microsoft YaHei',sans-serif" font-size="13" fill="#708a76" letter-spacing="3">
+        <text x="270" y="811" text-anchor="middle">出发</text>
+        <text x="1320" y="811" text-anchor="middle">山的另一边</text>
+      </g>
+      <g>
+        <use href="#grass" x="45" y="778"/><use href="#grass" x="391" y="765"/>
+        <use href="#grass" x="1220" y="780"/><use href="#grass" x="1544" y="778"/>
+        <use href="#flower" x="91" y="773"/><use href="#flower" x="112" y="777" transform="rotate(9 112 777)"/>
+        <use href="#flower" x="1486" y="771"/><use href="#flower" x="1504" y="778"/>
+        <circle cx="370" cy="779" r="3" fill="#e9d297"/>
+        <circle cx="1238" cy="764" r="2.5" fill="#e9d297"/>
+      </g>
+      <ellipse id="departure-shadow" cx="270" cy="759" rx="91" ry="13" fill="#496854" opacity=".2"/>
+      <ellipse id="arrival-shadow" cx="1320" cy="759" rx="91" ry="13" fill="#496854" opacity="0"/>
+      <g id="wash" fill="none" stroke="#fff5d6" stroke-width="2" opacity="0">
+        <ellipse id="wash-a" cx="270" cy="761" rx="100" ry="21"/>
+        <ellipse id="wash-b" cx="270" cy="761" rx="145" ry="30"/>
+      </g>
+
+      <g id="traveller" transform="translate(270 430)">
+        <g id="slipstream" stroke="#fffdf4" stroke-width="3" stroke-linecap="round" fill="none" opacity="0">
+          <path d="M-177 101h-47m-16 0h-13M-154 152h-55m-24 0h-24M-167 203h-33"/>
+        </g>
+        <path id="cable-outline" d="M-57 38L-72 156M57 38L39 155" fill="none" stroke="#415f69" stroke-width="4.5" stroke-linecap="round"/>
+        <path id="cable-light" d="M-57 38L-72 156M57 38L39 155" fill="none" stroke="#dce5ce" stroke-width="1.5" stroke-linecap="round"/>
+
+        <g id="elephant" transform="translate(0 202)" stroke-linecap="round" stroke-linejoin="round">
+          <g id="tail">
+            <path d="M-99-15C-127-11-116 22-137 30" fill="none" stroke="#6d8d9a" stroke-width="7"/>
+            <path d="M-134 24q-15 1-15 17q13 0 17-11" fill="#4c6c7b"/>
+          </g>
+          <g fill="#718e9c" stroke="#607e8b" stroke-width="2.5">
+            <path d="M-75 29Q-85 65-74 105Q-75 118-63 118H-46Q-37 117-39 107L-40 42Z"/>
+            <path d="M16 30Q12 64 25 107Q26 118 37 118H53Q63 117 59 105L52 30Z"/>
+          </g>
+          <path d="M-105-14C-103-58-70-75-21-74C24-75 61-55 72-19C86 24 62 60 20 69C-39 80-102 53-105-14Z" fill="url(#elephant-skin)" stroke="#668592" stroke-width="3"/>
+          <path d="M-90-35C-73-60-35-65-9-60" fill="none" stroke="#c5d4d7" stroke-width="5" opacity=".55"/>
+          <path d="M-97 18Q-66 62-10 62Q30 63 57 39" fill="none" stroke="#6d8d9b" stroke-width="9" opacity=".3"/>
+          <g fill="#dfa16a" stroke="#b97e50" stroke-width="2">
+            <path d="M-91 21C-59 49-5 61 52 25L47 50C-3 88-71 66-90 41Z"/>
+            <path d="M-78-45L-67-48Q-78 3-65 46L-77 42Q-91 4-78-45Z"/>
+            <path d="M34-47L46-43Q55 0 42 47L30 51Q44 3 34-47Z"/>
+          </g>
+          <path d="M-82 37C-45 63 2 70 42 42" fill="none" stroke="#f4c38e" stroke-width="3"/>
+          <g fill="#f9d58c" stroke="#987950" stroke-width="2.5">
+            <circle cx="-72" cy="-46" r="6"/>
+            <circle cx="39" cy="-47" r="6"/>
+          </g>
+          <g id="back-leg">
+            <path d="M-76 35Q-84 60-75 96L-76 111Q-76 123-63 123H-42Q-33 123-35 112L-41 89L-36 48" fill="#95afb9" stroke="#668592" stroke-width="3"/>
+            <path d="M-72 122v-8q0-4 4-4t4 4v8m6 0v-9q0-4 4-4t4 4v9m6-1v-7q0-4 4-4t4 4v7" fill="#ced9d8" stroke="#91a9b0" stroke-width="1.5"/>
+            <path d="M-72 78q12 5 23 0" fill="none" stroke="#7e9ba6" stroke-width="2"/>
+          </g>
+          <g id="front-leg">
+            <path d="M12 45Q8 69 19 100L18 112Q18 123 30 123H52Q62 123 58 112L48 88L47 40" fill="#9ab3bc" stroke="#668592" stroke-width="3"/>
+            <path d="M23 122v-8q0-4 4-4t4 4v8m6 0v-9q0-4 4-4t4 4v9m6-1v-7q0-4 4-4t4 4v7" fill="#d3dedc" stroke="#91a9b0" stroke-width="1.5"/>
+            <path d="M17 80q12 5 24-1" fill="none" stroke="#7e9ba6" stroke-width="2"/>
+          </g>
+          <path d="M62-67C91-78 119-59 123-33C133-10 120 18 97 22C69 26 44 7 43-21C42-40 47-58 62-67Z" fill="#a3bbc4" stroke="#668592" stroke-width="3"/>
+          <g id="trunk">
+            <path d="M111-20C129 3 115 30 129 52C141 74 166 77 177 56" fill="none" stroke="#668592" stroke-width="29"/>
+            <path d="M111-20C129 3 115 30 129 52C141 74 166 77 177 56" fill="none" stroke="#a3bbc4" stroke-width="23"/>
+            <path d="M124 31l11-2m-7 14 11-3m-4 14 10-5" fill="none" stroke="#7e9da9" stroke-width="2"/>
+            <path d="M173 57l7 4" fill="none" stroke="#7794a0" stroke-width="3"/>
+          </g>
+          <path d="M107 0C113 16 126 18 140 8C133 27 111 28 103 7Z" fill="#fff3d8" stroke="#a6b3af" stroke-width="1.5"/>
+          <g id="ear">
+            <path d="M66-58C43-83 10-64 6-39C0-13 15 12 36 17C51 22 61 5 65-12C71-30 80-44 66-58Z" fill="url(#ear-color)" stroke="#7795a2" stroke-width="3"/>
+            <path d="M53-54C28-63 17-43 18-24C19-7 26 1 37 4" fill="none" stroke="#d1d9d8" stroke-width="4" opacity=".65"/>
+            <path d="M38 8q13-3 16-17" fill="none" stroke="#8da7b1" stroke-width="2"/>
+          </g>
+          <path d="M92-39q7-5 14-1" fill="none" stroke="#587581" stroke-width="2.7"/>
+          <ellipse cx="102" cy="-30" rx="4.3" ry="5.5" fill="#344f5d"/>
+          <circle cx="103.2" cy="-32" r="1.5" fill="#fffdf3"/>
+          <ellipse cx="102" cy="-13" rx="8" ry="5" fill="#d5aaa0" opacity=".7"/>
+          <path d="M95 3q5 4 10 1" fill="none" stroke="#72919d" stroke-width="2"/>
+          <path d="M76-66q-3-7-1-10m6 9q0-7 3-10" fill="none" stroke="#6a8996" stroke-width="2.5"/>
+        </g>
+
+        <g id="drone" stroke-linecap="round" stroke-linejoin="round">
+          <g fill="none" stroke="#3c5560" stroke-width="17">
+            <path d="M-56-5l-76-15M56-5l76-15"/>
+          </g>
+          <g fill="none" stroke="#8aa5a9" stroke-width="5">
+            <path d="M-56-9l-76-15M56-9l76-15"/>
+          </g>
+          <use href="#rotor" transform="translate(-135 -38) scale(.9)"/>
+          <use href="#rotor" transform="translate(135 -38) scale(.9)"/>
+          <path d="M-52 26l-16 28h-35M52 26l16 28h35" fill="none" stroke="#4c6770" stroke-width="7"/>
+          <path d="M-52 24l-16 28M52 24l16 28" fill="none" stroke="#d9e2d4" stroke-width="3"/>
+          <path d="M-60 11l-126 15M60 11l126 15" fill="none" stroke="#3c5560" stroke-width="19"/>
+          <path d="M-60 7l-126 15M60 7l126 15" fill="none" stroke="#88a3a7" stroke-width="6"/>
+          <path d="M-94-6C-91-24-63-32-23-33H23C63-32 91-24 94-6L83 25Q77 38 56 39H-56Q-77 38-83 25Z" fill="url(#drone-shell)" stroke="#957c4d" stroke-width="3"/>
+          <path d="M-83 12Q0 32 83 12L79 28Q71 39 54 39H-54Q-74 39-79 28Z" fill="#e9aa48"/>
+          <path d="M-76-11Q-58-24-22-24H25Q52-24 70-15" fill="none" stroke="#fff0b7" stroke-width="5"/>
+          <path d="M-24-31l8-12h32l8 12Z" fill="#f4cb70" stroke="#957c4d" stroke-width="2.5"/>
+          <path d="M-15-42v-8h30v8" fill="#d4e1d9" stroke="#4c6770" stroke-width="2.5"/>
+          <path d="M-8-50v-7" stroke="#4c6770" stroke-width="3"/>
+          <path d="M-51-5v10m8-10v10m8-10v10" stroke="#bd8a41" stroke-width="3"/>
+          <rect x="10" y="-13" width="44" height="25" rx="9" fill="#425e69"/>
+          <rect x="16" y="-9" width="12" height="16" rx="4" fill="#86b4ba"/>
+          <path d="M21-6l4 0" stroke="#d1eddf" stroke-width="2"/>
+          <circle cx="43" cy="-1" r="5" fill="#9ec4b3"/>
+          <circle id="signal" cx="68" cy="10" r="3" fill="#fef9d6"/>
+          <path d="M-10 40v8q10 10 20 0v-8" fill="none" stroke="#425e69" stroke-width="4"/>
+          <g fill="#425e69" stroke="#e2e5cd" stroke-width="1.5">
+            <circle cx="-57" cy="38" r="4.5"/><circle cx="57" cy="38" r="4.5"/>
+          </g>
+          <use href="#rotor" transform="translate(-187 8)"/>
+          <use href="#rotor" transform="translate(187 8)"/>
+        </g>
+      </g>
+    </svg>
+  </main>
+
+  <header class="heading">
+    <h1>大象的顺风车</h1>
+    <p>向着山的另一边</p>
+  </header>
+
+  <section class="controls" aria-label="动画播放控制">
+    <button id="toggle" type="button" aria-label="暂停动画" title="暂停动画">
+      <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path id="toggle-icon" d="M7 5h3v14H7zM14 5h3v14h-3z"/></svg>
+    </button>
+    <div class="transport">
+      <div class="readout">
+        <span id="status" role="status">准备起飞</span>
+        <span id="time">0:00 / 0:23</span>
+      </div>
+      <input id="seek" type="range" min="0" max="23" value="0" step="0.01" aria-label="动画进度">
+    </div>
+    <button id="replay" type="button" aria-label="重新播放" title="重新播放">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M5.5 8A8 8 0 1 1 4 14M5.5 3.5V8H10"/>
+      </svg>
+    </button>
+  </section>
+
+  <script>
+    const $ = id => document.getElementById(id);
+    const duration = 23;
+    const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const parts = {
+      traveller: $('traveller'), drone: $('drone'), elephant: $('elephant'),
+      cable: $('cable-outline'), cableLight: $('cable-light'),
+      blades: $('rotor-blades'), ear: $('ear'), trunk: $('trunk'), tail: $('tail'),
+      backLeg: $('back-leg'), frontLeg: $('front-leg'), stream: $('slipstream'),
+      departureShadow: $('departure-shadow'), arrivalShadow: $('arrival-shadow'),
+      wash: $('wash'), washA: $('wash-a'), washB: $('wash-b'), signal: $('signal'),
+      cloudA: $('cloud-a'), cloudB: $('cloud-b'), cloudC: $('cloud-c')
+    };
+    const toggle = $('toggle');
+    const toggleIcon = $('toggle-icon');
+    const seek = $('seek');
+    const status = $('status');
+    const time = $('time');
+    let elapsed = reducedMotion ? 10 : 0;
+    let playing = false;
+    let frameId = null;
+    let previousTime = null;
+
+    const clamp = value => Math.max(0, Math.min(1, value));
+    const smooth = value => {
+      const t = clamp(value);
+      return t * t * t * (t * (t * 6 - 15) + 10);
+    };
+    const ease = value => (1 - Math.cos(Math.PI * clamp(value))) / 2;
+    const radians = degrees => degrees * Math.PI / 180;
+    const rotate = (x, y, angle) => {
+      const a = radians(angle);
+      return [x * Math.cos(a) - y * Math.sin(a), x * Math.sin(a) + y * Math.cos(a)];
+    };
+    const point = pair => pair.map(value => value.toFixed(2)).join(' ');
+
+    function render(t) {
+      const journey = clamp((t - 1.2) / 19.2);
+      const x = 270 + 1050 * smooth(journey);
+      let altitude;
+      if (t < 4.8) {
+        altitude = 171 * ease((t - 1.2) / 3.6);
+      } else if (t < 15.5) {
+        altitude = 171 + 18 * Math.sin(Math.PI * (t - 4.8) / 10.7);
+      } else {
+        altitude = 171 * (1 - ease((t - 15.5) / 4.9));
+      }
+      const airborne = clamp(altitude / 120);
+      const y = 430 - altitude + Math.sin(t * 2.4) * 2 * airborne;
+      const pitch = 2.6 * Math.sin(Math.PI * journey) * airborne;
+      const swing = (-2.1 * Math.sin(t * 1.8) - 1.7 * Math.sin(journey * Math.PI * 2)) * airborne;
+      const cargoX = -Math.sin(radians(swing)) * 158;
+      const cargoY = 44 + Math.cos(radians(swing)) * 158;
+      parts.traveller.setAttribute('transform', `translate(${x.toFixed(2)} ${y.toFixed(2)})`);
+      parts.drone.setAttribute('transform', `rotate(${pitch.toFixed(2)})`);
+      parts.elephant.setAttribute('transform', `translate(${cargoX.toFixed(2)} ${cargoY.toFixed(2)}) rotate(${swing.toFixed(2)})`);
+
+      const leftTop = rotate(-57, 38, pitch);
+      const rightTop = rotate(57, 38, pitch);
+      const leftBottom = rotate(-72, -46, swing).map((value, index) => value + [cargoX, cargoY][index]);
+      const rightBottom = rotate(39, -47, swing).map((value, index) => value + [cargoX, cargoY][index]);
+      const cablePath = `M${point(leftTop)}L${point(leftBottom)}M${point(rightTop)}L${point(rightBottom)}`;
+      parts.cable.setAttribute('d', cablePath);
+      parts.cableLight.setAttribute('d', cablePath);
+
+      const rotorPhase = t * 102;
+      const ax = Math.cos(rotorPhase) * 69;
+      const ay = Math.sin(rotorPhase) * 8;
+      const bx = Math.cos(rotorPhase + Math.PI / 2) * 69;
+      const by = Math.sin(rotorPhase + Math.PI / 2) * 8;
+      parts.blades.setAttribute('d', `M${-ax} ${-ay}L${ax} ${ay}M${-bx} ${-by}L${bx} ${by}`);
+      parts.ear.setAttribute('transform', `rotate(${Math.sin(t * 2.2) * 3 * airborne} 61 -35)`);
+      parts.trunk.setAttribute('transform', `rotate(${Math.sin(t * 2.7 + 1) * 3 * airborne} 111 -20)`);
+      parts.tail.setAttribute('transform', `rotate(${Math.sin(t * 5.5) * 5 * airborne} -99 -15)`);
+      parts.backLeg.setAttribute('transform', `rotate(${Math.sin(t * 2.5) * 3 * airborne} -58 43)`);
+      parts.frontLeg.setAttribute('transform', `rotate(${Math.sin(t * 2.5 + 1.1) * 4 * airborne} 31 43)`);
+      parts.stream.setAttribute('opacity', (.65 * airborne).toFixed(2));
+      parts.stream.setAttribute('transform', `translate(${-Math.sin(t * 4) * 9} 0)`);
+      parts.signal.setAttribute('opacity', (.65 + .35 * Math.sin(t * 5)).toFixed(2));
+
+      const nearGround = 1 - clamp(altitude / 155);
+      parts.departureShadow.setAttribute('opacity', (t < 10 ? nearGround * .2 : 0).toFixed(3));
+      parts.arrivalShadow.setAttribute('opacity', (t > 10 ? nearGround * .2 : 0).toFixed(3));
+      const shadowWidth = 65 + nearGround * 26;
+      parts.departureShadow.setAttribute('rx', shadowWidth);
+      parts.arrivalShadow.setAttribute('rx', shadowWidth);
+
+      const washStrength = t > .3 && t < 21.1 ? nearGround * .52 : 0;
+      const pulse = (t * .9) % 1;
+      parts.wash.setAttribute('opacity', washStrength.toFixed(3));
+      for (const [ring, phase] of [[parts.washA, pulse], [parts.washB, (pulse + .5) % 1]]) {
+        ring.setAttribute('cx', x.toFixed(2));
+        ring.setAttribute('rx', 87 + phase * 98);
+        ring.setAttribute('ry', 16 + phase * 22);
+        ring.setAttribute('opacity', (1 - phase).toFixed(3));
+      }
+      parts.cloudA.setAttribute('transform', `translate(${-t * .8} 0)`);
+      parts.cloudB.setAttribute('transform', `translate(${-t * 1.2} 0)`);
+      parts.cloudC.setAttribute('transform', `translate(${-t * .55} 0)`);
+
+      const label = t < 1.2 ? '准备起飞' : t < 4.8 ? '缓缓升空' : t < 15.5 ? '飞越山谷' : t < 20.4 ? '轻轻降落' : '顺利抵达';
+      if (status.textContent !== label) status.textContent = label;
+      seek.value = t;
+      seek.style.setProperty('--progress', `${t / duration * 100}%`);
+      seek.setAttribute('aria-valuetext', `${label}，${Math.floor(t)} 秒，共 ${duration} 秒`);
+      time.textContent = `0:${String(Math.floor(t)).padStart(2, '0')} / 0:23`;
+    }
+
+    function setPlaying(value) {
+      playing = value;
+      const label = value ? '暂停动画' : elapsed >= duration ? '重新播放' : '播放动画';
+      toggle.setAttribute('aria-label', label);
+      toggle.title = label;
+      toggleIcon.setAttribute('d', value ? 'M7 5h3v14H7zM14 5h3v14h-3z' : 'M8 4.5v15L19 12z');
+      previousTime = null;
+      if (frameId !== null) cancelAnimationFrame(frameId);
+      frameId = value ? requestAnimationFrame(tick) : null;
+    }
+
+    function tick(timestamp) {
+      if (previousTime !== null) elapsed = Math.min(duration, elapsed + (timestamp - previousTime) / 1000);
+      previousTime = timestamp;
+      render(elapsed);
+      if (elapsed >= duration) {
+        setPlaying(false);
+      } else {
+        frameId = requestAnimationFrame(tick);
+      }
+    }
+
+    toggle.addEventListener('click', () => {
+      if (elapsed >= duration) {
+        elapsed = 0;
+        render(elapsed);
+      }
+      setPlaying(!playing);
+    });
+    $('replay').addEventListener('click', () => {
+      elapsed = 0;
+      render(elapsed);
+      setPlaying(true);
+    });
+    seek.addEventListener('input', () => {
+      elapsed = Number(seek.value);
+      previousTime = null;
+      render(elapsed);
+      if (elapsed >= duration) setPlaying(false);
+      else if (!playing) setPlaying(false);
+    });
+
+    render(elapsed);
+    setPlaying(!reducedMotion);
+  </script>
+</body>
+</html>

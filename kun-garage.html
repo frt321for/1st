@@ -1,0 +1,2418 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>KUN'S GARAGE · 在线车库</title>
+<meta name="description" content="KUN 的私人车库：九台载具，可旋转、可换漆、可切换视角的实时 3D 展台。">
+<!--
+====================================================================
+DIRECTION CONTRACT
+THESIS         这是一个能用的车库转台工位，不是一张落地页。九个车位、一台转台、
+               一份检修单。拒绝 hero→三张等宽卡片→CTA 的模板序列，也拒绝
+               "3D 模型浮在白色虚空里"的查看器默认样式。
+OWN-WORLD      夜间地下车库配色：沥青近黑偏青 (#0a0c0d)、水泥灰、地面标线黄
+               (#f2b632) 作常驻色，另加一枚从当前车漆采样的强调色。构件语言是
+               细线框检修标签 + 等宽数字（测量用途）+ 一条黄黑警示带（车库地面
+               标线，有语义来源）。车位号 01–09 承载"停在哪个位"的真实信息。
+STORY          看到 KUN 拥有从 2398 元的山地车到 Mark 85 的九台载具；相信每台都是
+               有真实参数的具体机器；动作是逐位翻看、拖动环绕、换漆、切视角、截图。
+FIRST VIEWPORT 全出血深色车库。中央偏右：载具立于打光转台，占宽约 55%，地平线在
+               58% 高度。左上角字标 + 主人铭牌。左栏 296px 九个车位，当前位由强调色
+               压边并有一条黄色导入线。右栏 328px 参数单。底部居中控制台：车漆色片 /
+               视角 / 开关。
+SIGNATURE      带黄黑标线的转台工位本身，加上"色片是真实出厂色名"——霞光紫、
+               Lime Green、雅灰，不是随手编的色卡。
+====================================================================
+-->
+<style>
+*,*::before,*::after{box-sizing:border-box}
+html,body{margin:0;padding:0;overflow-x:clip}
+html{-webkit-text-size-adjust:100%}
+
+:root{
+  /* ground */
+  --bay:#0a0c0d; --bay-2:#0f1315; --bay-3:#151a1d;
+  --panel:rgba(255,255,255,.035);
+  --panel-2:rgba(255,255,255,.065);
+  --line:rgba(255,255,255,.085);
+  --line-2:rgba(255,255,255,.17);
+  /* ink */
+  --ink:#e9edef; --ink-2:#9ea8ac; --ink-3:#7b858a; --ink-4:#5c6569;
+  /* constant chrome: floor-marking yellow */
+  --mark:#f2b632;
+  /* per-vehicle, written by JS */
+  --accent:#7fd4ff; --accent-ink:#04222c; --accent-soft:rgba(127,212,255,.16);
+  /* geometry */
+  --r:10px; --r-sm:6px; --r-xs:3px;
+  --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s5:24px; --s6:32px;
+  --rail:296px; --sheet:328px; --top:56px;
+  --mono:ui-monospace,"SF Mono","JetBrains Mono","Cascadia Mono",Consolas,"Liberation Mono",monospace;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI Variable Text","Segoe UI",
+         "PingFang SC","Hiragino Sans GB","Microsoft YaHei",system-ui,sans-serif;
+  --ease:cubic-bezier(.22,.61,.36,1);
+  --dur:.34s;
+}
+body{
+  font-family:var(--sans);
+  background:var(--bay);
+  color:var(--ink);
+  min-height:100dvh;
+  font-size:15px;
+  line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+  text-rendering:optimizeLegibility;
+}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+:focus-visible{outline:2px solid var(--mark);outline-offset:2px;border-radius:var(--r-xs)}
+::selection{background:var(--mark);color:#12100a}
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1}
+.vh{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;
+    clip-path:inset(50%);white-space:nowrap;border:0}
+
+/* ============ shell ============ */
+.app{
+  display:grid;
+  grid-template-columns:var(--rail) minmax(0,1fr) var(--sheet);
+  grid-template-rows:var(--top) minmax(0,1fr);
+  height:100dvh;
+}
+
+/* ============ top bar ============ */
+.top{
+  grid-column:1/-1;
+  display:flex;align-items:center;gap:var(--s4);
+  padding:0 var(--s4) 0 var(--s5);
+  border-bottom:1px solid var(--line);
+  background:linear-gradient(180deg,#12171a,#0c1011);
+  position:relative;z-index:6;
+}
+.wordmark{display:flex;align-items:baseline;gap:9px;margin-right:2px}
+.wordmark b{
+  font-size:17px;font-weight:800;letter-spacing:-.035em;
+  text-transform:uppercase;line-height:1;
+}
+.wordmark span{
+  font-family:var(--mono);font-size:10px;letter-spacing:.16em;
+  color:var(--mark);text-transform:uppercase;line-height:1;
+}
+.owner{
+  display:flex;align-items:center;gap:7px;
+  padding:4px 9px 4px 6px;
+  border:1px solid var(--line-2);border-radius:var(--r-sm);
+  background:var(--panel);
+}
+.owner i{
+  width:18px;height:18px;border-radius:3px;display:grid;place-items:center;
+  background:var(--mark);color:#12100a;
+  font-family:var(--mono);font-size:11px;font-weight:700;font-style:normal;
+}
+.owner em{
+  font-style:normal;font-family:var(--mono);font-size:11px;
+  letter-spacing:.1em;color:var(--ink-2);text-transform:uppercase;
+}
+.top .hazard{
+  flex:1;min-width:0;height:9px;border-radius:2px;
+  background:repeating-linear-gradient(115deg,
+    var(--mark) 0 9px, transparent 9px 20px);
+  opacity:.42;
+}
+.top .count{font-family:var(--mono);font-size:11px;letter-spacing:.1em;color:var(--ink-3)}
+.top .count b{color:var(--ink);font-weight:600}
+
+/* ============ left rail: bays ============ */
+.rail{
+  border-right:1px solid var(--line);
+  background:linear-gradient(180deg,#0d1112,#0a0d0e);
+  display:flex;flex-direction:column;min-height:0;
+  position:relative;z-index:5;
+}
+.rail-head{
+  display:flex;align-items:center;justify-content:space-between;gap:var(--s2);
+  padding:var(--s4) var(--s4) var(--s3);
+}
+.rail-head h2{
+  margin:0;font-size:11px;font-weight:600;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--ink-3);font-family:var(--mono);
+}
+.bays{
+  list-style:none;margin:0;padding:0 var(--s3) var(--s5);
+  overflow-y:auto;overscroll-behavior:contain;flex:1;min-height:0;
+  scrollbar-width:thin;scrollbar-color:var(--line-2) transparent;
+}
+.bays::-webkit-scrollbar{width:8px}
+.bays::-webkit-scrollbar-thumb{background:var(--line-2);border-radius:9px;
+  border:2px solid transparent;background-clip:content-box}
+.bay{
+  width:100%;display:grid;grid-template-columns:34px minmax(0,1fr) 30px;
+  align-items:center;gap:var(--s3);
+  min-height:56px;padding:var(--s2) var(--s2) var(--s2) var(--s3);
+  border:1px solid transparent;border-radius:var(--r-sm);
+  text-align:left;color:var(--ink-2);
+  transition:background var(--dur) var(--ease),color var(--dur) var(--ease),
+             border-color var(--dur) var(--ease);
+  position:relative;
+}
+.bay::before{
+  content:"";position:absolute;left:0;top:14px;bottom:14px;width:2px;
+  border-radius:2px;background:var(--accent);
+  transform:scaleY(0);transform-origin:50% 50%;
+  transition:transform var(--dur) var(--ease);
+}
+.bay .no{
+  font-family:var(--mono);font-size:11px;letter-spacing:.06em;
+  color:var(--ink-4);text-align:center;
+  transition:color var(--dur) var(--ease);
+}
+.bay .glyph{display:none}
+.bay .nm{min-width:0}
+.bay .nm b{
+  display:block;font-size:14px;font-weight:600;letter-spacing:-.01em;
+  color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.bay .nm i{
+  display:block;font-style:normal;font-size:11px;font-family:var(--mono);
+  letter-spacing:.04em;color:var(--ink-3);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.bay svg{display:block;width:30px;height:18px;color:var(--ink-4);
+  transition:color var(--dur) var(--ease)}
+.bay:hover{background:var(--panel);border-color:var(--line)}
+.bay:hover svg{color:var(--ink-2)}
+.bay[aria-current="true"]{background:var(--panel-2);border-color:var(--line-2)}
+.bay[aria-current="true"]::before{transform:scaleY(1)}
+.bay[aria-current="true"] .no{color:var(--accent)}
+.bay[aria-current="true"] svg{color:var(--accent)}
+.rail-foot{
+  padding:var(--s3) var(--s4) var(--s4);
+  border-top:1px solid var(--line);
+  font-size:11px;line-height:1.6;color:var(--ink-3);
+}
+.rail-foot .k{font-family:var(--mono);color:var(--ink-2);
+  border:1px solid var(--line-2);border-radius:3px;padding:0 4px}
+
+/* ============ stage ============ */
+.stage{position:relative;min-width:0;min-height:0;overflow:hidden;
+  background:var(--bay);isolation:isolate}
+.stage::before{
+  content:"";position:absolute;inset:0;z-index:0;pointer-events:none;
+  background:
+    radial-gradient(120% 78% at 50% 112%, var(--accent-soft) 0%, transparent 62%),
+    radial-gradient(85% 60% at 50% 8%, #1b2226 0%, transparent 70%),
+    linear-gradient(180deg,#101518 0%, #0b0f10 46%, #070909 100%);
+  transition:background 1s var(--ease);
+}
+.stage::after{
+  content:"";position:absolute;inset:0;z-index:3;pointer-events:none;
+  background:radial-gradient(115% 92% at 50% 46%, transparent 42%, rgba(0,0,0,.62) 100%);
+}
+#gl{position:absolute;inset:0;z-index:1;display:block;width:100%;height:100%;
+  touch-action:none;cursor:grab}
+#gl.dragging{cursor:grabbing}
+/* stage HUD */
+.hud{position:absolute;z-index:4;pointer-events:none}
+.hud-bay{
+  top:var(--s5);left:var(--s5);display:flex;align-items:center;gap:var(--s3);
+}
+.hud-bay .num{
+  font-family:var(--mono);font-size:38px;font-weight:700;line-height:.85;
+  letter-spacing:-.05em;color:var(--ink);
+}
+.hud-bay .of{
+  font-family:var(--mono);font-size:10px;letter-spacing:.16em;
+  color:var(--ink-3);text-transform:uppercase;
+}
+.hud-bay .of b{display:block;color:var(--mark);font-weight:600}
+.hud-bay .rule{
+  width:56px;height:8px;border-radius:2px;
+  background:repeating-linear-gradient(115deg,var(--mark) 0 7px,transparent 7px 15px);
+  opacity:.5;
+}
+.hud-hint{
+  bottom:var(--s4);left:var(--s5);font-size:11px;color:var(--ink-4);
+  font-family:var(--mono);letter-spacing:.03em;
+}
+.hud-hint b{color:var(--ink-3);font-weight:500}
+.hud-tools{top:var(--s5);right:var(--s5);display:flex;gap:var(--s2);pointer-events:auto}
+.icb{
+  width:36px;height:36px;display:grid;place-items:center;
+  border:1px solid var(--line);border-radius:var(--r-sm);
+  background:rgba(12,16,17,.72);backdrop-filter:blur(8px);color:var(--ink-2);
+  transition:color .2s var(--ease),border-color .2s var(--ease),background .2s var(--ease);
+}
+.icb::before{content:"";position:absolute;inset:-6px}
+.icb{position:relative}
+.icb:hover{color:var(--ink);border-color:var(--line-2);background:rgba(22,28,30,.85)}
+.icb svg{width:17px;height:17px;display:block}
+/* ============ console ============ */
+.console{
+  position:absolute;z-index:5;left:50%;bottom:var(--s5);transform:translateX(-50%);
+  display:flex;flex-direction:column;gap:var(--s3);
+  max-width:calc(100% - var(--s5)*2);
+  padding:var(--s3) var(--s4) var(--s4);
+  border:1px solid var(--line);border-radius:14px;
+  background:rgba(11,14,16,.78);
+  backdrop-filter:blur(14px) saturate(140%);
+  box-shadow:0 18px 44px -16px rgba(0,0,0,.9);
+}
+.crow{display:flex;align-items:center;gap:var(--s3);min-width:0}
+.clbl{
+  font-family:var(--mono);font-size:9px;letter-spacing:.15em;flex:none;
+  text-transform:uppercase;color:var(--ink-4);width:52px;
+}
+.cdiv{width:1px;background:var(--line);align-self:stretch;flex:none;margin:2px 0}
+.chips{
+  display:flex;align-items:center;gap:12px;min-width:0;
+  overflow-x:auto;overscroll-behavior-x:contain;padding:3px 2px;
+  scrollbar-width:none;
+}
+.chips::-webkit-scrollbar{display:none}
+.chip{
+  position:relative;width:40px;height:40px;padding:3px;flex:none;
+  border:1px solid var(--line);border-radius:10px;background:transparent;
+  transition:border-color .2s var(--ease),transform .2s var(--ease),box-shadow .2s var(--ease);
+}
+.chip::after{content:"";position:absolute;inset:-2px;border-radius:12px}
+.chip i{
+  display:block;width:100%;height:100%;border-radius:7px;
+  background:var(--c1);box-shadow:inset 0 1px 0 rgba(255,255,255,.32),
+    inset 0 -7px 9px -6px rgba(0,0,0,.72);
+}
+.chip.two i{background:linear-gradient(135deg,var(--c1) 0 52%,var(--c2) 52% 100%)}
+.chip:hover{border-color:var(--line-2);transform:translateY(-1px)}
+.chip[aria-pressed="true"]{border-color:var(--ink);box-shadow:0 0 0 1px var(--ink)}
+.chip[aria-pressed="true"]::before{
+  content:"";position:absolute;left:50%;bottom:-7px;width:4px;height:4px;
+  margin-left:-2px;border-radius:9px;background:var(--ink);
+}
+.paint-name{
+  font-size:12px;color:var(--ink-2);flex:none;min-width:74px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.paint-name b{color:var(--ink);font-weight:600}
+
+/* console buttons */
+.btn{
+  position:relative;height:38px;padding:0 13px;flex:none;
+  display:inline-flex;align-items:center;gap:7px;
+  border:1px solid var(--line);border-radius:9px;
+  background:var(--panel);color:var(--ink-2);
+  font-size:12.5px;letter-spacing:.01em;white-space:nowrap;
+  transition:color .2s var(--ease),border-color .2s var(--ease),
+             background .2s var(--ease);
+}
+.btn::before{content:"";position:absolute;inset:-3px 0}
+.btn svg{width:15px;height:15px;flex:none;display:block}
+.btn:hover{color:var(--ink);border-color:var(--line-2);background:var(--panel-2)}
+.btn[aria-pressed="true"],.btn.on{
+  background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:600;
+}
+.btn[aria-pressed="true"]:hover,.btn.on:hover{color:var(--accent-ink);filter:brightness(1.07)}
+.btn:disabled{opacity:.45;cursor:not-allowed;color:var(--ink-3)}
+.btn .dot{width:6px;height:6px;border-radius:9px;background:currentColor;
+  flex:none;opacity:.55}
+.btn[aria-pressed="true"] .dot{opacity:1}
+.views{display:flex;align-items:center;gap:8px;overflow-x:auto;
+  scrollbar-width:none;padding:3px 1px;min-width:0}
+.views::-webkit-scrollbar{display:none}
+/* ============ right sheet: spec ============ */
+.sheet{
+  border-left:1px solid var(--line);
+  background:linear-gradient(180deg,#0d1112,#0a0d0e);
+  display:flex;flex-direction:column;min-height:0;
+  position:relative;z-index:5;
+}
+.sheet-scroll{
+  overflow-y:auto;overscroll-behavior:contain;flex:1;min-height:0;
+  padding:var(--s5) var(--s4) var(--s6);
+  scrollbar-width:thin;scrollbar-color:var(--line-2) transparent;
+}
+.sheet-scroll::-webkit-scrollbar{width:8px}
+.sheet-scroll::-webkit-scrollbar-thumb{background:var(--line-2);border-radius:9px;
+  border:2px solid transparent;background-clip:content-box}
+.tagrow{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:var(--s3)}
+.tag{
+  font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;
+  padding:3px 7px;border:1px solid var(--line-2);border-radius:4px;color:var(--ink-3);
+}
+.tag.hi{border-color:var(--accent);color:var(--accent)}
+.sheet h1{
+  margin:0 0 3px;font-size:25px;font-weight:700;letter-spacing:-.035em;
+  line-height:1.12;text-wrap:balance;
+}
+.sheet .brandline{
+  font-family:var(--mono);font-size:11.5px;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--accent);margin:0 0 var(--s4);
+}
+.blurb{
+  margin:0 0 var(--s5);font-size:13px;line-height:1.72;color:var(--ink-2);
+  max-width:62ch;text-wrap:pretty;
+}
+/* stat meters */
+.meters{display:flex;flex-direction:column;gap:var(--s4);margin:0 0 var(--s6)}
+.meter dt{
+  display:flex;align-items:baseline;justify-content:space-between;gap:var(--s2);
+  font-size:11px;letter-spacing:.03em;color:var(--ink-3);margin-bottom:6px;
+}
+.meter dt b{
+  font-family:var(--mono);font-size:14px;font-weight:600;color:var(--ink);
+  letter-spacing:-.01em;font-variant-numeric:tabular-nums;
+}
+.meter dt b span{font-size:10px;color:var(--ink-3);font-weight:400;margin-left:2px}
+.meter dd{margin:0;height:4px;border-radius:3px;background:rgba(255,255,255,.07);
+  overflow:hidden;position:relative}
+.meter dd i{
+  display:block;height:100%;width:0;border-radius:3px;background:var(--accent);
+  transition:width .78s var(--ease);
+}
+/* spec table */
+.specs{
+  margin:0 0 var(--s5);border-top:1px solid var(--line);
+}
+.specs div{
+  display:flex;align-items:baseline;justify-content:space-between;gap:var(--s4);
+  padding:9px 0;border-bottom:1px solid var(--line);
+}
+.specs dt{font-size:12.5px;color:var(--ink-3);flex:none}
+.specs dd{
+  margin:0;font-size:12.5px;color:var(--ink);text-align:right;
+  font-family:var(--mono);font-variant-numeric:tabular-nums;
+  letter-spacing:-.005em;min-width:0;overflow-wrap:anywhere;
+}
+.note{
+  font-size:11px;line-height:1.65;color:var(--ink-4);
+  padding:var(--s3);border:1px dashed var(--line-2);border-radius:var(--r-sm);
+}
+/* ============ boot / build overlays ============ */
+.boot{
+  position:fixed;inset:0;z-index:40;display:grid;place-items:center;
+  background:var(--bay);transition:opacity .6s var(--ease);
+}
+.boot[hidden]{display:none}
+.boot.out{opacity:0;pointer-events:none}
+.boot-in{width:min(340px,80vw);text-align:left}
+.boot-in .wm{
+  font-size:20px;font-weight:800;letter-spacing:-.035em;text-transform:uppercase;
+  margin:0 0 var(--s2);
+}
+.boot-in p{margin:0 0 var(--s4);font-family:var(--mono);font-size:11px;
+  letter-spacing:.1em;color:var(--mark);text-transform:uppercase}
+.boot-bar{height:3px;border-radius:3px;background:rgba(255,255,255,.08);overflow:hidden}
+.boot-bar i{display:block;height:100%;width:12%;background:var(--mark);
+  transition:width .4s var(--ease)}
+.boot-in .st{margin:var(--s3) 0 0;font-size:12px;color:var(--ink-3);
+  font-family:var(--sans);letter-spacing:0;text-transform:none}
+.busy{
+  position:absolute;z-index:6;left:var(--s5);top:calc(var(--s5) + 64px);
+  display:flex;align-items:center;gap:9px;padding:7px 12px;
+  border:1px solid var(--line);border-radius:8px;background:rgba(11,14,16,.85);
+  font-family:var(--mono);font-size:10px;letter-spacing:.12em;color:var(--ink-3);
+  text-transform:uppercase;
+}
+.busy[hidden]{display:none}
+.busy s{
+  width:11px;height:11px;border-radius:50%;border:2px solid var(--line-2);
+  border-top-color:var(--mark);animation:spin .7s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+.fail{
+  position:absolute;inset:0;z-index:9;display:grid;place-items:center;padding:var(--s5);
+}
+.fail[hidden]{display:none}
+.fail div{max-width:44ch;font-size:13px;line-height:1.7;color:var(--ink-2)}
+.fail b{display:block;color:var(--ink);font-size:15px;margin-bottom:var(--s2)}
+/* mobile sheet trigger — hidden on desktop */
+.sheet-btn{display:none}
+.sheet-close{display:none}
+
+/* ============ responsive ============ */
+@media (max-width:1240px){
+  :root{--rail:246px;--sheet:296px}
+  .sheet h1{font-size:22px}
+  .hud-bay .num{font-size:32px}
+}
+@media (max-width:1040px){
+  :root{--sheet:0px}
+  .app{grid-template-columns:var(--rail) minmax(0,1fr)}
+  .sheet{
+    position:fixed;z-index:30;top:0;right:0;bottom:0;width:min(340px,86vw);
+    border-left:1px solid var(--line-2);
+    box-shadow:-24px 0 60px -20px rgba(0,0,0,.9);
+    transform:translateX(101%);
+    transition:transform .38s var(--ease);
+  }
+  .sheet.open{transform:none}
+  .sheet-close{
+    display:inline-flex;position:absolute;top:var(--s3);right:var(--s3);z-index:2;
+    width:34px;height:34px;align-items:center;justify-content:center;
+    border:1px solid var(--line);border-radius:var(--r-sm);color:var(--ink-2);
+    background:rgba(12,16,17,.8);
+  }
+  .sheet-close::before{content:"";position:absolute;inset:-5px}
+  .sheet-close svg{width:15px;height:15px}
+  .sheet-btn{display:inline-flex}
+  .sheet-scroll{padding-top:var(--s6)}
+}
+@media (max-width:820px){
+  :root{--top:50px;--rail:0px}
+  .app{grid-template-columns:minmax(0,1fr);grid-template-rows:var(--top) auto minmax(0,1fr)}
+  .top{padding:0 var(--s3) 0 var(--s4);gap:var(--s3)}
+  .top .hazard{display:none}
+  .rail{
+    grid-row:2;border-right:0;border-bottom:1px solid var(--line);
+    flex-direction:row;align-items:stretch;min-width:0;
+  }
+  .rail-head,.rail-foot{display:none}
+  .bays{
+    display:flex;gap:var(--s2);padding:var(--s2) var(--s3);
+    min-width:0;flex:1 1 0;
+    overflow-x:auto;overflow-y:hidden;overscroll-behavior-x:contain;
+  }
+  .bay{
+    display:flex;align-items:center;width:auto;flex:none;gap:var(--s2);
+    min-height:46px;padding:var(--s2) var(--s3);
+    border-color:var(--line);
+  }
+  .bay .nm{min-width:max-content}
+  .bay .nm b{overflow:visible;text-overflow:clip}
+  .bay::before{left:6px;right:6px;top:auto;bottom:3px;width:auto;height:2px;
+    transform:scaleX(0)}
+  .bay[aria-current="true"]::before{transform:scaleX(1)}
+  .bay .nm i{display:none}
+  .bay .nm b{font-size:13px}
+  .bay svg{display:none}
+  .hud-bay{top:var(--s3);left:var(--s4);gap:var(--s2)}
+  .hud-bay .num{font-size:26px}
+  .hud-bay .rule{display:none}
+  .hud-tools{top:var(--s3);right:var(--s3)}
+  .hud-hint{display:none}
+  .console{
+    left:var(--s2);right:var(--s2);bottom:var(--s2);transform:none;
+    max-width:none;padding:var(--s3);border-radius:12px;gap:var(--s2);
+  }
+  .clbl{display:none}
+  .cdiv{display:none}
+  .crow{gap:var(--s2)}
+}
+@media (max-width:420px){
+  .wordmark span{display:none}
+  .top .count{display:none}
+  .btn{padding:0 10px;font-size:12px}
+  .btn .txt{display:none}
+  .btn svg{width:16px;height:16px}
+  .chip{width:36px;height:36px}
+  .chips{gap:10px}
+  .paint-name{min-width:0;font-size:11px}
+}
+
+/* ============ reduced motion: gentler, not off ============ */
+@media (prefers-reduced-motion:reduce){
+  :root{--dur:.14s}
+  .meter dd i{transition-duration:.2s}
+  .sheet{transition-duration:.16s}
+  .boot{transition-duration:.2s}
+  .busy s{animation-duration:1.6s}
+  .chip:hover{transform:none}
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <header class="top">
+    <div class="wordmark"><b>KUN&rsquo;S&nbsp;GARAGE</b><span>Bay 01&mdash;09</span></div>
+    <div class="owner"><i aria-hidden="true">K</i><em>Owner&nbsp;·&nbsp;KUN</em></div>
+    <div class="hazard" aria-hidden="true"></div>
+    <p class="count mono">在库 <b>09</b> 台</p>
+  </header>
+
+  <aside class="rail" aria-label="车位列表">
+    <div class="rail-head">
+      <h2>车位 / Bays</h2>
+      <span class="mono" style="font-size:10px;color:var(--ink-4)">09</span>
+    </div>
+    <ul class="bays" id="bays"></ul>
+    <div class="rail-foot">
+      按 <span class="k">1</span>–<span class="k">9</span> 直达车位，<span class="k">←</span>
+      <span class="k">→</span> 换车，<span class="k">R</span> 复位视角，<span class="k">空格</span> 开关转台。
+    </div>
+  </aside>
+
+  <main class="stage" id="stage">
+    <canvas id="gl" aria-label="三维载具展台，按住拖动可环绕查看" role="img"></canvas>
+
+    <div class="hud hud-bay" aria-hidden="true">
+      <span class="num mono" id="hudNo">01</span>
+      <span class="of mono">Bay<b id="hudTot">/ 09</b></span>
+      <span class="rule"></span>
+    </div>
+    <p class="hud hud-hint">按住 <b>拖动</b> 环绕 · <b>滚轮</b> 缩放 · <b>右键</b> 平移</p>
+    <div class="hud hud-tools">
+      <button class="icb" id="btnReset" type="button" aria-label="复位视角" title="复位视角 (R)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
+             stroke-linecap="round" aria-hidden="true">
+          <path d="M20 12a8 8 0 1 1-2.6-5.9"/><path d="M20 4v4.2h-4.2"/></svg>
+      </button>
+      <button class="icb" id="btnShot" type="button" aria-label="保存展台截图" title="保存截图">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
+             stroke-linecap="round" aria-hidden="true">
+          <path d="M3 8.5A2.5 2.5 0 0 1 5.5 6h1.2l1.1-1.8h8.4L17.3 6h1.2A2.5 2.5 0 0 1 21 8.5v8A2.5 2.5 0 0 1 18.5 19h-13A2.5 2.5 0 0 1 3 16.5z"/>
+          <circle cx="12" cy="12.4" r="3.4"/></svg>
+      </button>
+      <button class="icb sheet-btn" id="btnSheet" type="button"
+              aria-label="查看参数" aria-expanded="false" aria-controls="sheet">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
+             stroke-linecap="round" aria-hidden="true">
+          <path d="M5 4.5h14v15H5z"/><path d="M8.5 9h7M8.5 12.5h7M8.5 16h4"/></svg>
+      </button>
+    </div>
+
+    <div class="busy" id="busy" hidden aria-live="polite"><s aria-hidden="true"></s><span>其余车位装配中</span></div>
+
+    <div class="fail" id="fail" hidden>
+      <div>
+        <b>展台无法启动</b>
+        这台设备的浏览器没有可用的 WebGL，或 Three.js 未能从 CDN 载入。
+        请联网后用新版 Chrome / Edge / Safari 打开本文件，左栏的车位与右栏的参数仍然可读。
+      </div>
+    </div>
+    <div class="console">
+      <div class="crow">
+        <span class="clbl">车漆</span>
+        <div class="chips" id="chips" role="group" aria-label="车漆涂装"></div>
+        <span class="cdiv" aria-hidden="true"></span>
+        <p class="paint-name" id="paintName" aria-live="polite"><b>—</b></p>
+      </div>
+      <div class="crow">
+        <span class="clbl">视角</span>
+        <div class="views" id="views" role="group" aria-label="机位"></div>
+        <span class="cdiv" aria-hidden="true"></span>
+        <button class="btn" id="btnSpin" type="button" aria-pressed="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+               stroke-linecap="round" aria-hidden="true">
+            <path d="M4 12a8 4.6 0 0 0 16 0 8 4.6 0 0 0-16 0"/><path d="M12 3.4v5"/>
+            <path d="M9.6 6.2 12 3.4l2.4 2.8"/></svg>
+          <span class="txt">转台</span>
+        </button>
+        <button class="btn" id="btnRider" type="button" aria-pressed="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+               stroke-linecap="round" aria-hidden="true">
+            <circle cx="12" cy="7" r="3.2"/><path d="M5.5 20.5c0-3.6 2.9-6.3 6.5-6.3s6.5 2.7 6.5 6.3"/></svg>
+          <span class="txt">KUN</span>
+        </button>
+      </div>
+    </div>
+  </main>
+  <aside class="sheet" id="sheet" aria-label="载具参数单">
+    <button class="sheet-close" id="btnSheetClose" type="button" aria-label="关闭参数">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+           stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+    </button>
+    <div class="sheet-scroll">
+      <div class="tagrow" id="tags"></div>
+      <h1 id="vName">—</h1>
+      <p class="brandline mono" id="vBrand">—</p>
+      <p class="blurb" id="vBlurb"></p>
+
+      <h2 class="clbl" style="display:block;width:auto;margin:0 0 12px">性能</h2>
+      <dl class="meters" id="meters"></dl>
+
+      <h2 class="clbl" style="display:block;width:auto;margin:0 0 12px">规格</h2>
+      <dl class="specs" id="specs"></dl>
+
+      <p class="note" id="vNote"></p>
+    </div>
+  </aside>
+
+</div>
+
+<div class="boot" id="boot">
+  <div class="boot-in">
+    <p class="wm">KUN&rsquo;S GARAGE</p>
+    <p>Opening bay doors</p>
+    <div class="boot-bar"><i id="bootBar"></i></div>
+    <p class="st" id="bootSt">正在通电…</p>
+  </div>
+</div>
+<script type="module">
+/* =====================================================================
+   KUN'S GARAGE — 单文件实时 3D 车库
+   所有载具均为运行时程序化建模（无外部模型 / 贴图 / 字体资源）
+   ===================================================================== */
+const $ = (s) => document.querySelector(s);
+const el = (t, c, h) => { const n = document.createElement(t);
+  if (c) n.className = c; if (h != null) n.innerHTML = h; return n; };
+const fmt = (n) => typeof n === 'number'
+  ? new Intl.NumberFormat('zh-CN', { maximumFractionDigits: 2 }).format(n) : n;
+const RM = matchMedia('(prefers-reduced-motion: reduce)');
+
+/* ---------- 性能条：以车库内公共上限归一，便于跨车比较 ---------- */
+const CEIL = { top:300, pwr:500, acc:16, range:800, mass:2400, load:600, tq:900, wt:120 };
+const UNIT = { top:'km/h', pwr:'kW', acc:'s', range:'km', mass:'kg', load:'kg',
+               tq:'N·m', wt:'kg' };
+const MLAB = { top:'极速', pwr:'最大功率', acc:'0–100 km/h', range:'续航',
+               mass:'整备质量', load:'额定载重', tq:'峰值扭矩', wt:'整车重量' };
+function M(kind, v, note, pct) {
+  let p = pct;
+  if (p == null) {
+    p = typeof v === 'number'
+      ? (kind === 'acc' ? Math.max(0, 1 - v / CEIL[kind]) : Math.min(1, v / CEIL[kind]))
+      : 0;
+  }
+  return { k: MLAB[kind] + (note ? ' · ' + note : ''), v, u: UNIT[kind], pct: p };
+}
+
+/* ---------- 车位小图标 ---------- */
+const GLYPH = {
+  bike:'M6 13.5a3 3 0 1 0 6 0 3 3 0 1 0-6 0M18 13.5a3 3 0 1 0 6 0 3 3 0 1 0-6 0M9 13.5l4-6h4l2 6M13 7.5h-2.5M17 7.5l1.6 2.4',
+  scoot:'M4.5 14a2.6 2.6 0 1 0 5.2 0 2.6 2.6 0 1 0-5.2 0M19 14a2.6 2.6 0 1 0 5.2 0 2.6 2.6 0 1 0-5.2 0M7 14h6.5l2.5-6h2.6M13 8h4M16 8l3.6 6',
+  moto:'M4 13.8a3.2 3.2 0 1 0 6.4 0 3.2 3.2 0 1 0-6.4 0M17.6 13.8a3.2 3.2 0 1 0 6.4 0 3.2 3.2 0 1 0-6.4 0M7.2 13.8h5.6l2-4.6 3-1.6M13.6 8.4h3.8l3.4 5.4',
+  trike:'M4 13.6a3 3 0 1 0 6 0 3 3 0 1 0-6 0M17 14a2.6 2.6 0 1 0 5.2 0 2.6 2.6 0 1 0-5.2 0M22.8 14a2.6 2.6 0 1 0 5.2 0M7 13.6h6.5V5.4h9v8.4M13.5 8.6h9',
+  van:'M2.5 12.6h25M2.5 12.6V7.2c0-1 .8-1.8 1.8-1.8h13.4l4.6 3.6h3.9c1 0 1.8.8 1.8 1.8v1.8M6.4 15.2a2 2 0 1 0 4 0 2 2 0 1 0-4 0M19.6 15.2a2 2 0 1 0 4 0 2 2 0 1 0-4 0M17.7 5.4v3.6',
+  sedan:'M2.4 12.2h25.2M3 12.2 5 8.6c.4-.7 1-1.1 1.8-1.1h11c.7 0 1.4.3 1.9.8l2.6 2.5 3.9.7c1 .2 1.4.6 1.4 1.4M6.6 14.8a2 2 0 1 0 4 0 2 2 0 1 0-4 0M19.4 14.8a2 2 0 1 0 4 0 2 2 0 1 0-4 0',
+  sport:'M1.8 12.4h26.4M2.6 12.4l1.9-2.8c.5-.8 1.3-1.2 2.2-1.2h9.6c1 0 1.9.3 2.7.9l3.2 2.3 4.4.8M6.2 14.8a2.1 2.1 0 1 0 4.2 0 2.1 2.1 0 1 0-4.2 0M19.6 14.8a2.1 2.1 0 1 0 4.2 0 2.1 2.1 0 1 0-4.2 0',
+  coupe:'M1.8 12.6h26.4M3 12.6c.6-2.2 1.4-3.4 2.6-4.2 1.4-1 3.2-1.5 5.4-1.5h5c2.6 0 5 .9 7 2.6l3.2 2.7M6.4 15a2.1 2.1 0 1 0 4.2 0 2.1 2.1 0 1 0-4.2 0M19.8 15a2.1 2.1 0 1 0 4.2 0 2.1 2.1 0 1 0-4.2 0',
+  suit:'M15 2.6c-3.4 0-5.6 2-5.6 5v3.6l-1.6 3.2h14.4l-1.6-3.2V7.6c0-3-2.2-5-5.6-5M11 9.6h8M15 12.4v3'
+};
+const NOTE_REAL = '参数取自公开资料与官方标称，具体配置随年款、地区、选装而变化，请以整车厂公布数据为准。' +
+  '展台模型为程序化写实还原，比例参照官方三围，非厂方 CAD 数据。';
+const NOTE_FICTION = '本车位为虚构载具。以上条目均为影视设定，不存在工程参数、量产型号或售价。' +
+  '模型为按影视造型的程序化还原。';
+
+const VEHICLES = [
+{
+  id:'atx', glyph:'bike', name:'捷安特 ATX 860', brand:'GIANT ATX 860', type:'山地自行车',
+  tags:['人力驱动','27.5 英寸','27 速'],
+  blurb:'车库里最便宜、也是被骑得最多的一台。ALUXX 铝合金车架配 100 mm 行程前叉，机械碟刹，' +
+        '前拨三片后飞九片。它是这间车库里唯一不用充电、不用上牌、不用年检的车位。',
+  meters:[M('wt',14), M('top',40,'下坡'), M('pwr',0.25,'人力持续'), M('range',80,'骑手日行程')],
+  specs:[['车架','ALUXX 铝合金'],['前叉','SR SUNTOUR XCT · 100 mm'],['传动','Shimano 27 速 (3×9)'],
+         ['轮组','27.5″ × 2.10 越野胎'],['制动','机械碟刹 160 mm'],['整车重量','≈ 14 kg'],
+         ['参考售价','¥2,398']],
+  note:NOTE_REAL,
+  paints:[{n:'电光蓝',c:0x1560d6},{n:'柠光黄绿',c:0xcbe63c},{n:'岩浆橙红',c:0xd8321f},
+          {n:'冰川白',c:0xe9edf0},{n:'曜石黑',c:0x23262a,f:'matte'},{n:'森野绿',c:0x2f4a34,f:'matte'}]
+},
+{
+  id:'niu', glyph:'scoot', name:'小牛 NIU N1S', brand:'NIU N1S CITY', type:'电动踏板车',
+  tags:['锂电','60V 29Ah','城市通勤'],
+  blurb:'小牛把锂电池、App 和一只圆形 LED 大灯装进了国民电动车。博世 800 W 轮毂电机配松下 21700 电芯，' +
+        '电池可拆下带回家充。KUN 单程通勤 12 公里，一周充一次。',
+  meters:[M('pwr',0.8), M('top',45), M('range',80), M('mass',95)],
+  specs:[['电机','博世 800 W 无刷轮毂电机'],['电池','松下 21700 锂电 · 60V 29Ah'],
+         ['极速','45 km/h（国标版限速 25）'],['续航','≈ 80 km'],['充电','≈ 3.5 h（0→100%）'],
+         ['轮胎','CST 14 英寸真空胎'],['整车重量','95 kg'],['参考售价','¥6,299']],
+  note:NOTE_REAL,
+  paints:[{n:'都市白',c:0xeef1f3},{n:'暗夜黑',c:0x1c1f22,f:'matte'},{n:'电光青',c:0x12c6bd},
+          {n:'珊瑚红',c:0xe0503c},{n:'军野绿',c:0x525f3e,f:'matte'},{n:'樱粉',c:0xe2a5b2}]
+},
+{
+  id:'ninja', glyph:'moto', name:'川崎 Ninja 400', brand:'KAWASAKI NINJA 400', type:'轻量跑车',
+  tags:['399cc 并列双缸','45 PS','KRT 涂装'],
+  blurb:'入门跑车里最容易开快的一台。399 cc 并列双缸挂在钢管桁架车架上，整备质量只有 168 kg，' +
+        '山路上比它的账面数据更快。Lime Green 是川崎的注册资产，不是随便一种绿。',
+  meters:[M('pwr',33.4), M('tq',38), M('acc',5.4), M('top',190)],
+  specs:[['发动机','399 cc 并列双缸 水冷 DOHC'],['最大功率','33.4 kW (45 PS) @10,000 rpm'],
+         ['峰值扭矩','38 N·m @8,000 rpm'],['车架','钢管桁架车架'],
+         ['制动','前 310 mm 单碟 / 后 220 mm 碟'],['油箱','14 L'],['整备质量','168 kg'],
+         ['参考售价','¥49,800 起']],
+  note:NOTE_REAL, two:true,
+  paints:[{n:'Lime Green',c:0x5ec52a,c2:0x1b1d1f},{n:'Spark Black',c:0x1a1c1e,c2:0x2f3336},
+          {n:'Candy Cardinal Red',c:0xb4111d,c2:0x1b1d1f},
+          {n:'Nightshade Teal',c:0x1d5054,c2:0x121415},
+          {n:'Graphite Gray',c:0x4b5155,c2:0x1b1d1f},
+          {n:'Blizzard White',c:0xe8ebe9,c2:0x2a2d30}]
+},
+{
+  id:'trike', glyph:'trike', name:'金彭 电动三轮篷车', brand:'JINPENG E-TRIKE', type:'电动三轮车',
+  tags:['1000 W','载重 500 kg','县城主力'],
+  blurb:'中国乡镇末端物流的真实底盘，俗称三蹦子。1000 W 差速电机、铅酸电池、半封闭驾驶篷，' +
+        '一趟能拉半吨货。它不谈零百加速，只谈今天跑了几趟。',
+  meters:[M('pwr',1.0), M('top',35), M('range',60), M('load',500)],
+  specs:[['电机','1000 W 差速电机'],['电池','60V 45Ah 铅酸'],['极速','≈ 35 km/h'],
+         ['续航','≈ 60 km（空载）'],['货箱','约 1.5 m × 1.0 m'],['额定载重','500 kg'],
+         ['整车质量','≈ 280 kg'],['参考售价','¥5,680 起']],
+  note:'三轮车按厂家、配置、电池规格差异极大，以上为该级别常见标称值，仅供展示参照。' + NOTE_REAL,
+  paints:[{n:'国民红',c:0xc4302b},{n:'田野绿',c:0x35603c},{n:'铁灰',c:0x53585c},
+          {n:'天空蓝',c:0x2f7ec4},{n:'米白',c:0xe3ddcd},{n:'工程橙',c:0xd9762a}]
+},
+{
+  id:'wuling', glyph:'van', name:'五菱宏光 S', brand:'WULING HONGGUANG S', type:'七座 MPV',
+  tags:['1.5L L4','7 座','后轮驱动'],
+  blurb:'秋名山传说的物质基础。4420 mm 车长里塞进七个座位，1.5 L 自然吸气配 5 速手动，后轮驱动。' +
+        '它的核心参数不是马力，是能装：把第三排放倒就是一台小货车。',
+  meters:[M('pwr',82), M('tq',147), M('acc',13), M('top',150)],
+  specs:[['发动机','1.5 L L4 自然吸气'],['最大功率','82 kW (112 PS)'],['峰值扭矩','147 N·m'],
+         ['变速箱','5 速手动 · 后轮驱动'],['座位','7 座 (2+2+3)'],
+         ['车身','4420 × 1685 × 1890 mm'],['整车质量','1,395 kg'],['参考售价','¥5.28 万起']],
+  note:NOTE_REAL,
+  paints:[{n:'珠光白',c:0xecefee},{n:'星辉银',c:0xa9b0b4},{n:'沥青灰',c:0x4e5458},
+          {n:'中国红',c:0xb62a24},{n:'香槟金',c:0xc0a878},{n:'松林绿',c:0x35513f}]
+},
+{
+  id:'model3', glyph:'sedan', name:'特斯拉 Model 3 长续航全轮驱动',
+  brand:'TESLA MODEL 3 LONG RANGE AWD', type:'纯电中型轿车',
+  tags:['双电机','713 km CLTC','Cd 0.219'],
+  blurb:'把风阻做到 0.219 的量产四门轿车。没有格栅，也没有仪表屏，前后双电机 331 kW。' +
+        '焕新版换上贯穿式尾灯与无怀挡布局，是这间车库里最像家电的一台车。',
+  meters:[M('pwr',331), M('acc',4.4), M('range',713), M('top',201)],
+  specs:[['驱动','前后双电机 · 全轮驱动'],['系统功率','331 kW'],['电池','78.4 kWh 三元锂'],
+         ['CLTC 续航','713 km'],['风阻系数','0.219 Cd'],['车身','4720 × 1848 × 1442 mm'],
+         ['整车质量','1,823 kg'],['参考售价','¥28.55 万起']],
+  note:NOTE_REAL,
+  paints:[{n:'珍珠白',c:0xeff1f2},{n:'深邃黑',c:0x14161a},{n:'冷光银',c:0x8f979b},
+          {n:'星空灰',c:0x676e73},{n:'深海蓝',c:0x1f3f78},{n:'中国红',c:0xa8101a}]
+},
+{
+  id:'su7', glyph:'sport', name:'小米 SU7 Max', brand:'XIAOMI SU7 MAX', type:'纯电轿跑',
+  tags:['495 kW','2.78 s','Cd 0.195'],
+  blurb:'小米的第一台车，也是这间车库里最快的合法载具。双电机 495 kW，101 kWh 麒麟电池，' +
+        '风阻系数 0.195。霞光紫是它的发布会主色，一眼就能认出来。',
+  meters:[M('pwr',495), M('acc',2.78), M('range',800), M('top',265)],
+  specs:[['驱动','双电机 · 四轮驱动'],['系统功率','495 kW (673 PS)'],['峰值扭矩','838 N·m'],
+         ['电池','101 kWh 麒麟电池'],['CLTC 续航','800 km'],['风阻系数','0.195 Cd'],
+         ['车身','4997 × 1963 × 1455 mm'],['整车质量','2,205 kg'],['参考售价','¥29.99 万']],
+  note:NOTE_REAL,
+  paints:[{n:'霞光紫',c:0x9b7cc8},{n:'海湾蓝',c:0x2f6fd0},{n:'雅灰',c:0x9aa0a4},
+          {n:'橄榄绿',c:0x5b6141},{n:'熔岩橙',c:0xd85a1e},{n:'珍珠白',c:0xeef0f1},
+          {n:'钻石黑',c:0x15171a},{n:'流星蓝',c:0x203a6b}]
+},
+{
+  id:'p911', glyph:'coupe', name:'保时捷 911 Carrera', brand:'PORSCHE 911 CARRERA · 992', type:'后置后驱跑车',
+  tags:['水平对置六缸','8 速 PDK','293 km/h'],
+  blurb:'六十年只改细节的那条轮廓线。3.0 L 水平对置六缸双涡轮压在后轴之后，8 速 PDK。' +
+        '车库里最贵的一台，也是唯一还靠发动机声音说话的一台。',
+  meters:[M('pwr',283), M('tq',450), M('acc',4.2), M('top',293)],
+  specs:[['发动机','3.0 L 水平对置六缸 双涡轮'],['最大功率','283 kW (385 PS)'],
+         ['峰值扭矩','450 N·m'],['变速箱','8 速 PDK'],['布局','后置发动机 · 后轮驱动'],
+         ['车身','4519 × 1852 × 1300 mm'],['整备质量','1,505 kg'],['参考售价','¥146.8 万起']],
+  note:NOTE_REAL,
+  paints:[{n:'卫士红',c:0xc3161c},{n:'竞速黄',c:0xf0c400},{n:'迈阿密蓝',c:0x00a5d8},
+          {n:'GT 银',c:0xb6bcc0},{n:'玛瑙灰',c:0x3f4448},{n:'白',c:0xeef0f0},
+          {n:'深黑',c:0x101215}]
+},
+{
+  id:'mk85', glyph:'suit', name:'MARK 85 纳米战甲', brand:'STARK INDUSTRIES · MARK LXXXV',
+  type:'虚构单兵载具',
+  tags:['虚构载具','纳米科技','方舟反应堆'],
+  blurb:'车库最里面那格没有车牌。Mark 85 靠纳米粒子按需成形，胸口那枚方舟反应堆是全场唯一' +
+        '不需要充电桩的电源。下面每一条都是影视设定，不是工程参数，请不要拿去做功课。',
+  meters:null,
+  specs:[['编号','Mark LXXXV (85)'],['登场','《复仇者联盟4：终局之战》(2019)'],
+         ['结构','纳米粒子矩阵 · 按需成形'],['动力源','方舟反应堆 (Arc Reactor)'],
+         ['武器','掌心推进器 / 纳米刀 / 肩部微导弹'],['飞行','全向矢量推进'],
+         ['车位','09 · 不占充电桩'],['参数性质','影视虚构设定']],
+  note:NOTE_FICTION, two:true,
+  paints:[{n:'经典红金',c:0xa6151b,c2:0xd0a02a},{n:'银色世纪',c:0xc9ced2,c2:0xd4434a},
+          {n:'战争机器',c:0x474c50,c2:0x9aa0a4},{n:'隐形涂装',c:0x191c20,c2:0x2f353a},
+          {n:'Mark 1 裸铁',c:0x6b625a,c2:0x8a8078},{n:'布利丁艾吉',c:0x1b3a6b,c2:0xc0c6cc}]
+}
+];
+VEHICLES.forEach((v,i)=>{ v.no = String(i+1).padStart(2,'0'); });
+
+/* =====================================================================
+   UI：先把可读内容渲染出来，再尝试启动 3D 展台
+   ===================================================================== */
+const stage=$('#stage'), boot=$('#boot'), bootBar=$('#bootBar'), bootSt=$('#bootSt');
+const baysEl=$('#bays'), chipsEl=$('#chips'), viewsEl=$('#views'), busy=$('#busy');
+const sheet=$('#sheet');
+let cur = 0, paintIx = 0;
+
+function bootProg(p, msg){ bootBar.style.width=(p*100).toFixed(0)+'%';
+  if(msg) bootSt.textContent = msg; }
+/* ---------- 强调色：从车漆采样，钳制到深底可读的明度区间 ---------- */
+function hsl2rgb(h,s,l){
+  h=(h%360+360)%360; const c=(1-Math.abs(2*l-1))*s, x=c*(1-Math.abs((h/60)%2-1)), m=l-c/2;
+  let r,g,b;
+  if(h<60){[r,g,b]=[c,x,0];} else if(h<120){[r,g,b]=[x,c,0];}
+  else if(h<180){[r,g,b]=[0,c,x];} else if(h<240){[r,g,b]=[0,x,c];}
+  else if(h<300){[r,g,b]=[x,0,c];} else {[r,g,b]=[c,0,x];}
+  return [(r+m)*255,(g+m)*255,(b+m)*255].map(v=>Math.round(Math.min(255,Math.max(0,v))));
+}
+function rgb2hsl(hex){
+  const r=(hex>>16&255)/255, g=(hex>>8&255)/255, b=(hex&255)/255;
+  const mx=Math.max(r,g,b), mn=Math.min(r,g,b), l=(mx+mn)/2, d=mx-mn;
+  let h=0, s=0;
+  if(d>1e-6){
+    s = d/(1-Math.abs(2*l-1));
+    h = mx===r ? ((g-b)/d+(g<b?6:0)) : mx===g ? ((b-r)/d+2) : ((r-g)/d+4);
+    h*=60;
+  }
+  return [h,s,l];
+}
+const hx = (a)=>'#'+a.map(v=>v.toString(16).padStart(2,'0')).join('');
+function applyAccent(hex){
+  let [h,s,l]=rgb2hsl(hex), gray=(s<0.10);
+  if(gray){ h=196; s=0.26; l=0.73; }                /* 白/黑/银：走冷中性钢色 */
+  else { s=Math.min(0.92,Math.max(0.55,s)); l=Math.min(0.78,Math.max(0.64,l)); }
+  const a=hsl2rgb(h,s,l), ink=hsl2rgb(h,Math.min(s,0.7),0.11);
+  const st=document.documentElement.style;
+  st.setProperty('--accent',hx(a));
+  st.setProperty('--accent-ink',hx(ink));
+  st.setProperty('--accent-soft',`rgba(${a[0]},${a[1]},${a[2]},.11)`);
+  /* 三维件用更饱和、更暗一档的同色，避免灯光和车主服装发白 */
+  const obj=gray?hsl2rgb(198,.30,.62):hsl2rgb(h,Math.min(.95,s+.12),
+    Math.min(.60,Math.max(.44,l-.16)));
+  return {ui:a,obj};
+}
+
+/* ---------- 车位列表 ---------- */
+VEHICLES.forEach((v,i)=>{
+  const li=el('li');
+  const b=el('button','bay');
+  b.type='button'; b.setAttribute('aria-current','false');
+  b.innerHTML=`<span class="no">${v.no}</span>
+    <span class="nm"><b>${v.name}</b><i>${v.type}</i></span>
+    <svg viewBox="0 0 30 20" fill="none" stroke="currentColor" stroke-width="1.5"
+      stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${GLYPH[v.glyph]}"/></svg>`;
+  b.addEventListener('click',()=>select(i));
+  li.appendChild(b); baysEl.appendChild(li); v._btn=b;
+});
+/* ---------- 机位 ---------- */
+const VIEWS=[
+  {id:'q34',  n:'3/4 前', th: 0.88,           ph:1.29, r:1.00, ty:0.40, tx: 0.00},
+  {id:'side', n:'正侧',   th: Math.PI/2,      ph:1.40, r:1.02, ty:0.42, tx: 0.00},
+  {id:'front',n:'正前',   th: 0.015,          ph:1.42, r:0.94, ty:0.40, tx: 0.00},
+  {id:'q34r', n:'3/4 后', th: Math.PI*0.72,   ph:1.31, r:1.00, ty:0.40, tx: 0.00},
+  {id:'top',  n:'俯视',   th: 0.90,           ph:0.40, r:1.08, ty:0.30, tx: 0.00},
+  {id:'wheel',n:'轮毂',   th: 1.14,           ph:1.52, r:0.42, ty:0.20, tx: 0.56},
+  {id:'cabin',n:'座舱',   th: 0.58,           ph:1.24, r:0.50, ty:0.74, tx: 0.14}
+];
+const VIEW_ALIAS={
+  atx:{wheel:'牙盘',cabin:'把组'}, niu:{wheel:'轮组',cabin:'仪表'},
+  ninja:{wheel:'轮毂',cabin:'把组'}, trike:{cabin:'驾驶篷'},
+  mk85:{wheel:'手甲',cabin:'头盔'}
+};
+const viewLabel=(v,id)=>(VIEW_ALIAS[v.id]&&VIEW_ALIAS[v.id][id])||VIEWS.find(x=>x.id===id).n;
+let viewIx=0;
+VIEWS.forEach((vw,i)=>{
+  const b=el('button','btn');
+  b.type='button'; b.dataset.i=i; b.setAttribute('aria-pressed', i===0?'true':'false');
+  b.innerHTML=`<span class="txt2">${vw.n}</span>`;
+  b.addEventListener('click',()=>setView(i,true));
+  viewsEl.appendChild(b); vw._btn=b;
+});
+
+/* ---------- 参数单 ---------- */
+function renderSheet(v){
+  $('#tags').innerHTML = v.tags.map((t,i)=>
+    `<span class="tag${i===0?' hi':''}">${t}</span>`).join('');
+  $('#vName').textContent = v.name;
+  $('#vBrand').textContent = v.brand;
+  $('#vBlurb').textContent = v.blurb;
+  const mHead=$('#meters').previousElementSibling;
+  if(v.meters){
+    mHead.hidden=false; $('#meters').hidden=false;
+    $('#meters').innerHTML = v.meters.map(m=>`<div class="meter">
+      <dt>${m.k}<b>${fmt(m.v)}${m.u?`<span>${m.u}</span>`:''}</b></dt>
+      <dd><i data-p="${m.pct}"></i></dd></div>`).join('');
+    requestAnimationFrame(()=>requestAnimationFrame(()=>{
+      $('#meters').querySelectorAll('i').forEach(i=>{
+        i.style.width = Math.max(1.5, (+i.dataset.p)*100).toFixed(1)+'%'; });
+    }));
+  } else { mHead.hidden=true; $('#meters').hidden=true; $('#meters').innerHTML=''; }
+  $('#specs').innerHTML = v.specs.map(([k,val])=>
+    `<div><dt>${k}</dt><dd>${val}</dd></div>`).join('');
+  $('#vNote').textContent = v.note;
+}
+/* ---------- 车漆色片 ---------- */
+function renderChips(v){
+  chipsEl.innerHTML='';
+  v.paints.forEach((p,i)=>{
+    const b=el('button','chip'+(p.c2!=null?' two':''));
+    b.type='button'; b.setAttribute('aria-pressed', i===paintIx?'true':'false');
+    b.setAttribute('aria-label','涂装 '+p.n);
+    b.title=p.n;
+    b.style.setProperty('--c1', hx([p.c>>16&255,p.c>>8&255,p.c&255]));
+    if(p.c2!=null) b.style.setProperty('--c2', hx([p.c2>>16&255,p.c2>>8&255,p.c2&255]));
+    b.innerHTML='<i aria-hidden="true"></i>';
+    b.addEventListener('click',()=>setPaint(i,true));
+    chipsEl.appendChild(b); p._btn=b;
+  });
+}
+function setPaint(i, user){
+  const v=VEHICLES[cur]; paintIx=i; v._paintIx=i;
+  v.paints.forEach((p,k)=>p._btn.setAttribute('aria-pressed', k===i?'true':'false'));
+  const p=v.paints[i];
+  $('#paintName').innerHTML=`<b>${p.n}</b>`;
+  const a=applyAccent(p.c);
+  if(garage) garage.paint(p, a.obj);
+  if(user && v.paints[i]._btn) v.paints[i]._btn.scrollIntoView({block:'nearest',inline:'nearest',
+    behavior: RM.matches ? 'auto' : 'smooth'});
+}
+function setView(i, user){
+  viewIx=i;
+  VIEWS.forEach((vw,k)=>vw._btn.setAttribute('aria-pressed', k===i?'true':'false'));
+  VIEWS[i]._btn.querySelector('.txt2').textContent = viewLabel(VEHICLES[cur], VIEWS[i].id);
+  if(garage) garage.view(VIEWS[i], user!==false);
+}
+function syncViewLabels(){
+  VIEWS.forEach(vw=>{ vw._btn.querySelector('.txt2').textContent =
+    viewLabel(VEHICLES[cur], vw.id); });
+}
+function initialBay(){
+  const h=decodeURIComponent(location.hash.replace(/^#/,'')).trim();
+  if(!h) return 0;
+  const byId=VEHICLES.findIndex(v=>v.id===h);
+  if(byId>=0) return byId;
+  const n=parseInt(h,10);
+  return (n>=1&&n<=VEHICLES.length)?n-1:0;
+}
+addEventListener('hashchange',()=>{ const i=initialBay(); if(i!==cur) select(i); });
+function select(i){
+  if(i===cur && garage && garage.ready) return;
+  cur=(i+VEHICLES.length)%VEHICLES.length;
+  const v=VEHICLES[cur];
+  VEHICLES.forEach((x,k)=>x._btn.setAttribute('aria-current', k===cur?'true':'false'));
+  v._btn.scrollIntoView({block:'nearest',inline:'nearest',
+    behavior: RM.matches ? 'auto' : 'smooth'});
+  $('#hudNo').textContent=v.no;
+  paintIx = v._paintIx ?? 0;
+  renderSheet(v); renderChips(v); syncViewLabels();
+  if(location.hash!=='#'+v.id) history.replaceState(null,'','#'+v.id);
+  const p=v.paints[paintIx];
+  $('#paintName').innerHTML=`<b>${p.n}</b>`;
+  const a=applyAccent(p.c);
+  if(garage) garage.show(v, p, a.obj);
+}
+let garage = null;
+
+/* ---------- 键盘 / 抽屉 / 工具 ---------- */
+addEventListener('keydown', (e)=>{
+  if(e.metaKey||e.ctrlKey||e.altKey) return;
+  const t=e.target;
+  if(t && (t.tagName==='INPUT'||t.tagName==='TEXTAREA'||t.isContentEditable)) return;
+  if(e.key>='1'&&e.key<='9'){ const i=+e.key-1; if(i<VEHICLES.length){select(i);e.preventDefault();} }
+  else if(e.key==='ArrowRight'){ select(cur+1); e.preventDefault(); }
+  else if(e.key==='ArrowLeft'){ select(cur-1); e.preventDefault(); }
+  else if(e.key==='r'||e.key==='R'){ setView(0,true); }
+  else if(e.key===' '){ if(t===document.body||t===document.documentElement){
+      toggleSpin(); e.preventDefault(); } }
+});
+const btnSheet=$('#btnSheet');
+btnSheet.addEventListener('click',()=>{
+  const open=!sheet.classList.contains('open');
+  sheet.classList.toggle('open',open);
+  btnSheet.setAttribute('aria-expanded', String(open));
+});
+$('#btnSheetClose').addEventListener('click',()=>{
+  sheet.classList.remove('open');
+  btnSheet.setAttribute('aria-expanded','false'); btnSheet.focus();
+});
+function toggleSpin(){
+  const b=$('#btnSpin'), on=b.getAttribute('aria-pressed')!=='true';
+  b.setAttribute('aria-pressed', String(on));
+  if(garage) garage.spin=on;
+}
+$('#btnSpin').addEventListener('click', toggleSpin);
+$('#btnRider').addEventListener('click',()=>{
+  const b=$('#btnRider'), on=b.getAttribute('aria-pressed')!=='true';
+  b.setAttribute('aria-pressed', String(on));
+  if(garage) garage.setRider(on);
+});
+$('#btnReset').addEventListener('click',()=>setView(0,true));
+$('#btnShot').addEventListener('click',()=>{
+  if(!garage){ return; }
+  garage.render();
+  const a=document.createElement('a');
+  a.download=`kun-garage-${VEHICLES[cur].id}-${VEHICLES[cur].paints[paintIx].n}.png`;
+  a.href=$('#gl').toDataURL('image/png'); a.click();
+});
+if(RM.matches){ const b=$('#btnSpin'); b.setAttribute('aria-pressed','false'); }
+/* =====================================================================
+   3D 引擎
+   ===================================================================== */
+let T = null;
+const V3=(x,y,z)=>new T.Vector3(x,y,z);
+function mesh(g,m,o={}){
+  const x=new T.Mesh(g,m);
+  if(o.p) x.position.set(o.p[0],o.p[1],o.p[2]);
+  if(o.r) x.rotation.set(o.r[0],o.r[1],o.r[2]);
+  if(o.s!=null) Array.isArray(o.s)?x.scale.set(o.s[0],o.s[1],o.s[2]):x.scale.setScalar(o.s);
+  x.castShadow=o.cast!==false; x.receiveShadow=o.recv!==false;
+  if(o.parent) o.parent.add(x);
+  return x;
+}
+const grp=(parent,p)=>{ const g=new T.Group(); if(p)g.position.set(p[0],p[1],p[2]);
+  if(parent)parent.add(g); return g; };
+const both=(fn)=>{ fn(1); fn(-1); };
+
+const gBox=(w,h,d)=>new T.BoxGeometry(w,h,d);
+const gCyl=(rt,rb,h,s=22,open=false)=>new T.CylinderGeometry(rt,rb,h,s,1,open);
+const gSph=(r,w=22,h=16,ps,pl,ts,tl)=>new T.SphereGeometry(r,w,h,ps,pl,ts,tl);
+const gCap=(r,l,c=5,s=14)=>new T.CapsuleGeometry(r,l,c,s);
+const gTor=(r,t,rs=12,ts=28,arc=Math.PI*2)=>new T.TorusGeometry(r,t,rs,ts,arc);
+const gCircle=(r,s=52)=>new T.CircleGeometry(r,s);
+const gLathe=(p,s=30)=>new T.LatheGeometry(p.map(q=>new T.Vector2(q[0],q[1])),s);
+function gTube(pts,r,seg=40,rs=8){
+  return new T.TubeGeometry(new T.CatmullRomCurve3(pts.map(p=>V3(p[0],p[1],p[2]))),seg,r,rs,false);
+}
+function gRBox(w,h,d,r=.05){
+  r=Math.min(r,w/2-1e-3,h/2-1e-3);
+  const s=new T.Shape(), bw=w/2-r, bh=h/2-r;
+  s.moveTo(-bw,-h/2); s.lineTo(bw,-h/2);
+  s.quadraticCurveTo(w/2,-h/2,w/2,-bh); s.lineTo(w/2,bh);
+  s.quadraticCurveTo(w/2,h/2,bw,h/2); s.lineTo(-bw,h/2);
+  s.quadraticCurveTo(-w/2,h/2,-w/2,bh); s.lineTo(-w/2,-bh);
+  s.quadraticCurveTo(-w/2,-h/2,-bw,-h/2);
+  const bv=Math.min(r,d/2*0.85);
+  const g=new T.ExtrudeGeometry(s,{depth:Math.max(1e-3,d-bv*2),bevelEnabled:true,
+    bevelSize:bv,bevelThickness:bv,bevelSegments:3,curveSegments:7,steps:1});
+  g.translate(0,0,-(d/2-bv)); g.computeVertexNormals();
+  return g;
+}
+/* ---------- 放样（loft）：车身、车厢、玻璃带都由截面族生成 ---------- */
+function loft(rings, cap=true){
+  const R=rings.length, N=rings[0].length, pos=[], idx=[];
+  for(const r of rings) for(const p of r) pos.push(p.x,p.y,p.z);
+  for(let i=0;i<R-1;i++) for(let j=0;j<N;j++){
+    const j2=(j+1)%N, a=i*N+j, b=i*N+j2, c=(i+1)*N+j2, d=(i+1)*N+j;
+    idx.push(a,c,b, a,d,c);
+  }
+  if(cap){
+    const mid=(ring)=>{ const v=V3(0,0,0); ring.forEach(p=>v.add(p));
+      return v.multiplyScalar(1/ring.length); };
+    let base=pos.length/3; const c0=mid(rings[0]);
+    pos.push(c0.x,c0.y,c0.z);
+    for(let j=0;j<N;j++) idx.push(base, j, (j+1)%N);
+    base=pos.length/3; const c1=mid(rings[R-1]);
+    pos.push(c1.x,c1.y,c1.z);
+    const off=(R-1)*N;
+    for(let j=0;j<N;j++) idx.push(base, off+(j+1)%N, off+j);
+  }
+  const g=new T.BufferGeometry();
+  g.setAttribute('position',new T.Float32BufferAttribute(pos,3));
+  g.setIndex(idx); g.computeVertexNormals();
+  return g;
+}
+function loftStrip(rings){
+  const R=rings.length, N=rings[0].length, pos=[], idx=[];
+  for(const r of rings) for(const p of r) pos.push(p.x,p.y,p.z);
+  for(let i=0;i<R-1;i++) for(let j=0;j<N-1;j++){
+    const a=i*N+j, b=i*N+j+1, c=(i+1)*N+j+1, d=(i+1)*N+j;
+    idx.push(a,c,b, a,d,c);
+  }
+  const g=new T.BufferGeometry();
+  g.setAttribute('position',new T.Float32BufferAttribute(pos,3));
+  g.setIndex(idx); g.computeVertexNormals();
+  return g;
+}
+/* 截面：上下半分别用不同指数的超椭圆，tum 控制上部内收（车顶收窄） */
+const SDEF={nT:2.7,nB:2.9,tum:.18};
+const SKEYS=['x','a','yc','bT','bB','nT','nB','tum'];
+const smoothT=(a,b,v)=>{ const t=Math.min(1,Math.max(0,(v-a)/(b-a||1e-6)));
+  return t*t*(3-2*t); };
+function section(st,N,t0,t1,off=0,wells=null){
+  const pts=[], full=(t0==null);
+  for(let i=0;i<N;i++){
+    const t = full ? i/N*Math.PI*2 : t0+(t1-t0)*(i/(N-1));
+    const ct=Math.cos(t), sn=Math.sin(t), up=sn>=0;
+    const e=2/(up?st.nT:st.nB), b=up?st.bT:st.bB;
+    let z=st.a*Math.sign(ct)*Math.pow(Math.abs(ct),e);
+    let y=st.yc + b*Math.sign(sn)*Math.pow(Math.abs(sn),e);
+    if(up && st.tum) z*=1-st.tum*Math.pow(sn,1.35);
+    if(wells) for(const w of wells){
+      const dx=st.x-w.cx;
+      if(Math.abs(dx)<w.r){
+        const arch=w.y+Math.sqrt(w.r*w.r-dx*dx);
+        if(arch>y){
+          const k=smoothT(st.a*.40,st.a*.80,Math.abs(z));
+          if(k>0) y+=k*(arch-y);
+        }
+      }
+    }
+    if(off){ const dz=z, dy=y-st.yc, L=Math.hypot(dz,dy)||1;
+      z+=dz/L*off; y+=dy/L*off; }
+    pts.push(V3(st.x,y,z));
+  }
+  return pts;
+}
+function crv(a,u){
+  const n=a.length-1, t=u*n, i=Math.min(Math.floor(t),n-1), f=t-i;
+  const p0=a[Math.max(0,i-1)], p1=a[i], p2=a[i+1], p3=a[Math.min(n,i+2)];
+  return .5*(2*p1 + (-p0+p2)*f + (2*p0-5*p1+4*p2-p3)*f*f + (-p0+3*p1-3*p2+p3)*f*f*f);
+}
+function densify(sts,n){
+  const col={}; SKEYS.forEach(k=>col[k]=sts.map(s=>s[k]!==undefined?s[k]:SDEF[k]));
+  const out=[];
+  for(let i=0;i<n;i++){ const u=i/(n-1), o={}; SKEYS.forEach(k=>o[k]=crv(col[k],u)); out.push(o); }
+  return out;
+}
+function bodyGeo(sts,{N=52,D=40,wells=null}={}){
+  return loft(densify(sts,D).map(s=>section(s,N,null,null,0,wells)),true);
+}
+function bandGeo(sts,x0,x1,t0,t1,{N=26,D=16,off=.008}={}){
+  const fine=densify(sts,260).filter(s=>s.x>=Math.min(x0,x1)&&s.x<=Math.max(x0,x1));
+  if(fine.length<2) return null;
+  const rings=[];
+  for(let i=0;i<D;i++) rings.push(section(fine[Math.round(i/(D-1)*(fine.length-1))],N,t0,t1,off));
+  return loftStrip(rings);
+}
+/* ---------- 画布贴图 ---------- */
+function cv(w,h){ const c=document.createElement('canvas'); c.width=w; c.height=h;
+  return [c,c.getContext('2d')]; }
+function tex(c,{rx=1,ry=1,srgb=true}={}){
+  const t2=new T.CanvasTexture(c);
+  t2.wrapS=t2.wrapT=T.RepeatWrapping; t2.repeat.set(rx,ry);
+  t2.anisotropy=4; if(srgb) t2.colorSpace=T.SRGBColorSpace;
+  return t2;
+}
+const TEX={};
+function texFloor(){
+  if(TEX.floor) return TEX.floor;
+  const [c,x]=cv(1024,1024);
+  x.fillStyle='#080b0c'; x.fillRect(0,0,1024,1024);
+  const g=x.createRadialGradient(512,512,40,512,512,512);
+  g.addColorStop(0,'#1a2125'); g.addColorStop(.34,'#0e1315');
+  g.addColorStop(1,'#050708');
+  x.fillStyle=g; x.fillRect(0,0,1024,1024);
+  x.globalAlpha=.10; x.strokeStyle='#8fa0aa';
+  for(let r=60;r<512;r+=52){ x.lineWidth=r%104===8?2:1;
+    x.beginPath(); x.arc(512,512,r,0,7); x.stroke(); }
+  x.globalAlpha=1;
+  for(let i=0;i<26000;i++){
+    const a=Math.random()*.05;
+    x.fillStyle=`rgba(${Math.random()>.5?'255,255,255':'0,0,0'},${a})`;
+    x.fillRect(Math.random()*1024,Math.random()*1024,2,2);
+  }
+  return TEX.floor=tex(c);
+}
+function texBlob(){
+  if(TEX.blob) return TEX.blob;
+  const [c,x]=cv(256,256);
+  const g=x.createRadialGradient(128,128,4,128,128,126);
+  g.addColorStop(0,'rgba(0,0,0,.92)'); g.addColorStop(.45,'rgba(0,0,0,.5)');
+  g.addColorStop(1,'rgba(0,0,0,0)');
+  x.fillStyle=g; x.fillRect(0,0,256,256);
+  return TEX.blob=tex(c,{srgb:false});
+}
+function texTread(knob){
+  const k=knob?'k':'s';
+  if(TEX['tread'+k]) return TEX['tread'+k];
+  const [c,x]=cv(64,128);
+  x.fillStyle='#7d7d7d'; x.fillRect(0,0,64,128);
+  x.fillStyle='#131313';
+  if(knob){ for(let i=0;i<8;i++){ const y=i*16+((i%2)*6);
+      x.fillRect(6,y,20,10); x.fillRect(38,y+8,20,10); } }
+  else { x.fillRect(0,0,64,7); x.fillRect(0,34,64,5);
+    for(let i=0;i<8;i++) x.fillRect(8+i*7,64,4,64); }
+  return TEX['tread'+k]=tex(c,{rx:1,ry:1,srgb:false});
+}
+function texStripe(){
+  if(TEX.stripe) return TEX.stripe;
+  const [c,x]=cv(128,128);
+  x.fillStyle='#f2b632'; x.fillRect(0,0,128,128);
+  x.fillStyle='#14161a'; x.lineWidth=0;
+  for(let i=-2;i<6;i++){ x.save(); x.translate(i*44,0); x.rotate(-.45);
+    x.fillRect(0,-60,22,260); x.restore(); }
+  return TEX.stripe=tex(c);
+}
+function texPlate(kind,txt){
+  const key=kind+txt; if(TEX[key]) return TEX[key];
+  const two = kind==='moto';
+  const [c,x]=cv(512, two?340:164);
+  const bg = kind==='ev' ? '#1f9d55' : kind==='moto' ? '#f0c400'
+           : kind==='yellow' ? '#f0c400' : '#12439b';
+  const fg = (kind==='moto'||kind==='yellow') ? '#101215' : '#ffffff';
+  x.fillStyle=bg; x.fillRect(0,0,c.width,c.height);
+  x.strokeStyle=fg; x.lineWidth=7; x.globalAlpha=.9;
+  x.strokeRect(11,11,c.width-22,c.height-22); x.globalAlpha=1;
+  x.fillStyle=fg; x.textAlign='center'; x.textBaseline='middle';
+  const F='700 %dpx "Microsoft YaHei","PingFang SC",system-ui,sans-serif';
+  if(two){ const p=txt.split('|');
+    x.font=F.replace('%d',108); x.fillText(p[0],256,96);
+    x.font=F.replace('%d',150); x.fillText(p[1],256,232);
+  } else { x.font=F.replace('%d',110); x.fillText(txt,256,88); }
+  return TEX[key]=tex(c);
+}
+/* ---------- 材质 ---------- */
+const glowM=(c,i,rough)=>new T.MeshStandardMaterial({color:c,emissive:c,
+  emissiveIntensity:i,roughness:rough??.34,metalness:0});
+function newMats(){
+  const M={};
+  M.paint =new T.MeshPhysicalMaterial({color:0xcccccc,metalness:.42,roughness:.19,
+    clearcoat:1,clearcoatRoughness:.045,envMapIntensity:1.3});
+  M.paint2=new T.MeshPhysicalMaterial({color:0x333333,metalness:.5,roughness:.2,
+    clearcoat:1,clearcoatRoughness:.05,envMapIntensity:1.35});
+  M.glass =new T.MeshPhysicalMaterial({color:0x070a0d,metalness:.28,roughness:.045,
+    transparent:true,opacity:.86,side:T.DoubleSide,envMapIntensity:1.25,
+    clearcoat:1,clearcoatRoughness:.03});
+  M.glassL=new T.MeshPhysicalMaterial({color:0xd9e6ef,metalness:0,roughness:.05,
+    transparent:true,opacity:.30,side:T.DoubleSide,envMapIntensity:2.4});
+  M.chrome=new T.MeshStandardMaterial({color:0xe2e7ea,metalness:1,roughness:.075,
+    envMapIntensity:2});
+  M.alloy =new T.MeshStandardMaterial({color:0xb4bbc0,metalness:.95,roughness:.25,
+    envMapIntensity:1.6});
+  M.alloyD=new T.MeshStandardMaterial({color:0x4e5459,metalness:.88,roughness:.4,
+    envMapIntensity:1.2});
+  M.trim  =new T.MeshStandardMaterial({color:0x1d2124,metalness:.5,roughness:.44,
+    envMapIntensity:.95});
+  M.matte =new T.MeshStandardMaterial({color:0x131619,metalness:.12,roughness:.82});
+  M.grille=new T.MeshStandardMaterial({color:0x0b0d0f,metalness:.6,roughness:.5});
+  M.leather=new T.MeshStandardMaterial({color:0x26231f,metalness:.05,roughness:.7});
+  M.carbon=new T.MeshStandardMaterial({color:0x181b1e,metalness:.55,roughness:.34});
+  M.caliper=new T.MeshStandardMaterial({color:0xb0342a,metalness:.35,roughness:.45});
+  M.disc  =new T.MeshStandardMaterial({color:0x6e767b,metalness:.9,roughness:.35});
+  M.white =glowM(0xf8f4ee,1.75); M.red=glowM(0xe8231a,1.9);
+  M.amber =glowM(0xf09512,1.8); M.cool=glowM(0x8fdcff,1.7);
+  const t1=texTread(false).clone(); t1.needsUpdate=true; t1.repeat.set(30,1);
+  const t2=texTread(true).clone();  t2.needsUpdate=true; t2.repeat.set(26,1);
+  M.tire =new T.MeshStandardMaterial({color:0x0e1011,metalness:.05,roughness:.93,
+    bumpMap:t1,bumpScale:.7});
+  M.tireK=new T.MeshStandardMaterial({color:0x101213,metalness:.05,roughness:.95,
+    bumpMap:t2,bumpScale:1.5});
+  M.skin=new T.MeshStandardMaterial({color:0xf6cfae,roughness:.55,metalness:0});
+  M.cloth=new T.MeshStandardMaterial({color:0x27303a,roughness:.85,metalness:0});
+  M.cloth2=new T.MeshStandardMaterial({color:0xdfe4e8,roughness:.8,metalness:0});
+  M.hair=new T.MeshStandardMaterial({color:0x171a1e,roughness:.62,metalness:.05});
+  M.riderA=new T.MeshStandardMaterial({color:0x7fd4ff,roughness:.72,metalness:.05});
+  M.blush=new T.MeshStandardMaterial({color:0xf09a92,roughness:.7,metalness:0});
+  M.eye=new T.MeshStandardMaterial({color:0x10161c,roughness:.28,metalness:0});
+  return M;
+}
+function applyPaintTo(M,p,accentRGB){
+  const lum=(v)=>(0.2126*(v>>16&255)+0.7152*(v>>8&255)+0.0722*(v&255))/255;
+  const setP=(mat,hex,finish)=>{
+    mat.color.setHex(hex);
+    const L=lum(hex), matte=finish==='matte';
+    mat.metalness = matte ? .22 : (L>.62 ? .26 : L>.24 ? .42 : .52);
+    mat.roughness = matte ? .60 : .19;
+    mat.clearcoat = matte ? .3 : 1;
+    mat.clearcoatRoughness = matte ? .42 : .045;
+    mat.needsUpdate=true;
+  };
+  setP(M.paint,p.c,p.f);
+  setP(M.paint2,p.c2!=null?p.c2:p.c,p.f);
+  if(accentRGB){
+    M.cool.color.setRGB(accentRGB[0]/255,accentRGB[1]/255,accentRGB[2]/255);
+    M.cool.emissive.copy(M.cool.color);
+    M.riderA.color.setRGB(accentRGB[0]/255,accentRGB[1]/255,accentRGB[2]/255);
+  }
+}
+
+/* ---------- 轮组（局部坐标：轮轴 = Z 轴） ---------- */
+function makeWheel(M,o){
+  const {r=.34,w=.24,style='spoke5',knob=false,spokes=5,
+         rim=null,disc=true,cal=true,dish=0} = o;
+  const g=new T.Group(), rr=rim ?? r*.66, sw=w/2;
+  const tp=[[rr*.99,-sw*.86],[rr+(r-rr)*.45,-sw*.99],[r*.985,-sw*.84],[r,-sw*.5],
+            [r,sw*.5],[r*.985,sw*.84],[rr+(r-rr)*.45,sw*.99],[rr*.99,sw*.86]];
+  mesh(gLathe(tp,46),knob?M.tireK:M.tire,{parent:g,r:[Math.PI/2,0,0]});
+  mesh(gCyl(rr,rr,w*.9,40,true),M.alloyD,{parent:g,r:[Math.PI/2,0,0]});
+  both(s=>mesh(gTor(rr*.99,w*.048,8,44),M.alloy,{parent:g,p:[0,0,s*sw*.88]}));
+  const fz=sw*.62-dish;                      /* 轮辐所在平面 */
+  const A=(i,n)=>i/n*Math.PI*2;
+  if(style==='wire'){
+    mesh(gCyl(rr*.16,rr*.16,w*.5,18),M.alloy,{parent:g,r:[Math.PI/2,0,0]});
+    for(let i=0;i<32;i++){
+      const a=A(i,32), sd=i%2?1:-1;
+      const sp=mesh(gCyl(.006,.006,rr*.98,5),M.chrome,{parent:g});
+      sp.position.set(Math.cos(a)*rr*.5,Math.sin(a)*rr*.5,sd*w*.16);
+      sp.rotation.z=a-Math.PI/2; sp.rotation.x=sd*.12; sp.castShadow=false;
+    }
+    mesh(gTor(rr*.995,.014,7,48),M.alloy,{parent:g});
+  } else if(style==='aero'){
+    mesh(gCyl(rr*.99,rr*.99,.03,44),M.paint,{parent:g,p:[0,0,fz],r:[Math.PI/2,0,0]});
+    for(let i=0;i<10;i++){
+      const a=A(i,10);
+      const s2=mesh(gRBox(rr*.62,rr*.2,.022,.03),M.trim,
+        {parent:g,p:[Math.cos(a)*rr*.6,Math.sin(a)*rr*.6,fz+.02],r:[0,0,a+.42]});
+      s2.castShadow=false;
+    }
+    mesh(gCyl(rr*.3,rr*.3,.05,26),M.alloy,{parent:g,p:[0,0,fz+.02],r:[Math.PI/2,0,0]});
+  } else if(style==='steel'){
+    mesh(gCyl(rr*.97,rr*.97,.03,40),M.alloyD,{parent:g,p:[0,0,fz-.04],r:[Math.PI/2,0,0]});
+    mesh(gCyl(rr*.52,rr*.56,.055,32),M.chrome,{parent:g,p:[0,0,fz+.01],r:[Math.PI/2,0,0]});
+    for(let i=0;i<5;i++){ const a=A(i,5);
+      mesh(gCyl(rr*.13,rr*.13,.05,16),M.matte,
+        {parent:g,p:[Math.cos(a)*rr*.72,Math.sin(a)*rr*.72,fz-.03],r:[Math.PI/2,0,0]}); }
+  } else {
+    const n = style==='twin10'?10 : style==='moto3'?3 : spokes;
+    const thick = style==='moto3'?.085:.06;
+    for(let i=0;i<n;i++){
+      const a=A(i,n);
+      if(style==='twin10'){
+        [-1,1].forEach(k=>{ const s2=mesh(gRBox(rr*.86,.05,.05,.02),M.alloy,
+          {parent:g,p:[Math.cos(a)*rr*.44,Math.sin(a)*rr*.44,fz-.01],r:[0,0,a+k*.1]});
+          s2.castShadow=false; });
+      } else {
+        mesh(gRBox(rr*.9,thick*2,.06,.025),M.alloy,
+          {parent:g,p:[Math.cos(a)*rr*.45,Math.sin(a)*rr*.45,fz-.01],r:[0,0,a]});
+      }
+    }
+    mesh(gCyl(rr*.26,rr*.26,.07,26),M.alloy,{parent:g,p:[0,0,fz-.01],r:[Math.PI/2,0,0]});
+    mesh(gCyl(rr*.12,rr*.12,.085,18),M.trim,{parent:g,p:[0,0,fz+.02],r:[Math.PI/2,0,0]});
+  }
+  if(disc){
+    mesh(gCyl(r*.60,r*.60,.016,34),M.disc,{parent:g,p:[0,0,-sw*.42],r:[Math.PI/2,0,0]});
+    mesh(gCyl(r*.26,r*.26,.03,20),M.alloyD,{parent:g,p:[0,0,-sw*.42],r:[Math.PI/2,0,0]});
+  }
+  if(cal) mesh(gRBox(.075,r*.42,w*.34,.02),M.caliper,
+    {parent:g,p:[-r*.5,r*.42,-sw*.42]});
+  return g;
+}
+/* ---------- Q 版车主 KUN（面向 +X；四头身，肢长可按车型微调） ---------- */
+const POSE={
+  bike:  {lean:.70,sh:[2.030,1.990],el:[-.20,-.22],hip:[.78,.62],knee:[-.78,-.94],arm:1.39,leg:1.45},
+  moto:  {lean:.78,sh:[2.090,2.055],el:[-.20,-.22],hip:[1.10,1.07],knee:[-1.10,-1.07],arm:1.46,leg:1.20},
+  scoot: {lean:.35,sh:[1.730,1.700],el:[-.16,-.18],hip:[.85,.82],knee:[-.85,-.82],arm:1.64,leg:1.25},
+  sit:   {lean:.10,sh:[1.600,1.575],el:[-.10,-.12],hip:[1.05,1.02],knee:[-1.05,-1.02],arm:1.45,leg:1.10},
+  stand: {lean:.02,sh:[.18,-2.42],el:[-.16,-.60],hip:[.07,-.06],knee:[-.12,-.10],arm:1.00,leg:1.00},
+  hero:  {lean:.00,sh:[.34,-.34],el:[-.22,-.22],hip:[.12,-.12],knee:[-.08,-.08],arm:1.00,leg:1.00}
+};
+function makeRider(M,{pose='stand',helmet='none',jersey='a'}={}){
+  const P=POSE[pose]||POSE.stand, A=P.arm, L=P.leg;
+  const root=new T.Group(), rig={root};
+  const jm = jersey==='a' ? M.riderA : M.cloth;
+  const torso=grp(root); rig.torso=torso; torso.rotation.z=-P.lean;
+  mesh(gCap(.158,.185),jm,{parent:torso,p:[0,.20,0]});
+  mesh(gCyl(.138,.155,.075,20),M.cloth,{parent:torso,p:[0,.055,0]});
+  both(s=>mesh(gRBox(.036,.23,.02,.008),M.cloth,{parent:torso,p:[.122,.215,s*.062]}));
+  const neck=grp(torso,[0,.365,0]);
+  mesh(gCyl(.062,.072,.06,14),M.skin,{parent:neck,p:[0,.012,0]});
+  const head=grp(neck,[0,.07,0]); rig.head=head; head.scale.setScalar(.86);
+  mesh(gSph(.21,28,22),M.skin,{parent:head,p:[.014,.16,0],s:[1,1.04,.98]});
+  if(helmet!=='full'){
+    both(s=>{
+      mesh(gSph(.043,16,12),M.eye,{parent:head,p:[.182,.178,s*.081],s:[.5,1,.86],cast:false});
+      mesh(gSph(.016,10,8),M.cloth2,{parent:head,p:[.211,.206,s*.097],s:[.6,1,1],cast:false});
+      mesh(gSph(.033,12,10),M.blush,{parent:head,p:[.180,.104,s*.129],s:[.34,.62,.9],cast:false});
+    });
+    const mouth=mesh(gTor(.038,.010,7,16,Math.PI*.72),M.eye,
+      {parent:head,p:[.196,.092,0],cast:false});
+    mouth.rotation.set(0,Math.PI/2,Math.PI*1.15);
+    both(s=>mesh(gRBox(.062,.014,.014,.006),M.hair,
+      {parent:head,p:[.186,.243,s*.081],r:[0,0,s*.12]}));
+  }
+  addHelmet(M,head,helmet);
+  both(s=>{
+    const i=s>0?0:1, sh=grp(torso,[0,.335,s*.165]);
+    sh.rotation.z=P.sh[i]; sh.rotation.x=s*.15;
+    mesh(gCap(.062,.17*A),jm,{parent:sh,p:[0,-(.085*A+.03),0]});
+    const el2=grp(sh,[0,-(.17*A+.06),0]); el2.rotation.z=P.el[i];
+    mesh(gCap(.055,.16*A),M.skin,{parent:el2,p:[0,-(.08*A+.028),0]});
+    mesh(gSph(.07,14,12),M.cloth,{parent:el2,p:[0,-(.16*A+.055),0]});
+    const hp=grp(root,[0,-.035,s*.095]); hp.rotation.z=P.hip[i]; hp.rotation.x=s*.05;
+    mesh(gCap(.075,.17*L),M.cloth,{parent:hp,p:[0,-(.085*L+.03),0]});
+    const kn=grp(hp,[0,-.235*L,0]); kn.rotation.z=P.knee[i];
+    mesh(gCap(.062,.16*L),M.cloth,{parent:kn,p:[0,-(.08*L+.028),0]});
+    mesh(gRBox(.205,.075,.118,.032),M.matte,{parent:kn,p:[.038,-.245*L,0]});
+    mesh(gRBox(.14,.032,.118,.016),M.riderA,{parent:kn,p:[.006,-.272*L,0]});
+  });
+  return {root,rig};
+}
+function addHelmet(M,head,kind){
+  if(kind==='none'){
+    const h=mesh(gSph(.219,26,20,0,Math.PI*2,0,Math.PI*.62),M.hair,
+      {parent:head,p:[.010,.168,0],s:[1,1.02,1]});
+    mesh(gSph(.074,12,10),M.hair,{parent:head,p:[.12,.325,.036],s:[1,.7,.9]});
+    return h;
+  }
+  if(kind==='straw'){
+    mesh(gLathe([[0,.050],[.10,.042],[.216,.004],[.295,-.014],[.30,-.032],[.20,-.014],
+      [.082,.032],[0,.036]],28),M.cloth2,{parent:head,p:[.012,.286,0]});
+    mesh(gTor(.132,.018,8,26),M.trim,{parent:head,p:[.012,.262,0],r:[Math.PI/2,0,0]});
+    return;
+  }
+  if(kind==='cap'){
+    mesh(gSph(.218,22,16,0,Math.PI*2,0,Math.PI*.55),M.riderA,{parent:head,p:[.010,.175,0]});
+    mesh(gRBox(.18,.026,.24,.012),M.riderA,{parent:head,p:[.24,.238,0],r:[0,0,-.14]});
+    return;
+  }
+  const shell=mesh(gSph(.235,28,22,0,Math.PI*2,0,Math.PI*.60),M.paint2,
+    {parent:head,p:[.010,.165,0],s:[1,1.05,1]});
+  mesh(gSph(.239,28,22,0,Math.PI*2,Math.PI*.42,Math.PI*.30),M.paint2,
+    {parent:head,p:[.010,.165,0],s:[1,1.05,1]});
+  const vis=mesh(gSph(.244,28,22,-1.02,2.04,Math.PI*.30,Math.PI*.34),M.glass,
+    {parent:head,p:[.010,.165,0],s:[1,1.05,1]});
+  vis.rotation.y=Math.PI;
+  if(kind==='mtb'){
+    for(let i=0;i<3;i++) mesh(gRBox(.12,.036,.066,.016),M.trim,
+      {parent:head,p:[.12-i*.09,.36-i*.014,0],r:[0,0,.1]});
+    mesh(gRBox(.10,.02,.24,.01),M.trim,{parent:head,p:[.24,.238,0],r:[0,0,-.28]});
+    return shell;
+  }
+  if(kind==='full'){
+    mesh(gRBox(.17,.13,.24,.06),M.paint2,{parent:head,p:[.18,.066,0]});
+    mesh(gRBox(.06,.066,.138,.026),M.trim,{parent:head,p:[.258,.054,0]});
+    mesh(gTor(.066,.014,8,20,Math.PI),M.paint,{parent:head,p:[.12,.36,0],r:[0,Math.PI/2,0]});
+  } else {
+    mesh(gTor(.182,.017,8,26),M.trim,{parent:head,p:[.010,.12,0],r:[1.42,0,0]});
+  }
+  return shell;
+}
+/* ---------- 通用装配件 ---------- */
+function putWheel(parent,M,o,x,y,z){
+  const w=makeWheel(M,o); w.position.set(x,y,z);
+  if(z<0) w.rotation.y=Math.PI;
+  parent.add(w); return w;
+}
+function archLip(parent,mat,x,y,z,r,w,t=.024){
+  const m=mesh(gTor(r,t,8,30,Math.PI),mat,{parent,p:[x,y,z]});
+  m.scale.z=Math.max(1,w/(2*t)); m.castShadow=false;
+  return m;
+}
+function plateMesh(kind,txt,w,h){
+  const g=new T.Group();
+  const m=new T.MeshStandardMaterial({map:texPlate(kind,txt),roughness:.5,metalness:.08});
+  mesh(new T.PlaneGeometry(w,h),m,{parent:g,p:[0,0,.006],cast:false});
+  mesh(gRBox(w,h,.012,.008),new T.MeshStandardMaterial({color:0x2a2e31,roughness:.6}),
+    {parent:g});
+  return g;
+}
+
+/* =====================================================================
+   01 · 捷安特 ATX 860
+   ===================================================================== */
+function buildATX(M){
+  const g=new T.Group();
+  const R=.35, tw=.056, ax=.56, bb=[-.14,.305];
+  const F=(a,r)=>mesh(gTube(a,r,26,8),M.paint,{parent:g});
+  const ht=[[.455,.99],[.505,.775]];                 /* 头管 */
+  const stTop=[-.300,.870];
+  F([[bb[0],bb[1],0],[.10,.44,0],[.36,.62,0],[ht[1][0]-.02,ht[1][1]+.02,0]],.028);
+  F([[stTop[0],stTop[1],0],[.06,.95,0],[ht[0][0]-.02,ht[0][1]-.008,0]],.024);
+  F([[bb[0],bb[1],0],[-.20,.55,0],[stTop[0],stTop[1],0],[-.312,.925,0]],.026);
+  mesh(gCyl(.036,.036,.235,18),M.paint,{parent:g,p:[.48,.882,0],r:[0,0,-.24]});
+  both(s=>{
+    F([[bb[0]+.02,bb[1]-.01,s*.035],[-.30,.345,s*.058],[-ax+.02,.352,s*.055]],.017);
+    F([[stTop[0]+.01,stTop[1]-.03,s*.02],[-.44,.66,s*.045],[-ax+.02,.356,s*.05]],.014);
+  });
+  putWheel(g,M,{r:R,w:tw,style:'wire',knob:true,rim:R*.83,disc:true,cal:true},-ax,R,0);
+  putWheel(g,M,{r:R,w:tw,style:'wire',knob:true,rim:R*.83,disc:true,cal:true}, ax,R,0);
+  /* 前叉（100 mm 行程） */
+  mesh(gRBox(.10,.055,.20,.02),M.matte,{parent:g,p:[.518,.712,0]});
+  both(s=>{
+    mesh(gCyl(.019,.019,.215,14),M.chrome,{parent:g,p:[.532,.60,s*.075],r:[0,0,-.07]});
+    mesh(gCyl(.026,.024,.20,14),M.paint2,{parent:g,p:[.552,.435,s*.075],r:[0,0,-.05]});
+    mesh(gRBox(.045,.055,.026,.01),M.matte,{parent:g,p:[.561,.352,s*.075]});
+  });
+  /* 车把 / 把立 / 刹把 */
+  mesh(gRBox(.115,.036,.05,.016),M.paint2,{parent:g,p:[.505,1.028,0],r:[0,0,-.12]});
+  mesh(gTube([[.53,1.045,-.30],[.545,1.052,-.10],[.545,1.052,.10],[.53,1.045,.30]],
+    .014,20,8),M.paint2,{parent:g});
+  both(s=>{
+    mesh(gCyl(.019,.019,.115,14),M.matte,{parent:g,p:[.534,1.046,s*.245],r:[Math.PI/2,0,0]});
+    mesh(gRBox(.085,.018,.016,.007),M.chrome,{parent:g,p:[.575,1.028,s*.185],r:[0,-s*.2,-.1]});
+    mesh(gRBox(.03,.028,.05,.01),M.matte,{parent:g,p:[.545,1.03,s*.155]});
+  });
+  mesh(gCyl(.035,.035,.028,18),M.cool,{parent:g,p:[.60,.985,0],r:[0,0,Math.PI/2]});
+  /* 座垫 / 座管 */
+  mesh(gCyl(.017,.017,.13,14),M.chrome,{parent:g,p:[-.318,.945,0],r:[0,0,.075]});
+  const sd=mesh(gLathe([[0,.028],[.055,.024],[.085,.008],[.09,-.012],[.03,-.02],[0,-.02]],20),
+    M.leather,{parent:g,p:[-.330,1.005,0]});
+  sd.scale.set(1.55,1,.85); sd.rotation.y=Math.PI/2;
+  mesh(gRBox(.19,.026,.075,.026),M.leather,{parent:g,p:[-.292,1.002,0],r:[0,0,-.06]});
+  /* 传动 */
+  mesh(gTor(.105,.008,7,34),M.alloy,{parent:g,p:[bb[0],bb[1],.058]});
+  mesh(gCyl(.03,.03,.115,16),M.alloyD,{parent:g,p:[bb[0],bb[1],0],r:[Math.PI/2,0,0]});
+  both(s=>{
+    mesh(gRBox(.028,.185,.018,.008),M.alloy,
+      {parent:g,p:[bb[0]+s*.035,bb[1]-s*.055,s*.075],r:[0,0,s*.38]});
+    mesh(gRBox(.095,.02,.055,.008),M.matte,
+      {parent:g,p:[bb[0]+s*.10,bb[1]-s*.155,s*.115]});
+  });
+  mesh(gCyl(.055,.055,.03,20),M.alloyD,{parent:g,p:[-ax,R,.052],r:[Math.PI/2,0,0]});
+  mesh(gRBox(.72,.012,.008,.004),M.alloyD,{parent:g,p:[-.35,.352,.055]});
+  mesh(gRBox(.60,.012,.008,.004),M.alloyD,{parent:g,p:[-.30,.278,.055]});
+  mesh(gRBox(.05,.10,.03,.012),M.matte,{parent:g,p:[-.52,.245,.06],r:[0,0,.2]});
+  mesh(gRBox(.045,.075,.028,.01),M.matte,{parent:g,p:[.02,.60,.03],r:[0,0,-.5]});
+  return {group:g, rider:{pose:'bike',helmet:'mtb',p:[-.22,.98,0]}};
+}
+/* =====================================================================
+   02 · 小牛 NIU N1S
+   ===================================================================== */
+function buildNIU(M){
+  const g=new T.Group(), R=.28;
+  const ST=[
+    {x:-.66,a:.130,yc:.62,bT:.10,bB:.21,nT:3.0,nB:3.2,tum:.36},
+    {x:-.46,a:.170,yc:.62,bT:.13,bB:.28,nT:3.2,nB:3.0,tum:.28},
+    {x:-.26,a:.165,yc:.58,bT:.13,bB:.30,nT:3.0,nB:2.8,tum:.26},
+    {x:-.06,a:.130,yc:.42,bT:.06,bB:.14,nT:2.8,nB:3.0,tum:.22},
+    {x: .16,a:.120,yc:.40,bT:.05,bB:.12,nT:2.8,nB:3.0,tum:.22},
+    {x: .34,a:.130,yc:.50,bT:.10,bB:.20,nT:3.0,nB:3.0,tum:.28},
+    {x: .49,a:.112,yc:.60,bT:.12,bB:.22,nT:3.2,nB:3.0,tum:.34}
+  ];
+  mesh(bodyGeo(ST,{N:44,D:34}),M.paint,{parent:g});
+  mesh(gRBox(.50,.035,.35,.02),M.matte,{parent:g,p:[.05,.262,0]});
+  mesh(gRBox(.44,.012,.29,.01),M.trim,{parent:g,p:[.05,.284,0]});
+  both(s=>mesh(gRBox(.46,.10,.02,.012),M.paint2,{parent:g,p:[.04,.222,s*.17]}));
+  mesh(gRBox(.56,.085,.31,.05),M.leather,{parent:g,p:[-.37,.775,0],r:[0,0,-.03]});
+  mesh(gRBox(.20,.06,.26,.035),M.leather,{parent:g,p:[-.62,.80,0],r:[0,0,.16]});
+  mesh(gRBox(.24,.03,.30,.014),M.alloyD,{parent:g,p:[-.72,.735,0],r:[0,0,.1]});
+  mesh(gTor(.115,.014,7,22),M.paint2,{parent:g,p:[-.80,.665,0],r:[0,Math.PI/2,0]});
+  mesh(gCyl(.075,.075,.03,22),M.red,{parent:g,p:[-.815,.665,0],r:[0,0,Math.PI/2]});
+  const fend=mesh(gTor(R+.045,.055,8,26,Math.PI*.68),M.paint,{parent:g,p:[-.66,R,0]});
+  fend.rotation.z=Math.PI*.16; fend.scale.z=2.6;
+  mesh(gTube([[-.50,.38,0],[-.20,.30,0],[.10,.26,0],[.36,.34,0],[.50,.50,0]],.028,26,8),
+    M.paint2,{parent:g});
+  mesh(gCyl(.045,.045,.34,18),M.matte,{parent:g,p:[.512,.735,0],r:[0,0,-.20]});
+  both(s=>{
+    mesh(gCyl(.024,.024,.30,14),M.chrome,{parent:g,p:[.585,.475,s*.085],r:[0,0,-.13]});
+    mesh(gCyl(.030,.028,.20,14),M.paint2,{parent:g,p:[.635,.335,s*.085],r:[0,0,-.10]});
+  });
+  const hl=grp(g,[.585,.905,0]);
+  mesh(gTor(.115,.026,10,30),M.paint2,{parent:hl,r:[0,Math.PI/2,0]});
+  mesh(gCyl(.10,.10,.05,26),M.white,{parent:hl,r:[0,0,Math.PI/2]});
+  mesh(gCyl(.038,.038,.06,18),M.chrome,{parent:hl,p:[.02,0,0],r:[0,0,Math.PI/2]});
+  mesh(gRBox(.10,.05,.28,.02),M.paint,{parent:g,p:[.50,1.00,0],r:[0,0,-.1]});
+  mesh(gTube([[.545,1.00,-.245],[.552,1.012,-.08],[.552,1.012,.08],[.545,1.00,.245]],
+    .016,20,8),M.paint2,{parent:g});
+  both(s=>{
+    mesh(gCyl(.021,.021,.10,14),M.matte,{parent:g,p:[.548,1.005,s*.20],r:[Math.PI/2,0,0]});
+    mesh(gRBox(.075,.016,.014,.006),M.chrome,{parent:g,p:[.585,.988,s*.15],r:[0,-s*.18,-.1]});
+    mesh(gCyl(.012,.012,.16,10),M.chrome,{parent:g,p:[.53,1.10,s*.20],r:[0,0,.15]});
+    mesh(gCyl(.05,.05,.016,18),M.trim,{parent:g,p:[.525,1.175,s*.21],r:[Math.PI/2,-.3,0]});
+  });
+  mesh(gCyl(.058,.058,.022,22),M.cool,{parent:g,p:[.50,1.032,0],r:[.35,0,0]});
+  putWheel(g,M,{r:R,w:.115,style:'twin10',rim:R*.62},-.66,R,0);
+  putWheel(g,M,{r:R,w:.105,style:'twin10',rim:R*.62}, .655,R,0);
+  const pl=plateMesh('ev','沪·KUN66',.20,.075); pl.position.set(-.87,.40,0);
+  pl.rotation.y=-Math.PI/2; pl.rotation.z=.12; g.add(pl);
+  mesh(gRBox(.03,.22,.03,.012),M.alloyD,{parent:g,p:[-.30,.20,-.19],r:[0,0,.3]});
+  return {group:g, rider:{pose:'scoot',helmet:'open',p:[-.20,.86,0]}};
+}
+/* =====================================================================
+   03 · 川崎 Ninja 400
+   ===================================================================== */
+function buildNinja(M){
+  const g=new T.Group(), RF=.293, RR=.306;
+  const FAIR=[
+    {x:.24,a:.180,yc:.66,bT:.19,bB:.19,nT:2.6,nB:2.6,tum:.18},
+    {x:.42,a:.192,yc:.68,bT:.22,bB:.22,nT:2.5,nB:2.6,tum:.22},
+    {x:.57,a:.166,yc:.72,bT:.20,bB:.24,nT:2.5,nB:2.5,tum:.28},
+    {x:.68,a:.106,yc:.74,bT:.17,bB:.20,nT:2.6,nB:2.6,tum:.36},
+    {x:.73,a:.050,yc:.75,bT:.10,bB:.12,nT:2.8,nB:2.8,tum:.40}
+  ];
+  const TANK=[
+    {x:-.18,a:.110,yc:.70,bT:.085,bB:.13,nT:2.6,nB:2.8,tum:.32},
+    {x:-.02,a:.182,yc:.70,bT:.13,bB:.16,nT:2.5,nB:2.7,tum:.26},
+    {x: .18,a:.190,yc:.70,bT:.12,bB:.18,nT:2.4,nB:2.7,tum:.26},
+    {x: .34,a:.148,yc:.70,bT:.08,bB:.16,nT:2.6,nB:2.8,tum:.30}
+  ];
+  const TAIL=[
+    {x:-.90,a:.042,yc:.755,bT:.035,bB:.045,nT:2.8,nB:2.8,tum:.42},
+    {x:-.74,a:.082,yc:.760,bT:.055,bB:.075,nT:2.7,nB:2.7,tum:.36},
+    {x:-.54,a:.124,yc:.760,bT:.070,bB:.115,nT:2.6,nB:2.6,tum:.30},
+    {x:-.34,a:.146,yc:.740,bT:.070,bB:.160,nT:2.6,nB:2.6,tum:.28},
+    {x:-.20,a:.150,yc:.720,bT:.060,bB:.180,nT:2.6,nB:2.6,tum:.28}
+  ];
+  mesh(bodyGeo(FAIR,{N:44,D:26}),M.paint,{parent:g});
+  mesh(bodyGeo(TANK,{N:44,D:24}),M.paint,{parent:g});
+  mesh(bodyGeo(TAIL,{N:40,D:26}),M.paint,{parent:g});
+  /* 发动机 / 排气 / 水箱 */
+  mesh(gRBox(.40,.30,.34,.05),M.carbon,{parent:g,p:[.05,.44,0]});
+  mesh(gRBox(.26,.17,.31,.04),M.alloyD,{parent:g,p:[.14,.605,0],r:[0,0,-.12]});
+  for(let i=0;i<4;i++) mesh(gCyl(.026,.026,.09,12),M.alloy,
+    {parent:g,p:[.02+i*.055,.30,0],r:[0,0,Math.PI/2]});
+  mesh(gRBox(.05,.26,.30,.02),M.grille,{parent:g,p:[.315,.505,0]});
+  both(s=>mesh(gTube([[.20,.58,s*.09],[.28,.44,s*.10],[.20,.30,s*.07],[-.05,.29,s*.09]],
+    .022,22,8),M.chrome,{parent:g}));
+  mesh(gLathe([[0,-.16],[.062,-.15],[.078,-.02],[.072,.14],[0,.15]],22),M.alloyD,
+    {parent:g,p:[-.30,.335,-.115],r:[0,0,Math.PI/2+.10]});
+  mesh(gCyl(.045,.052,.05,18),M.carbon,{parent:g,p:[-.45,.360,-.115],r:[0,0,Math.PI/2+.10]});
+  /* 车架 / 摆臂 */
+  both(s=>{
+    mesh(gTube([[.30,.66,s*.13],[.06,.62,s*.16],[-.16,.56,s*.15],[-.20,.42,s*.10]],
+      .022,22,7),M.paint2,{parent:g});
+    mesh(gRBox(.62,.075,.055,.02),M.alloyD,{parent:g,p:[-.42,.365,s*.145],r:[0,0,.04]});
+    mesh(gRBox(.075,.30,.05,.02),M.alloyD,{parent:g,p:[.02,.32,s*.175],r:[0,0,-.1]});
+    mesh(gCyl(.026,.026,.075,12),M.matte,{parent:g,p:[.00,.40,s*.235],r:[Math.PI/2,0,0]});
+  });
+  mesh(gCyl(.035,.035,.19,14),M.paint2,{parent:g,p:[-.28,.60,.02],r:[.25,0,.35]});
+  mesh(gCyl(.05,.05,.075,14),M.caliper,{parent:g,p:[-.24,.68,.02],r:[.25,0,.35]});
+  /* 座垫 */
+  mesh(gRBox(.36,.065,.28,.035),M.leather,{parent:g,p:[-.31,.805,0],r:[0,0,-.05]});
+  mesh(gRBox(.27,.06,.22,.035),M.leather,{parent:g,p:[-.60,.845,0],r:[0,0,.02]});
+  /* 前叉 / 三角台 / 车把 */
+  both(s=>{
+    mesh(gCyl(.030,.030,.40,16),M.alloy,{parent:g,p:[.548,.795,s*.105],r:[0,0,.298]});
+    mesh(gCyl(.024,.024,.30,14),M.matte,{parent:g,p:[.638,.470,s*.105],r:[0,0,.298]});
+    mesh(gRBox(.06,.075,.035,.012),M.alloyD,{parent:g,p:[.668,.345,s*.105]});
+    mesh(gCyl(.018,.018,.15,12),M.matte,{parent:g,p:[.545,.925,s*.20],r:[Math.PI/2,0,-.12]});
+    mesh(gCyl(.021,.021,.11,12),M.trim,{parent:g,p:[.540,.918,s*.265],r:[Math.PI/2,0,-.12]});
+    mesh(gRBox(.075,.016,.014,.006),M.chrome,{parent:g,p:[.585,.905,s*.215],r:[0,-s*.2,-.08]});
+    mesh(gCyl(.012,.012,.15,10),M.matte,{parent:g,p:[.575,1.01,s*.235],r:[.12,0,-.30]});
+    const mr=mesh(gSph(.062,16,12),M.paint2,{parent:g,p:[.605,1.085,s*.275],s:[.35,.85,1.25]});
+    mr.rotation.y=.25;
+  });
+  mesh(gRBox(.115,.05,.26,.02),M.alloyD,{parent:g,p:[.512,.958,0],r:[0,0,.28]});
+  mesh(gRBox(.10,.045,.24,.02),M.alloyD,{parent:g,p:[.575,.735,0],r:[0,0,.28]});
+  /* 双头灯 / 风挡 / 仪表 */
+  both(s=>{
+    const q=surf(FAIR,.685,s>0?.62:Math.PI-.62,.004);
+    mesh(gRBox(.085,.05,.075,.018),M.white,{parent:g,p:[q.x+.012,q.y,q.z],r:[0,-s*.32,-.40]});
+    const q2=surf(FAIR,.655,s>0?.16:Math.PI-.16,.006);
+    mesh(gRBox(.05,.028,.045,.012),M.amber,{parent:g,p:[q2.x,q2.y,q2.z],r:[0,-s*.3,-.3]});
+  });
+  mesh(gRBox(.045,.13,.20,.02),M.paint2,{parent:g,p:[.700,.845,0],r:[0,0,-.35]});
+  mesh(gRBox(.20,.015,.24,.03),M.glass,{parent:g,p:[.615,1.010,0],r:[0,0,-.62]});
+  mesh(gRBox(.14,.05,.20,.02),M.trim,{parent:g,p:[.485,.985,0],r:[0,0,-.30]});
+  mesh(gRBox(.10,.012,.15,.01),M.cool,{parent:g,p:[.470,1.015,0],r:[0,0,-.30]});
+  /* 尾灯 / 牌照 / 挡泥 */
+  mesh(gRBox(.05,.05,.13,.02),M.red,{parent:g,p:[-.905,.755,0]});
+  const pl=plateMesh('moto','沪A|KUN66',.17,.115); pl.position.set(-.945,.575,0);
+  pl.rotation.y=-Math.PI/2; pl.rotation.z=.22; g.add(pl);
+  mesh(gRBox(.22,.02,.16,.012),M.matte,{parent:g,p:[-.90,.635,0],r:[0,0,.24]});
+  const rf=mesh(gTor(RR+.055,.045,8,26,Math.PI*.42),M.matte,{parent:g,p:[-.685,RR,0]});
+  rf.rotation.z=Math.PI*.30; rf.scale.z=3.6; rf.castShadow=false;
+  const ff=mesh(gTor(RF+.05,.04,8,26,Math.PI*.50),M.paint,{parent:g,p:[.695,RF,0]});
+  ff.rotation.z=Math.PI*.26; ff.scale.z=2.8;
+  putWheel(g,M,{r:RR,w:.155,style:'moto3',rim:RR*.53,cal:true},-.685,RR,0);
+  putWheel(g,M,{r:RF,w:.115,style:'moto3',rim:RF*.55,cal:true}, .695,RF,0);
+  return {group:g, rider:{pose:'moto',helmet:'full',p:[-.25,.90,0]}};
+}
+/* =====================================================================
+   04 · 金彭 电动三轮篷车（三蹦子）
+   ===================================================================== */
+function buildTrike(M){
+  const g=new T.Group(), RF=.25, RR=.29;
+  /* 大梁 */
+  both(s=>mesh(gRBox(2.30,.085,.075,.02),M.matte,{parent:g,p:[-.20,.475,s*.40]}));
+  mesh(gRBox(.10,.085,.86,.02),M.matte,{parent:g,p:[.72,.475,0]});
+  /* 货箱 */
+  mesh(gRBox(1.32,.055,1.10,.02),M.paint2,{parent:g,p:[-.66,.555,0]});
+  both(s=>{
+    mesh(gRBox(1.32,.40,.05,.018),M.paint,{parent:g,p:[-.66,.755,s*.535]});
+    for(let i=0;i<5;i++) mesh(gRBox(.045,.40,.02,.01),M.paint2,
+      {parent:g,p:[-1.22+i*.28,.755,s*.565]});
+  });
+  mesh(gRBox(.05,.40,1.10,.018),M.paint,{parent:g,p:[-1.325,.755,0]});
+  mesh(gRBox(.06,.46,1.10,.02),M.paint,{parent:g,p:[-.015,.785,0]});
+  mesh(gRBox(1.34,.03,1.12,.012),M.alloyD,{parent:g,p:[-.66,.958,0]});
+  /* 驾驶区 */
+  mesh(gRBox(.78,.05,.96,.02),M.matte,{parent:g,p:[.38,.325,0]});
+  mesh(gRBox(.46,.13,.74,.05),M.leather,{parent:g,p:[.17,.665,0]});
+  mesh(gRBox(.11,.44,.74,.05),M.leather,{parent:g,p:[-.07,.905,0],r:[0,0,.10]});
+  mesh(gRBox(.44,.30,.72,.03),M.trim,{parent:g,p:[.17,.455,0]});
+  /* 车篷 */
+  both(s=>{
+    mesh(gCyl(.024,.024,1.00,12),M.alloyD,{parent:g,p:[.74,1.09,s*.50]});
+    mesh(gCyl(.024,.024,.72,12),M.alloyD,{parent:g,p:[-.05,1.24,s*.50]});
+    mesh(gCyl(.02,.02,.80,10),M.alloyD,{parent:g,p:[.345,1.585,s*.50],r:[0,0,Math.PI/2+.08]});
+  });
+  mesh(gRBox(1.00,.055,1.12,.03),M.paint,{parent:g,p:[.32,1.615,0],r:[0,0,.055]});
+  mesh(gRBox(.09,.035,1.12,.015),M.paint2,{parent:g,p:[.80,1.60,0],r:[0,0,.30]});
+  /* 前围 / 风挡 / 大灯 */
+  mesh(gRBox(.10,.84,.90,.04),M.paint,{parent:g,p:[.855,.735,0],r:[0,0,-.05]});
+  mesh(gRBox(.035,.44,.84,.02),M.glass,{parent:g,p:[.885,1.30,0],r:[0,0,-.09]});
+  mesh(gCyl(.105,.105,.06,24),M.chrome,{parent:g,p:[.905,.80,0],r:[0,0,Math.PI/2]});
+  mesh(gCyl(.085,.085,.05,24),M.white,{parent:g,p:[.925,.80,0],r:[0,0,Math.PI/2]});
+  both(s=>mesh(gCyl(.045,.045,.05,16),M.amber,{parent:g,p:[.915,.58,s*.34],r:[0,0,Math.PI/2]}));
+  mesh(gRBox(.05,.10,.62,.02),M.chrome,{parent:g,p:[.905,.40,0]});
+  /* 转向 / 前叉 */
+  mesh(gCyl(.032,.032,.52,14),M.matte,{parent:g,p:[.815,.805,0],r:[0,0,-.06]});
+  mesh(gTube([[.82,1.075,-.30],[.828,1.088,-.10],[.828,1.088,.10],[.82,1.075,.30]],
+    .017,20,8),M.matte,{parent:g});
+  both(s=>{
+    mesh(gCyl(.021,.021,.11,12),M.trim,{parent:g,p:[.822,1.080,s*.265],r:[Math.PI/2,0,0]});
+    mesh(gCyl(.026,.026,.56,14),M.alloyD,{parent:g,p:[.925,.535,s*.075],r:[0,0,-.30]});
+  });
+  mesh(gRBox(.16,.05,.24,.02),M.matte,{parent:g,p:[.845,1.135,0],r:[0,0,-.12]});
+  mesh(gCyl(.05,.05,.02,18),M.cool,{parent:g,p:[.855,1.155,0],r:[.9,0,-.12]});
+  const ff=mesh(gTor(RF+.055,.045,8,24,Math.PI*.66),M.paint,{parent:g,p:[1.02,RF,0]});
+  ff.rotation.z=Math.PI*.18; ff.scale.z=2.6;
+  /* 后桥 */
+  mesh(gCyl(.055,.055,.94,16),M.alloyD,{parent:g,p:[-.55,RR,0],r:[Math.PI/2,0,0]});
+  mesh(gSph(.13,18,14),M.alloyD,{parent:g,p:[-.55,RR,0],s:[1,1,.9]});
+  both(s=>mesh(gCyl(.045,.045,.42,12),M.matte,{parent:g,p:[-.20,.40,s*.42],r:[0,0,-.9]}));
+  putWheel(g,M,{r:RF,w:.105,style:'steel',rim:RF*.60},1.02,RF,0);
+  putWheel(g,M,{r:RR,w:.165,style:'steel',rim:RR*.58},-.55,RR, .48);
+  putWheel(g,M,{r:RR,w:.165,style:'steel',rim:RR*.58},-.55,RR,-.48);
+  const pl=plateMesh('yellow','沪AKUN66',.30,.10); pl.position.set(-1.36,.36,0);
+  pl.rotation.y=-Math.PI/2; g.add(pl);
+  both(s=>mesh(gRBox(.06,.06,.06,.02),M.red,{parent:g,p:[-1.35,.68,s*.44]}));
+  return {group:g, rider:{pose:'sit',helmet:'straw',p:[.20,.82,0]}};
+}
+/* =====================================================================
+   汽车通用装配：车身放样 → 轮拱开口 → 玻璃带 → 分缝 → 轮组 → 细节
+   ===================================================================== */
+function buildCar(M,S){
+  const g=new T.Group(), B=S.body, off=S.off??.013;
+  const wells=S.wheels.map(w=>({cx:w.x,y:w.r,r:w.r+(w.arch??.06)}));
+  mesh(bodyGeo(B,{N:58,D:S.D??66,wells}),M.paint,{parent:g});
+  (S.top||[]).forEach(([x0,x1,tw])=>{
+    const geo=bandGeo(B,x0,x1,Math.PI/2-tw,Math.PI/2+tw,{N:32,D:26,off});
+    if(geo) mesh(geo,M.glass,{parent:g,cast:false});
+  });
+  (S.side||[]).forEach(([x0,x1,t0,t1])=>{
+    [[t0,t1],[Math.PI-t1,Math.PI-t0]].forEach(([a,b])=>{
+      const geo=bandGeo(B,x0,x1,a,b,{N:18,D:24,off});
+      if(geo) mesh(geo,M.glass,{parent:g,cast:false});
+    });
+  });
+  (S.trims||[]).forEach(([x0,x1,t0,t1,mat])=>{
+    [[t0,t1],[Math.PI-t1,Math.PI-t0]].forEach(([a,b])=>{
+      const geo=bandGeo(B,x0,x1,a,b,{N:14,D:20,off:off+.004});
+      if(geo) mesh(geo,M[mat||'trim'],{parent:g,cast:false});
+    });
+  });
+  (S.seams||[]).forEach(([x,t0,t1])=>{
+    [[t0,t1],[Math.PI-t1,Math.PI-t0]].forEach(([a,b])=>{
+      const geo=bandGeo(B,x-.006,x+.006,a,b,{N:22,D:3,off:off*.32});
+      if(geo) mesh(geo,M.trim,{parent:g,cast:false});
+    });
+  });
+  S.wheels.forEach(w=>{
+    both(s=>{
+      putWheel(g,M,{r:w.r,w:w.w,style:w.style,rim:w.rim??w.r*.66,
+        dish:w.dish??0,cal:w.cal!==false},w.x,w.r,s*w.z);
+      const lip=mesh(gTor(w.r+(w.arch??.06),.014,7,26,Math.PI),M.trim,
+        {parent:g,p:[w.x,w.r,s*(w.lipZ??w.z+w.w/2+.01)]});
+      lip.scale.z=2.4; lip.castShadow=false;
+    });
+  });
+  if(S.plate){
+    const P=S.plate;
+    (P.front!==false?[1,-1]:[-1]).forEach(d=>{
+      const pl=plateMesh(P.kind,d>0?P.txt:(P.rear??P.txt),P.w??.44,P.h??.14);
+      pl.position.set(d>0?P.fx:P.rx, d>0?(P.fy??P.y):(P.ry??P.y), 0);
+      pl.rotation.y=d>0?Math.PI/2:-Math.PI/2;
+      pl.rotation.z=d>0?(P.tilt??0):-(P.tilt??0);
+      g.add(pl);
+    });
+  }
+  if(S.extras) S.extras(g,M,B);
+  return {group:g, rider:S.rider??{pose:'stand',helmet:'none',p:[0,.58,0]}};
+}
+/* 车身表面采样：把细节精确贴到蒙皮上，不再靠手填坐标 */
+const _fine=new WeakMap();
+function surf(B,x,t,off=0){
+  let f=_fine.get(B);
+  if(!f){ f=densify(B,300); _fine.set(B,f); }
+  let bi=0,bd=1e9;
+  for(let i=0;i<f.length;i++){ const d=Math.abs(f[i].x-x); if(d<bd){bd=d;bi=i;} }
+  return section(f[bi],2,t,t,off)[0];
+}
+function patch(g,mat,B,x0,x1,t0,t1,o={}){
+  const mk=(a,b)=>{
+    const geo=bandGeo(B,x0,x1,a,b,{N:o.N??20,D:o.D??10,off:o.off??.017});
+    return geo?mesh(geo,mat,{parent:g,cast:false}):null;
+  };
+  const out=[mk(t0,t1)];
+  if(o.both!==false) out.push(mk(Math.PI-t1,Math.PI-t0));
+  return out;
+}
+function sideMirror(g,M,B,x,t,tilt=.20){
+  both(s=>{
+    const q=surf(B,x,s>0?t:Math.PI-t,.01);
+    const zz=Math.abs(q.z);
+    mesh(gRBox(.10,.05,.10,.02),M.paint,{parent:g,p:[q.x-.05,q.y-.03,s*(zz+.03)]});
+    mesh(gRBox(.135,.085,.05,.035),M.paint,{parent:g,p:[q.x,q.y+.035,s*(zz+.10)],r:[0,0,tilt]});
+    mesh(new T.PlaneGeometry(.10,.058),M.chrome,
+      {parent:g,p:[q.x-.03,q.y+.035,s*(zz+.127)],r:[0,0,tilt],cast:false});
+  });
+}
+function doorHandle(g,M,B,x,t,w=.13){
+  both(s=>{
+    const q=surf(B,x,s>0?t:Math.PI-t,.012);
+    mesh(gRBox(w,.028,.026,.01),M.chrome,{parent:g,p:[q.x,q.y,q.z]});
+  });
+}
+function wipers(g,M,x,y,z,len){
+  both(s=>{
+    const w=mesh(gRBox(len,.016,.024,.008),M.matte,{parent:g,p:[x,y,s*z],r:[0,s*.30,.16]});
+    w.castShadow=false;
+  });
+}
+
+/* =====================================================================
+   06 · 特斯拉 Model 3
+   ===================================================================== */
+const CAR_M3={
+  body:[
+    {x:-2.36,a:.600,yc:.620,bT:.200,bB:.400,nT:3.0,nB:3.0,tum:.36},
+    {x:-2.24,a:.780,yc:.630,bT:.270,bB:.430,nT:3.2,nB:3.0,tum:.30},
+    {x:-2.00,a:.860,yc:.640,bT:.340,bB:.450,nT:3.2,nB:2.9,tum:.26},
+    {x:-1.60,a:.905,yc:.650,bT:.425,bB:.470,nT:3.0,nB:2.8,tum:.26},
+    {x:-1.15,a:.918,yc:.670,bT:.580,bB:.490,nT:2.7,nB:2.8,tum:.30},
+    {x:-0.55,a:.922,yc:.685,bT:.715,bB:.500,nT:2.5,nB:2.8,tum:.34},
+    {x: 0.02,a:.924,yc:.690,bT:.750,bB:.510,nT:2.45,nB:2.8,tum:.35},
+    {x: 0.55,a:.922,yc:.685,bT:.700,bB:.500,nT:2.5,nB:2.8,tum:.33},
+    {x: 1.05,a:.915,yc:.670,bT:.440,bB:.490,nT:2.9,nB:2.8,tum:.26},
+    {x: 1.50,a:.905,yc:.655,bT:.330,bB:.470,nT:3.0,nB:2.8,tum:.24},
+    {x: 1.95,a:.875,yc:.640,bT:.270,bB:.450,nT:3.1,nB:2.9,tum:.24},
+    {x: 2.22,a:.790,yc:.630,bT:.220,bB:.430,nT:3.2,nB:3.0,tum:.28},
+    {x: 2.36,a:.620,yc:.620,bT:.180,bB:.400,nT:3.0,nB:3.0,tum:.36}
+  ],
+  top:[[-1.45,1.05,.34]],
+  side:[[-1.30,.84,.283,1.115]],
+  trims:[[-1.32,.86,.13,.24,'trim']],
+  seams:[[.84,-1.005,1.068],[-.12,-1.005,1.068],[-1.06,-1.005,1.068]],
+  wheels:[{x:1.44,r:.33,w:.235,z:.78,style:'aero',rim:.225,arch:.062},
+          {x:-1.435,r:.33,w:.245,z:.78,style:'aero',rim:.225,arch:.062}],
+  plate:{kind:'ev',txt:'沪AD·KUN66',fx:2.315,y:.44,rx:-2.315,ry:.50,w:.44,h:.145},
+  extras(g,M,B){
+    patch(g,M.white,B,1.96,2.31,.28,.84,{off:.013});
+    patch(g,M.glass,B,1.93,2.33,.24,.88,{off:.019});
+    patch(g,M.cool,B,2.10,2.32,.26,.40,{off:.019});
+    patch(g,M.red,B,-2.355,-2.225,.30,Math.PI-.30,{both:false,N:52,D:9});
+    patch(g,M.trim,B,-2.20,-2.10,.34,Math.PI-.34,{both:false,N:52,D:8,off:.014});
+    mesh(gRBox(.12,.085,1.08,.035),M.grille,{parent:g,p:[2.30,.400,0]});
+    both(s=>mesh(gRBox(.26,.10,.26,.04),M.grille,{parent:g,p:[2.26,.470,s*.56],r:[0,-s*.3,0]}));
+    mesh(gRBox(.16,.075,1.30,.03),M.trim,{parent:g,p:[-2.30,.395,0]});
+    sideMirror(g,M,B,.94,.30,.18);
+    doorHandle(g,M,B,.40,.155); doorHandle(g,M,B,-.72,.155);
+    wipers(g,M,1.02,1.10,.42,.62);
+    both(s=>mesh(gRBox(1.86,.055,.09,.02),M.trim,{parent:g,p:[-.10,.230,s*.855]}));
+  },
+  rider:{pose:'stand',helmet:'cap',p:[-1.05,.58,1.50],ry:-.55}
+};
+/* =====================================================================
+   07 · 小米 SU7 Max
+   ===================================================================== */
+const CAR_SU7={
+  body:[
+    {x:-2.50,a:.620,yc:.600,bT:.200,bB:.380,nT:3.0,nB:3.0,tum:.38},
+    {x:-2.36,a:.800,yc:.610,bT:.290,bB:.410,nT:3.2,nB:3.0,tum:.32},
+    {x:-2.10,a:.900,yc:.620,bT:.360,bB:.430,nT:3.2,nB:2.9,tum:.28},
+    {x:-1.66,a:.960,yc:.630,bT:.435,bB:.450,nT:3.0,nB:2.8,tum:.26},
+    {x:-1.20,a:.978,yc:.650,bT:.580,bB:.470,nT:2.7,nB:2.8,tum:.30},
+    {x:-0.60,a:.981,yc:.665,bT:.720,bB:.485,nT:2.5,nB:2.8,tum:.34},
+    {x:-0.10,a:.9815,yc:.670,bT:.785,bB:.490,nT:2.45,nB:2.8,tum:.35},
+    {x: 0.45,a:.980,yc:.665,bT:.730,bB:.485,nT:2.5,nB:2.8,tum:.33},
+    {x: 1.00,a:.975,yc:.650,bT:.470,bB:.470,nT:2.9,nB:2.8,tum:.26},
+    {x: 1.50,a:.965,yc:.635,bT:.340,bB:.450,nT:3.0,nB:2.8,tum:.24},
+    {x: 2.00,a:.925,yc:.620,bT:.280,bB:.430,nT:3.1,nB:2.9,tum:.24},
+    {x: 2.34,a:.830,yc:.610,bT:.220,bB:.410,nT:3.2,nB:3.0,tum:.28},
+    {x: 2.50,a:.640,yc:.600,bT:.170,bB:.380,nT:3.0,nB:3.0,tum:.38}
+  ],
+  top:[[-1.56,1.00,.33]],
+  side:[[-1.42,.80,.275,1.10]],
+  trims:[[-1.44,.82,.125,.235,'chrome']],
+  seams:[[.80,-1.00,1.06],[-.16,-1.00,1.06],[-1.14,-1.00,1.06]],
+  wheels:[{x:1.50,r:.350,w:.255,z:.815,style:'twin10',rim:.262,arch:.058},
+          {x:-1.50,r:.350,w:.285,z:.805,style:'twin10',rim:.262,arch:.058}],
+  plate:{kind:'ev',txt:'沪AD·KUN66',fx:2.455,y:.42,rx:-2.455,ry:.46,w:.44,h:.145},
+  extras(g,M,B){
+    patch(g,M.white,B,2.04,2.38,.22,.66,{off:.013});
+    patch(g,M.glass,B,2.01,2.40,.18,.70,{off:.019});
+    patch(g,M.cool,B,2.16,2.44,.14,.30,{off:.019});
+    patch(g,M.red,B,-2.495,-2.355,.26,Math.PI-.26,{both:false,N:52,D:9});
+    patch(g,M.trim,B,-2.34,-2.22,.30,Math.PI-.30,{both:false,N:52,D:8,off:.014});
+    both(s=>{
+      mesh(gRBox(.26,.12,.30,.04),M.grille,{parent:g,p:[2.34,.470,s*.62],r:[0,-s*.34,0]});
+      mesh(gRBox(.40,.055,.085,.02),M.carbon,{parent:g,p:[2.10,.420,s*.90],r:[0,0,.1]});
+    });
+    /* 鸭尾 + 后扩散器 */
+    const dk=surf(B,-2.16,Math.PI/2);
+    mesh(gRBox(.30,.045,1.18,.022),M.paint,{parent:g,p:[dk.x,dk.y+.012,0],r:[0,0,.10]});
+    mesh(gRBox(.22,.10,1.60,.04),M.carbon,{parent:g,p:[-2.40,.375,0]});
+    for(let i=0;i<7;i++) mesh(gRBox(.15,.075,.05,.02),M.carbon,
+      {parent:g,p:[-2.44,.320,-.60+i*.20]});
+    mesh(gRBox(.16,.05,1.26,.02),M.carbon,{parent:g,p:[2.46,.375,0]});
+    sideMirror(g,M,B,.88,.28,.16);
+    doorHandle(g,M,B,.34,.150); doorHandle(g,M,B,-.78,.150);
+    wipers(g,M,.98,1.115,.44,.66);
+  },
+  rider:{pose:'stand',helmet:'none',p:[-1.10,.58,1.56],ry:-.60}
+};
+/* =====================================================================
+   08 · 保时捷 911 Carrera (992)
+   ===================================================================== */
+const CAR_911={
+  body:[
+    {x:-2.26,a:.600,yc:.580,bT:.240,bB:.360,nT:3.0,nB:3.0,tum:.36},
+    {x:-2.10,a:.800,yc:.590,bT:.360,bB:.390,nT:3.2,nB:3.0,tum:.28},
+    {x:-1.85,a:.900,yc:.600,bT:.440,bB:.410,nT:3.2,nB:2.9,tum:.24},
+    {x:-1.45,a:.926,yc:.610,bT:.500,bB:.430,nT:3.0,nB:2.8,tum:.22},
+    {x:-1.05,a:.926,yc:.625,bT:.600,bB:.440,nT:2.7,nB:2.8,tum:.26},
+    {x:-0.55,a:.926,yc:.635,bT:.665,bB:.450,nT:2.5,nB:2.8,tum:.30},
+    {x: 0.05,a:.926,yc:.635,bT:.655,bB:.450,nT:2.5,nB:2.8,tum:.30},
+    {x: 0.55,a:.920,yc:.625,bT:.500,bB:.440,nT:2.8,nB:2.8,tum:.26},
+    {x: 1.05,a:.905,yc:.610,bT:.360,bB:.430,nT:3.0,nB:2.8,tum:.22},
+    {x: 1.55,a:.885,yc:.600,bT:.300,bB:.410,nT:3.0,nB:2.9,tum:.22},
+    {x: 2.00,a:.820,yc:.590,bT:.260,bB:.390,nT:3.1,nB:3.0,tum:.26},
+    {x: 2.26,a:.620,yc:.580,bT:.200,bB:.360,nT:3.0,nB:3.0,tum:.36}
+  ],
+  top:[[.06,.60,.30],[-1.36,-.58,.30]],
+  side:[[-1.24,.44,.255,1.08]],
+  trims:[[-1.26,.46,.115,.215,'chrome']],
+  seams:[[.46,-1.00,1.05],[-1.02,-1.00,1.05]],
+  wheels:[{x:1.225,r:.335,w:.250,z:.795,style:'spoke5',spokes:5,rim:.255,arch:.060},
+          {x:-1.225,r:.355,w:.305,z:.780,style:'spoke5',spokes:5,rim:.270,arch:.060}],
+  plate:{kind:'moto',txt:'沪A|KUN66',fx:2.20,y:.40,rx:-2.185,ry:.44,w:.30,h:.20,tilt:.05},
+  extras(g,M,B){
+    /* 圆形大灯：贴在翼子板前端曲面上 */
+    both(s=>{
+      const q=surf(B,2.03,s>0?.86:Math.PI-.86,.0);
+      mesh(gSph(.125,20,16),M.glassL,{parent:g,p:[q.x+.02,q.y,q.z],s:[.72,1,1]});
+      mesh(gSph(.098,18,14),M.white,{parent:g,p:[q.x+.012,q.y,q.z],s:[.56,1,1]});
+      mesh(gTor(.116,.016,8,24),M.chrome,{parent:g,p:[q.x+.03,q.y,q.z],r:[0,Math.PI/2,0]});
+      mesh(gRBox(.30,.14,.24,.05),M.grille,{parent:g,p:[-2.12,.560,s*.60],r:[0,s*.30,0]});
+      mesh(gCyl(.052,.052,.14,18),M.chrome,{parent:g,p:[-2.22,.360,s*.26],r:[0,0,Math.PI/2]});
+    });
+    patch(g,M.amber,B,2.10,2.28,.40,.60,{off:.019});
+    patch(g,M.red,B,-2.255,-2.135,.28,Math.PI-.28,{both:false,N:52,D:9});
+    both(s=>mesh(gRBox(.30,.15,.32,.05),M.grille,{parent:g,p:[2.18,.440,s*.54],r:[0,-s*.28,0]}));
+    /* 鸭尾 + 引擎盖散热格栅 */
+    const dk=surf(B,-1.74,Math.PI/2);
+    mesh(gRBox(.34,.05,1.28,.024),M.paint,{parent:g,p:[dk.x,dk.y+.014,0],r:[0,0,.14]});
+    const lid=surf(B,-1.44,Math.PI/2);
+    for(let i=0;i<9;i++) mesh(gRBox(.28,.018,.045,.007),M.trim,
+      {parent:g,p:[lid.x,lid.y+.004,-.50+i*.125]});
+    mesh(gRBox(.18,.10,1.26,.04),M.carbon,{parent:g,p:[-2.22,.310,0]});
+    sideMirror(g,M,B,.64,.26,.14);
+    doorHandle(g,M,B,.02,.135,.15);
+    wipers(g,M,.60,1.075,.40,.60);
+  },
+  rider:{pose:'stand',helmet:'none',p:[-1.00,.58,1.52],ry:-.58}
+};
+/* =====================================================================
+   05 · 五菱宏光 S
+   ===================================================================== */
+const CAR_WL={
+  body:[
+    {x:-2.21,a:.660,yc:1.020,bT:.620,bB:.720,nT:4.0,nB:3.4,tum:.22},
+    {x:-2.14,a:.780,yc:1.030,bT:.760,bB:.740,nT:4.6,nB:3.6,tum:.14},
+    {x:-1.95,a:.835,yc:1.040,bT:.845,bB:.760,nT:5.0,nB:3.6,tum:.10},
+    {x:-1.30,a:.8425,yc:1.040,bT:.850,bB:.780,nT:5.2,nB:3.4,tum:.08},
+    {x:-0.50,a:.8425,yc:1.040,bT:.850,bB:.780,nT:5.2,nB:3.4,tum:.08},
+    {x: 0.30,a:.8425,yc:1.030,bT:.855,bB:.780,nT:5.0,nB:3.4,tum:.09},
+    {x: 0.95,a:.838,yc:1.020,bT:.850,bB:.760,nT:4.6,nB:3.4,tum:.11},
+    {x: 1.35,a:.825,yc:1.000,bT:.800,bB:.740,nT:4.0,nB:3.4,tum:.15},
+    {x: 1.70,a:.800,yc:.950,bT:.620,bB:.700,nT:3.4,nB:3.2,tum:.22},
+    {x: 1.98,a:.750,yc:.880,bT:.400,bB:.640,nT:3.2,nB:3.0,tum:.28},
+    {x: 2.15,a:.660,yc:.850,bT:.280,bB:.600,nT:3.0,nB:3.0,tum:.34},
+    {x: 2.21,a:.520,yc:.840,bT:.220,bB:.560,nT:3.0,nB:3.0,tum:.38}
+  ],
+  D:72,
+  top:[[1.26,1.80,.60],[-2.12,-1.92,.42]],
+  side:[[-1.86,-1.32,.03,.40],[-1.24,-.06,.03,.40],[.06,1.22,.03,.40]],
+  trims:[[-1.90,1.24,.415,.455,'trim']],
+  seams:[[1.26,-.60,.44],[-.02,-.60,.44],[-1.28,-.60,.44]],
+  wheels:[{x:1.36,r:.300,w:.180,z:.735,style:'steel',rim:.185,arch:.062,cal:false},
+          {x:-1.36,r:.300,w:.180,z:.735,style:'steel',rim:.185,arch:.062,cal:false}],
+  plate:{kind:'blue',txt:'沪A·KUN66',fx:2.155,y:.52,rx:-2.185,ry:.60,w:.44,h:.145},
+  extras(g,M,B){
+    patch(g,M.white,B,1.99,2.19,-.16,-.01,{off:.013});
+    patch(g,M.glass,B,1.96,2.20,-.20,.03,{off:.019});
+    patch(g,M.amber,B,2.04,2.18,-.30,-.19,{off:.019});
+    patch(g,M.red,B,-2.215,-2.115,.14,.66);
+    patch(g,M.amber,B,-2.205,-2.125,.05,.13,{off:.019});
+    both(s=>{
+      /* 长杆后视镜 */
+      const q=surf(B,1.34,s>0?.30:Math.PI-.30,.01), zz=Math.abs(q.z);
+      mesh(gRBox(.13,.045,.13,.02),M.trim,{parent:g,p:[q.x,q.y+.30,s*(zz+.02)]});
+      mesh(gRBox(.15,.21,.055,.03),M.trim,{parent:g,p:[q.x+.05,q.y+.30,s*(zz+.10)],r:[0,0,.05]});
+      mesh(new T.PlaneGeometry(.12,.17),M.chrome,
+        {parent:g,p:[q.x+.02,q.y+.30,s*(zz+.132)],cast:false});
+      mesh(gRBox(3.28,.095,.065,.03),M.matte,{parent:g,p:[.05,.310,s*.805]});
+    });
+    /* 前脸：黑色保险杠 + 双横条格栅 */
+    mesh(gRBox(.13,.26,1.32,.05),M.matte,{parent:g,p:[2.185,.420,0]});
+    mesh(gRBox(.10,.14,1.16,.04),M.grille,{parent:g,p:[2.195,.655,0]});
+    for(let i=0;i<2;i++) mesh(gRBox(.055,.04,1.12,.018),M.chrome,
+      {parent:g,p:[2.228,.625+i*.075,0]});
+    mesh(gRBox(.18,.075,1.28,.02),M.matte,{parent:g,p:[-2.215,.385,0]});
+    doorHandle(g,M,B,1.02,.30,.11);
+    doorHandle(g,M,B,-.28,.30,.11);
+    mesh(gRBox(1.20,.042,.055,.02),M.trim,{parent:g,p:[-.62,1.268,.845]});
+    wipers(g,M,1.60,1.42,.40,.66);
+    mesh(gRBox(.18,.09,.26,.03),M.chrome,{parent:g,p:[-2.14,.300,-.50],r:[0,0,.1]});
+  },
+  rider:{pose:'stand',helmet:'none',p:[-.95,.58,1.42],ry:-.62}
+};
+/* =====================================================================
+   09 · MARK 85（虚构载具）
+   ===================================================================== */
+function buildMK85(M){
+  const g=new T.Group(), P=M.paint, G=M.paint2;
+  /* 腿 */
+  both(s=>{
+    const z=s*.19;
+    mesh(gRBox(.36,.17,.22,.06),G,{parent:g,p:[.05,.085,z]});
+    mesh(gRBox(.20,.06,.20,.03),M.trim,{parent:g,p:[-.02,.022,z]});
+    mesh(gCyl(.055,.055,.03,16),M.cool,{parent:g,p:[.02,.012,z],r:[0,0,0]});
+    mesh(gCap(.105,.20),P,{parent:g,p:[0,.42,z]});
+    mesh(gRBox(.155,.19,.205,.05),G,{parent:g,p:[.055,.42,z]});
+    mesh(gSph(.115,18,14),G,{parent:g,p:[.01,.635,z],s:[1,.9,1]});
+    mesh(gCap(.125,.20),P,{parent:g,p:[0,.83,z]});
+    mesh(gRBox(.145,.28,.25,.055),P,{parent:g,p:[.075,.84,z]});
+    mesh(gRBox(.075,.10,.20,.03),G,{parent:g,p:[.125,.70,z],r:[0,0,-.12]});
+    mesh(gSph(.135,18,14),P,{parent:g,p:[0,1.00,z],s:[1,.85,1]});
+  });
+  /* 髋 / 腹 */
+  mesh(gRBox(.32,.24,.48,.07),P,{parent:g,p:[0,1.07,0]});
+  both(s=>mesh(gRBox(.24,.20,.10,.04),P,{parent:g,p:[.01,1.03,s*.275],r:[0,0,.06]}));
+  for(let i=0;i<3;i++) mesh(gRBox(.26,.075,.40-i*.02,.035),G,
+    {parent:g,p:[.01,1.20+i*.085,0]});
+  mesh(gRBox(.20,.10,.30,.04),M.trim,{parent:g,p:[-.10,1.16,0]});
+  /* 胸 */
+  mesh(gSph(.30,26,20),P,{parent:g,p:[0,1.375,0],s:[.74,1.02,1.20]});
+  both(s=>mesh(gSph(.155,20,16),P,{parent:g,p:[.11,1.375,s*.155],s:[.62,.95,1]}));
+  mesh(gRBox(.16,.20,.50,.05),G,{parent:g,p:[.02,1.29,0]});
+  mesh(gSph(.28,24,18),P,{parent:g,p:[-.10,1.36,0],s:[.62,1.02,1.10]});
+  /* 方舟反应堆 */
+  const rc=grp(g,[.205,1.415,0]);
+  mesh(gCyl(.088,.088,.045,3),M.chrome,{parent:rc,r:[0,0,Math.PI/2]});
+  mesh(gCyl(.062,.062,.05,3),M.white,{parent:rc,p:[.012,0,0],r:[0,0,Math.PI/2]});
+  mesh(gTor(.105,.016,8,24),M.chrome,{parent:rc,r:[0,Math.PI/2,0]});
+  /* 肩 / 臂 */
+  both(s=>{
+    const z=s*.405;
+    mesh(gSph(.165,20,16),P,{parent:g,p:[0,1.415,z*.96],s:[1,.95,1.05]});
+    mesh(gRBox(.27,.16,.24,.06),P,{parent:g,p:[-.02,1.495,z*.98]});
+    mesh(gCap(.092,.20),P,{parent:g,p:[.008,1.185,z]});
+    mesh(gSph(.098,16,12),M.trim,{parent:g,p:[.015,1.035,z]});
+    mesh(gCap(.090,.19),G,{parent:g,p:[.022,.865,z]});
+    mesh(gRBox(.135,.23,.20,.045),G,{parent:g,p:[.062,.845,z]});
+    mesh(gRBox(.155,.145,.16,.05),P,{parent:g,p:[.032,.688,z]});
+    mesh(gCyl(.046,.046,.03,16),M.white,{parent:g,p:[.088,.645,z],r:[Math.PI/2,0,0]});
+  });
+  /* 颈 / 头盔 */
+  mesh(gCyl(.075,.085,.10,16),M.trim,{parent:g,p:[0,1.545,0]});
+  const hd=grp(g,[0,1.742,0]);
+  mesh(gSph(.168,26,20),P,{parent:hd,s:[1,1.14,.98]});
+  const face=mesh(gSph(.162,26,20,-1.05,2.10,.55,1.35),G,{parent:hd,s:[1.06,1.14,.99]});
+  face.rotation.y=Math.PI;
+  both(s=>{
+    mesh(gRBox(.05,.032,.075,.012),M.white,{parent:hd,p:[.145,.035,s*.062],r:[0,-s*.28,.06]});
+    mesh(gRBox(.06,.16,.05,.02),P,{parent:hd,p:[.055,.02,s*.145],r:[0,0,.05]});
+  });
+  mesh(gRBox(.055,.045,.10,.015),M.trim,{parent:hd,p:[.145,-.075,0]});
+  mesh(gRBox(.09,.05,.13,.02),G,{parent:hd,p:[.08,-.125,0],r:[0,0,.30]});
+  mesh(gRBox(.11,.06,.20,.025),P,{parent:hd,p:[-.06,.115,0],r:[0,0,-.18]});
+  /* 背部推进 */
+  both(s=>{
+    mesh(gCyl(.058,.062,.10,18),M.trim,{parent:g,p:[-.235,1.36,s*.20],r:[0,0,Math.PI/2]});
+    mesh(gCyl(.046,.046,.03,18),M.cool,{parent:g,p:[-.295,1.36,s*.20],r:[0,0,Math.PI/2]});
+  });
+  return {group:g, rider:{pose:'hero',helmet:'cap',p:[-.15,.58,1.05],ry:-.55}};
+}
+const BUILDERS={
+  atx:buildATX, niu:buildNIU, ninja:buildNinja, trike:buildTrike,
+  wuling:(M)=>buildCar(M,CAR_WL), model3:(M)=>buildCar(M,CAR_M3),
+  su7:(M)=>buildCar(M,CAR_SU7), p911:(M)=>buildCar(M,CAR_911), mk85:buildMK85
+};
+
+/* ---------- 摄影棚环境光（用于 PBR 反射） ---------- */
+function studioEnv(pmrem){
+  const s=new T.Scene();
+  s.add(new T.Mesh(new T.BoxGeometry(24,14,24),
+    new T.MeshBasicMaterial({color:new T.Color(.028,.032,.036),side:T.BackSide})));
+  const box=(w,h,d,p,r,c)=>{
+    const m=new T.Mesh(new T.BoxGeometry(w,h,d),
+      new T.MeshBasicMaterial({color:new T.Color(c[0],c[1],c[2])}));
+    m.position.set(p[0],p[1],p[2]); if(r) m.rotation.set(r[0],r[1],r[2]); s.add(m);
+  };
+  box(15,.2,15,[0,6.6,0],null,[3.1,3.15,3.25]);
+  box(9,.2,3.4,[0,6.2,-4.2],null,[2.0,2.1,2.4]);
+  box(.2,4.2,13,[-8,3.6,0],null,[1.5,1.6,1.9]);
+  box(.2,4.2,13,[8,3.6,0],null,[1.4,1.5,1.8]);
+  box(11,3.0,.2,[0,3.0,-8],null,[.75,.85,1.05]);
+  box(11,1.6,.2,[0,2.0,8],null,[.42,.46,.56]);
+  box(20,.2,20,[0,-1.4,0],null,[.05,.055,.06]);
+  const t2=pmrem.fromScene(s,.035).texture;
+  s.traverse(o=>{ if(o.geometry) o.geometry.dispose(); });
+  return t2;
+}
+
+/* ---------- 轨道控制（自建，避免额外依赖） ---------- */
+class Orbit{
+  constructor(cam,dom){
+    this.cam=cam; this.dom=dom;
+    this.t=new T.Vector3(); this.tt=new T.Vector3();
+    this.th=.88; this.ph=1.16; this.r=8;
+    this.dth=.88; this.dph=1.16; this.dr=8;
+    this.min=.6; this.max=40; this.damp=.14;
+    this.spinPause=0; this.ptr=new Map(); this.mode=0; this.pinch=0;
+    dom.addEventListener('pointerdown',e=>this.down(e));
+    dom.addEventListener('pointermove',e=>this.move(e));
+    dom.addEventListener('pointerup',e=>this.up(e));
+    dom.addEventListener('pointercancel',e=>this.up(e));
+    dom.addEventListener('wheel',e=>{ e.preventDefault();
+      this.dr=Math.min(this.max,Math.max(this.min,this.dr*Math.exp(e.deltaY*.0011)));
+      this.spinPause=.7; },{passive:false});
+    dom.addEventListener('contextmenu',e=>e.preventDefault());
+  }
+  down(e){
+    this.dom.setPointerCapture(e.pointerId);
+    this.ptr.set(e.pointerId,{x:e.clientX,y:e.clientY});
+    this.mode = (e.button===2||e.button===1||e.shiftKey) ? 2 : 1;
+    if(this.ptr.size===2){ this.mode=2; this.pinch=this.dist(); }
+    this.dom.classList.add('dragging'); this.spinPause=1e9;
+  }
+  dist(){ const p=[...this.ptr.values()];
+    return Math.hypot(p[0].x-p[1].x,p[0].y-p[1].y); }
+  move(e){
+    const p=this.ptr.get(e.pointerId); if(!p) return;
+    const dx=e.clientX-p.x, dy=e.clientY-p.y;
+    p.x=e.clientX; p.y=e.clientY;
+    if(this.ptr.size===2){
+      const d=this.dist();
+      if(this.pinch) this.dr=Math.min(this.max,Math.max(this.min,this.dr*(this.pinch/d)));
+      this.pinch=d; return;
+    }
+    if(this.mode===2){
+      const sc=this.dr*.0016;
+      const right=new T.Vector3(-Math.sin(this.th),0,Math.cos(this.th));
+      const up=new T.Vector3(0,1,0);
+      this.tt.addScaledVector(right,-dx*sc).addScaledVector(up,dy*sc);
+      this.tt.x=Math.min(this.lim,Math.max(-this.lim,this.tt.x));
+      this.tt.z=Math.min(this.lim,Math.max(-this.lim,this.tt.z));
+      this.tt.y=Math.min(this.limY,Math.max(0,this.tt.y));
+    } else {
+      this.dth-=dx*.0055;
+      this.dph=Math.min(1.545,Math.max(.10,this.dph-dy*.0045));
+    }
+  }
+  up(e){
+    this.ptr.delete(e.pointerId);
+    if(this.ptr.size===0){ this.dom.classList.remove('dragging'); this.spinPause=.9; }
+    this.pinch=0;
+  }
+  set(th,ph,r,tgt){ this.dth=th; this.dph=ph; this.dr=r; this.tt.copy(tgt); }
+  jump(){ this.th=this.dth; this.ph=this.dph; this.r=this.dr; this.t.copy(this.tt); }
+  update(dt){
+    const k=1-Math.pow(1-this.damp,Math.min(3,dt*60));
+    this.th+=(this.dth-this.th)*k; this.ph+=(this.dph-this.ph)*k;
+    this.r+=(this.dr-this.r)*k; this.t.lerp(this.tt,k);
+    const sp=Math.sin(this.ph);
+    this.cam.position.set(this.t.x+this.r*sp*Math.cos(this.th),
+      this.t.y+this.r*Math.cos(this.ph), this.t.z+this.r*sp*Math.sin(this.th));
+    this.cam.lookAt(this.t);
+    if(this.spinPause<1e8) this.spinPause=Math.max(0,this.spinPause-dt);
+  }
+}
+Orbit.prototype.lim=3; Orbit.prototype.limY=2.6;
+function startEngine(){
+  const canvas=$('#gl');
+  const renderer=new T.WebGLRenderer({canvas,antialias:true,alpha:true,
+    preserveDrawingBuffer:true,powerPreference:'high-performance'});
+  renderer.setPixelRatio(Math.min(devicePixelRatio||1,2));
+  renderer.outputColorSpace=T.SRGBColorSpace;
+  renderer.toneMapping=T.ACESFilmicToneMapping;
+  renderer.toneMappingExposure=1.06;
+  renderer.shadowMap.enabled=true;
+  renderer.shadowMap.type=T.PCFSoftShadowMap;
+  renderer.setClearAlpha(0);
+
+  const scene=new T.Scene();
+  scene.fog=new T.FogExp2(0x080b0c,.030);
+  const camera=new T.PerspectiveCamera(38,1,.08,220);
+  bootProg(.34,'正在生成环境光…');
+  const pmrem=new T.PMREMGenerator(renderer);
+  scene.environment=studioEnv(pmrem);
+  pmrem.dispose();
+
+  /* 灯光 */
+  scene.add(new T.AmbientLight(0xb9c8d2,.16));
+  const key=new T.DirectionalLight(0xffffff,2.0);
+  key.position.set(4.6,7.6,3.4); key.castShadow=true;
+  key.shadow.mapSize.set(2048,2048); key.shadow.bias=-.0006;
+  key.shadow.normalBias=.02;
+  const sc=key.shadow.camera; sc.near=.5; sc.far=26;
+  scene.add(key);
+  const fill=new T.DirectionalLight(0xc8d8e6,.42); fill.position.set(-5.5,3.8,-4.2);
+  scene.add(fill);
+  const rimA=new T.DirectionalLight(0x7fd4ff,.95); rimA.position.set(-4.2,2.4,5.2);
+  scene.add(rimA);
+  const rimB=new T.DirectionalLight(0x7fd4ff,.75); rimB.position.set(-4.6,1.9,-5.4);
+  scene.add(rimB);
+  const spot=new T.SpotLight(0xfff2df,3.4,0,.62,.92,0);
+  spot.position.set(.4,7.2,.8); scene.add(spot); scene.add(spot.target);
+
+  /* 地面 / 标线 / 转台 */
+  const floorMat=new T.MeshStandardMaterial({color:0x0a0d0f,map:texFloor(),
+    metalness:.46,roughness:.42,envMapIntensity:.5});
+  const floor=mesh(gCircle(30,64),floorMat,{p:[0,0,0],r:[-Math.PI/2,0,0],cast:false});
+  scene.add(floor);
+  const stripeMat=new T.MeshStandardMaterial({map:texStripe(),roughness:.72,metalness:.05});
+  const stripes=[];
+  both(s=>{
+    const st=stripeMat.clone(); st.map=texStripe().clone();
+    st.map.repeat.set(9,1); st.map.needsUpdate=true;
+    const p=mesh(new T.PlaneGeometry(1,.14),st,{p:[0,.004,0],r:[-Math.PI/2,0,0],cast:false});
+    scene.add(p); stripes.push({m:p,s});
+  });
+  const stopLine=mesh(new T.PlaneGeometry(.11,1),
+    new T.MeshStandardMaterial({color:0xd9a52c,roughness:.72,metalness:.05}),
+    {p:[0,.004,0],r:[-Math.PI/2,0,0],cast:false});
+  scene.add(stopLine);
+  const turn=new T.Group(); scene.add(turn);
+  const deckMat=new T.MeshStandardMaterial({color:0x14181b,metalness:.7,roughness:.34,
+    envMapIntensity:.9});
+  const ringMat=new T.MeshStandardMaterial({color:0x0c0f11,emissive:0x7fd4ff,
+    emissiveIntensity:1.05,roughness:.4,metalness:.4});
+  const deck=mesh(gCyl(1,1,.055,72),deckMat,{p:[0,.028,0],cast:false});
+  turn.add(deck);
+  const ring=mesh(gTor(1,.022,8,80),ringMat,{p:[0,.056,0],r:[Math.PI/2,0,0],cast:false});
+  turn.add(ring);
+  const blobMat=new T.MeshBasicMaterial({map:texBlob(),transparent:true,opacity:.72,
+    depthWrite:false});
+  const blob=mesh(new T.PlaneGeometry(1,1),blobMat,{p:[0,.057,0],r:[-Math.PI/2,0,0],cast:false});
+  turn.add(blob);
+  const DECK_Y=.060;
+  const ctrl=new Orbit(camera,canvas);
+  /* ---------- 尺寸 / 取景 ---------- */
+  function resize(){
+    const w=Math.max(1,stage.clientWidth), h=Math.max(1,stage.clientHeight);
+    renderer.setSize(w,h,false);
+    camera.aspect=w/h; camera.updateProjectionMatrix();
+    if(active) applyView(VIEWS[viewIx],false);
+  }
+  function fitDist(rad){
+    const vf=camera.fov*Math.PI/180;
+    const hf=2*Math.atan(Math.tan(vf/2)*camera.aspect);
+    return Math.max(rad/Math.sin(vf/2),rad/Math.sin(hf/2))*1.24;
+  }
+  new ResizeObserver(resize).observe(stage);
+
+  /* ---------- 建模与缓存 ---------- */
+  const models={};
+  function buildModel(v){
+    const M=newMats();
+    const out=BUILDERS[v.id](M);
+    const R=out.rider||{pose:'stand',helmet:'none',p:[0,.58,1.2]};
+    const rd=makeRider(M,{pose:R.pose,helmet:R.helmet});
+    rd.root.position.set(R.p[0],R.p[1],R.p[2]);
+    if(R.ry) rd.root.rotation.y=R.ry;
+    if(R.s) rd.root.scale.setScalar(R.s);
+    const wrap=new T.Group(); wrap.add(out.group); wrap.add(rd.root);
+    wrap.traverse(o=>{ if(o.isMesh){ if(o.castShadow!==false) o.castShadow=true;
+      o.receiveShadow=true; } });
+    const bx=new T.Box3().setFromObject(wrap);
+    const size=bx.getSize(new T.Vector3()), ctr=bx.getCenter(new T.Vector3());
+    const sph=bx.getBoundingSphere(new T.Sphere());
+    return {wrap,mats:M,rider:rd.root,size,ctr,rad:sph.radius,
+      deck:Math.max(.85,Math.max(size.x,size.z)/2*1.14)};
+  }
+  function getModel(v){
+    if(!models[v.id]) models[v.id]=buildModel(v);
+    return models[v.id];
+  }
+
+  let active=null, outgoing=null, outT=0, inT=1, riderOn=true;
+  function applyView(vw,animate){
+    if(!active) return;
+    const m=active;
+    const tgt=new T.Vector3(m.ctr.x+vw.tx*m.size.x*.5, Math.max(.18,vw.ty*m.size.y),
+      m.ctr.z*.30);
+    ctrl.set(vw.th,vw.ph,fitDist(m.rad)*vw.r,tgt);
+    ctrl.lim=Math.max(1.5,m.size.x*.6); ctrl.limY=Math.max(1.2,m.size.y*1.5);
+    ctrl.min=m.rad*.34; ctrl.max=m.rad*4.2;
+    if(!animate) ctrl.jump();
+  }
+  function dressStage(m){
+    deck.scale.set(m.deck,1,m.deck);
+    ring.scale.set(m.deck,m.deck,1);
+    blob.scale.set(m.size.x*1.5,m.size.z*2.0,1);
+    blob.position.set(m.ctr.x,.057,m.ctr.z);
+    stripes.forEach(({m:p,s})=>{ p.scale.set(m.deck*2.1,1,1);
+      p.position.set(0,.004,s*(m.deck+.68)); });
+    stopLine.scale.set(1,m.deck*1.6,1);
+    stopLine.position.set(m.deck+.55,.004,0);
+    const sh=key.shadow.camera, r=Math.max(2.2,m.rad*1.15);
+    sh.left=-r; sh.right=r; sh.top=r; sh.bottom=-r; sh.updateProjectionMatrix();
+    spot.target.position.set(m.ctr.x*.5,.4,0);
+    spot.angle=Math.min(1.1,Math.atan(m.deck*1.25/6.8)+.16);
+  }
+  /* ---------- 对外 API ---------- */
+  garage={
+    ready:false,
+    spin:!RM.matches,
+    render(){ renderer.render(scene,camera); },
+    setRider(on){ riderOn=on; if(active) active.rider.visible=on; },
+    paint(p,a){
+      if(!active) return;
+      applyPaintTo(active.mats,p,a);
+      const c=new T.Color(a[0]/255,a[1]/255,a[2]/255);
+      rimA.color.copy(c); rimB.color.copy(c);
+      ringMat.emissive.copy(c);
+    },
+    view(vw,animate){ applyView(vw,animate!==false); },
+    show(v,p,a){
+      const first=!active;
+      const m=getModel(v);
+      if(active && active!==m){ outgoing=active; outT=0; }
+      active=m; m.rider.visible=riderOn;
+      m.wrap.scale.setScalar(.955); m.wrap.position.y=DECK_Y-.045; inT=0;
+      turn.add(m.wrap);
+      dressStage(m);
+      applyPaintTo(m.mats,p,a);
+      const c=new T.Color(a[0]/255,a[1]/255,a[2]/255);
+      rimA.color.copy(c); rimB.color.copy(c); ringMat.emissive.copy(c);
+      applyView(VIEWS[viewIx],!first);
+      if(first) turn.rotation.y=0;
+      this.ready=true;
+    }
+  };
+
+  /* ---------- 主循环 ---------- */
+  const clock=new T.Clock();
+  const ease=(t)=>1-Math.pow(1-t,3);
+  let acc=0;
+  function loop(){
+    const dt=Math.min(.05,clock.getDelta());
+    if(inT<1){ inT=Math.min(1,inT+dt/.40); const k=ease(inT);
+      active.wrap.scale.setScalar(.955+.045*k); active.wrap.position.y=DECK_Y-.045+.045*k; }
+    if(outgoing){
+      outT+=dt/.20; const k=Math.min(1,outT);
+      outgoing.wrap.scale.setScalar(1-.09*k); outgoing.wrap.position.y=DECK_Y-.055*k;
+      if(k>=1){ turn.remove(outgoing.wrap); outgoing.wrap.scale.setScalar(1);
+        outgoing.wrap.position.y=DECK_Y; outgoing=null; }
+    }
+    if(garage.spin && ctrl.spinPause<=0) turn.rotation.y+=dt*(RM.matches?.10:.19);
+    ctrl.update(dt);
+    renderer.render(scene,camera);
+    requestAnimationFrame(loop);
+  }
+
+  bootProg(.55,'正在装配 01 号车位…');
+  resize();
+  select(initialBay());
+  applyView(VIEWS[0],false);
+  bootProg(1,'就绪');
+  loop();
+  requestAnimationFrame(()=>{
+    boot.classList.add('out');
+    setTimeout(()=>{ boot.hidden=true; }, 700);
+  });
+  /* 空闲时预装配其余车位，切换时零等待 */
+  let pre=1;
+  const idle = window.requestIdleCallback || ((f)=>setTimeout(()=>f({timeRemaining:()=>9}),260));
+  const step=()=>{
+    while(pre<VEHICLES.length && models[VEHICLES[pre].id]) pre++;
+    if(pre>=VEHICLES.length){ busy.hidden=true; return; }
+    busy.hidden=false;
+    getModel(VEHICLES[pre++]);
+    idle(step);
+  };
+  idle(step);
+}
+
+/* =====================================================================
+   启动：先渲染可读内容，再尝试载入引擎
+   ===================================================================== */
+async function loadThree(){
+  const urls=[
+    'https://cdn.jsdelivr.net/npm/three@0.161.0/build/three.module.js',
+    'https://unpkg.com/three@0.161.0/build/three.module.js',
+    'https://esm.sh/three@0.161.0'
+  ];
+  for(const u of urls){
+    try{ return await import(u); }
+    catch(e){ console.warn('[garage] 引擎源不可用：'+u); }
+  }
+  return null;
+}
+function bailOut(){
+  garage=null;
+  $('#fail').hidden=false;
+  $('#busy').hidden=true;
+  select(initialBay());
+  boot.classList.add('out');
+  setTimeout(()=>{ boot.hidden=true; }, 700);
+}
+bootProg(.10,'正在载入 3D 引擎…');
+T = await loadThree();
+if(!T){ bailOut(); }
+else {
+  try{ startEngine(); }
+  catch(err){ console.error('[garage] 展台启动失败', err); bailOut(); }
+}
+</script>
+</body>
+</html>
+

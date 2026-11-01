@@ -1,0 +1,901 @@
+<!DOCTYPE html>
+<!--
+DIRECTION CONTRACT
+THESIS         作品集不先自我介绍，先给一句可被检验的主张，再用四个案例去兑现它。
+               项目不做成图片卡片墙，而做成一张可展开的索引表——像一本作品的目录。
+               拒绝「大头照 Hero → 四宫格缩略图 → 关于我 → 邮箱」的默认序列。
+OWN-WORLD      印刷校样纸（冷中性，不是米白）+ 墨黑正文 + 唯一的校对红，只用于批注与主行动；
+               编号、年份、字号一律等宽表格数字；四角有套准线，页脚有色标条。
+STORY          先读到他到底主张什么，再在索引里挑一个项目展开看他怎么做的，
+               然后知道他是谁、怎么合作，最后拿到邮箱。
+FIRST VIEWPORT 左侧是三行主张大字，右侧是一列可核对的事实（年限、领域、工作方式）；
+               项目索引的第一行已经出现在首屏底部，暗示往下是目录。
+SIGNATURE      项目索引：每行左侧是巨大的编号，展开时行内直接铺开案例正文与配色，
+               不跳页、不弹窗、不换视图。
+-->
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>陈墨 · 独立产品设计师</title>
+<style>
+/* ==========================================================================
+   陈墨 · 作品集首页
+   ========================================================================== */
+
+:root{
+  --paper:#efefec;
+  --paper-2:#f8f8f6;
+  --paper-3:#e3e3df;
+
+  --ink:#16171a;
+  --ink-2:#4b4d52;
+  --ink-3:#5f6167;
+
+  --red:#c4382a;
+  --red-2:#a52d21;
+
+  --hair:#d3d3ce;
+  --hair-2:#b6b6b0;
+
+  --r-sm:3px; --r-md:7px;
+
+  --font:"PingFang SC","Hiragino Sans GB","Microsoft YaHei",
+         ui-sans-serif,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  --mono:ui-monospace,"SF Mono","Cascadia Mono",Consolas,monospace;
+  --ease:cubic-bezier(.22,.61,.36,1);
+}
+
+*,*::before,*::after{ box-sizing:border-box; }
+html,body{ margin:0; padding:0; overflow-x:clip; }
+html{ scroll-behavior:smooth; color-scheme:light; }
+@media (prefers-reduced-motion:reduce){ html{ scroll-behavior:auto; } }
+
+body{
+  min-height:100dvh;
+  background:var(--paper);
+  color:var(--ink);
+  font-family:var(--font);
+  font-size:16px;
+  line-height:1.65;
+  -webkit-font-smoothing:antialiased;
+}
+
+h1,h2,h3,h4,p,ul,ol,dl,dd,dt,figure{ margin:0; padding:0; }
+ul,ol{ list-style:none; }
+a{ color:inherit; }
+
+:focus-visible{ outline:2px solid var(--red); outline-offset:3px; border-radius:2px; }
+
+.mono{ font-family:var(--mono); font-variant-numeric:tabular-nums; }
+.sr{
+  position:absolute; width:1px; height:1px; padding:0; margin:-1px;
+  overflow:hidden; clip-path:inset(50%); white-space:nowrap; border:0;
+}
+
+.sheet{
+  position:relative;
+  max-width:1180px;
+  margin-inline:auto;
+  padding-inline:clamp(1.15rem,5vw,4rem);
+}
+
+/* 套准线：这一页是一张校样 */
+.regmark{
+  position:absolute;
+  width:22px; height:22px;
+  pointer-events:none;
+  opacity:.5;
+}
+.regmark::before,.regmark::after{
+  content:""; position:absolute; background:var(--hair-2);
+}
+.regmark::before{ left:50%; top:0; bottom:0; width:1px; translate:-50% 0; }
+.regmark::after{ top:50%; left:0; right:0; height:1px; translate:0 -50%; }
+.regmark span{
+  position:absolute; inset:5px;
+  border:1px solid var(--hair-2);
+  border-radius:50%;
+}
+.regmark--tl{ left:clamp(.4rem,2vw,1.6rem); top:clamp(.4rem,2vw,1.6rem); }
+.regmark--tr{ right:clamp(.4rem,2vw,1.6rem); top:clamp(.4rem,2vw,1.6rem); }
+
+/* ==========================================================================
+   身份条
+   ========================================================================== */
+.ident{
+  border-bottom:1px solid var(--ink);
+  padding-block:1.15rem;
+  display:flex; flex-wrap:wrap; gap:.6rem 1.6rem;
+  align-items:baseline;
+}
+.ident__name{
+  font-size:1.35rem; font-weight:700; letter-spacing:-.02em;
+}
+.ident__role{ font-size:.9375rem; color:var(--ink-2); }
+.ident__spacer{ flex:1 1 auto; }
+.ident__status{
+  display:inline-flex; align-items:center; gap:.5ch;
+  font-size:.8125rem;
+  padding:.24rem .7rem;
+  border:1px solid var(--ink);
+  border-radius:999px;
+}
+.ident__status::before{
+  content:""; width:6px; height:6px; border-radius:50%; background:var(--red);
+}
+
+/* ==========================================================================
+   主张
+   ========================================================================== */
+.claim{
+  display:grid;
+  grid-template-columns:minmax(0,1.62fr) minmax(0,1fr);
+  gap:clamp(1.5rem,5vw,4rem);
+  padding-block:clamp(3rem,8vw,7rem) clamp(2.5rem,6vw,5rem);
+  align-items:start;
+}
+.claim h1{
+  font-size:clamp(2.05rem,6.2vw,4.4rem);
+  line-height:1.04;
+  font-weight:700;
+  letter-spacing:-.042em;
+  text-wrap:balance;
+}
+.claim h1 u{
+  text-decoration:none;
+  background-image:linear-gradient(var(--red),var(--red));
+  background-size:100% 3px;
+  background-position:0 92%;
+  background-repeat:no-repeat;
+  padding-bottom:.06em;
+}
+.claim__body{
+  margin-top:1.6rem;
+  font-size:clamp(1rem,1.5vw,1.1875rem);
+  color:var(--ink-2);
+  max-width:46ch;
+  text-wrap:pretty;
+}
+.claim__body + .claim__body{ margin-top:.9rem; }
+
+/* 右列：可核对的事实 */
+.facts{ border-top:1px solid var(--ink); }
+.fact{
+  display:grid;
+  grid-template-columns:minmax(0,7.5em) minmax(0,1fr);
+  gap:1rem;
+  padding:.75rem 0;
+  border-bottom:1px solid var(--hair);
+  align-items:baseline;
+}
+.fact dt{
+  font-size:.6875rem; letter-spacing:.14em; text-transform:uppercase;
+  color:var(--ink-3);
+}
+.fact dd{ font-size:.9375rem; }
+.fact dd b{ font-family:var(--mono); font-weight:600; }
+
+/* ==========================================================================
+   项目索引
+   ========================================================================== */
+.section{ padding-block:clamp(2.5rem,6vw,5rem); }
+.section__head{
+  display:flex; flex-wrap:wrap; align-items:baseline; gap:.6rem 1.2rem;
+  padding-bottom:1rem;
+  border-bottom:1px solid var(--ink);
+}
+.section__head h2{
+  font-size:clamp(1.35rem,2.6vw,1.85rem);
+  font-weight:680; letter-spacing:-.026em;
+}
+.section__head .mono{ font-size:.75rem; color:var(--ink-3); letter-spacing:.1em; }
+.section__note{ margin-top:.9rem; font-size:.8125rem; color:var(--ink-3); }
+
+.index{ border-bottom:1px solid var(--hair); }
+.row{ border-bottom:1px solid var(--hair); }
+.row:last-child{ border-bottom:0; }
+
+.row__btn{
+  width:100%;
+  display:grid;
+  grid-template-columns:auto minmax(0,1fr) minmax(0,10rem) auto;
+  gap:clamp(.8rem,2.5vw,2rem);
+  align-items:center;
+  padding:clamp(1.1rem,2.4vw,1.8rem) 0;
+  border:0; background:transparent;
+  font:inherit; text-align:left; color:inherit;
+  cursor:pointer;
+  transition:padding-left .28s var(--ease);
+}
+.row__btn:hover,
+.row__btn:focus-visible{ padding-left:.7rem; }
+.row__btn:hover .row__no,
+.row__btn[aria-expanded="true"] .row__no{ color:var(--red); }
+
+.row__no{
+  font-family:var(--mono);
+  font-size:clamp(1.6rem,4.2vw,2.9rem);
+  font-weight:600;
+  letter-spacing:-.04em;
+  color:var(--hair-2);
+  line-height:1;
+  min-width:2.2ch;
+  transition:color .22s var(--ease);
+}
+.row__title{ min-width:0; }
+.row__title h3{
+  font-size:clamp(1.1rem,2.4vw,1.55rem);
+  font-weight:640; letter-spacing:-.024em;
+  line-height:1.2;
+}
+.row__title p{
+  margin-top:.25rem;
+  font-size:.9375rem; color:var(--ink-2);
+  text-wrap:pretty;
+}
+.row__meta{
+  font-family:var(--mono);
+  font-size:.75rem;
+  color:var(--ink-3);
+  line-height:1.7;
+}
+.row__meta span{ display:block; }
+.row__caret{
+  width:34px; height:34px;
+  border:1px solid var(--hair-2);
+  border-radius:50%;
+  position:relative;
+  flex:0 0 auto;
+  transition:border-color .22s var(--ease), rotate .28s var(--ease);
+}
+.row__caret::before,.row__caret::after{
+  content:""; position:absolute; left:50%; top:50%;
+  background:var(--ink);
+  translate:-50% -50%;
+}
+.row__caret::before{ width:12px; height:1.5px; }
+.row__caret::after{ width:1.5px; height:12px; transition:opacity .22s var(--ease); }
+.row__btn[aria-expanded="true"] .row__caret{ border-color:var(--red); rotate:180deg; }
+.row__btn[aria-expanded="true"] .row__caret::after{ opacity:0; }
+
+/* 展开区：grid-template-rows 0fr → 1fr，可平滑动画 */
+.row__panel{
+  display:grid;
+  grid-template-rows:0fr;
+  transition:grid-template-rows .38s var(--ease);
+}
+.row__panel[data-open="true"]{ grid-template-rows:1fr; }
+.row__inner{ overflow:hidden; }
+.case{
+  display:grid;
+  grid-template-columns:minmax(0,1.45fr) minmax(0,1fr);
+  gap:clamp(1.25rem,3vw,2.75rem);
+  padding:0 0 clamp(1.5rem,3vw,2.5rem);
+}
+.case__block + .case__block{ margin-top:1.25rem; }
+.case h4{
+  font-size:.6875rem; letter-spacing:.16em; text-transform:uppercase;
+  color:var(--red); font-weight:660; margin-bottom:.35rem;
+}
+.case p{ font-size:.9375rem; color:var(--ink-2); max-width:56ch; text-wrap:pretty; }
+.case ul{ display:grid; gap:.35rem; }
+.case li{
+  display:grid; grid-template-columns:1.2rem minmax(0,1fr); gap:.4rem;
+  font-size:.9375rem; color:var(--ink-2);
+}
+.case li::before{ content:"—"; color:var(--hair-2); }
+
+.spec{ border-top:1px solid var(--hair); }
+.spec div{
+  display:grid;
+  grid-template-columns:minmax(0,6.5em) minmax(0,1fr);
+  gap:.8rem;
+  padding:.55rem 0;
+  border-bottom:1px solid var(--hair);
+  font-size:.875rem;
+}
+.spec dt{ color:var(--ink-3); font-size:.75rem; letter-spacing:.08em; }
+.spec dd{ font-family:var(--mono); font-size:.8125rem; }
+
+.palette{ margin-top:1.25rem; }
+.palette ul{ display:flex; flex-wrap:wrap; gap:.5rem; margin-top:.5rem; }
+.palette li{
+  display:flex; flex-direction:column; gap:.35rem;
+  font-family:var(--mono); font-size:.6875rem; color:var(--ink-3);
+}
+.palette i{
+  display:block;
+  width:56px; height:44px;
+  border-radius:var(--r-sm);
+  box-shadow:inset 0 0 0 1px rgba(0,0,0,.14);
+}
+
+/* ==========================================================================
+   关于
+   ========================================================================== */
+.about{
+  display:grid;
+  grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);
+  gap:clamp(1.5rem,4vw,3.5rem);
+  padding-top:clamp(1.5rem,3vw,2.5rem);
+}
+.about p{
+  font-size:clamp(1rem,1.45vw,1.125rem);
+  color:var(--ink-2);
+  max-width:58ch;
+  text-wrap:pretty;
+}
+.about p + p{ margin-top:1rem; }
+.about p b{ color:var(--ink); font-weight:600; }
+
+.kit{ border-top:1px solid var(--ink); }
+.kit div{
+  display:grid;
+  grid-template-columns:minmax(0,6.5em) minmax(0,1fr);
+  gap:1rem;
+  padding:.7rem 0;
+  border-bottom:1px solid var(--hair);
+  align-items:baseline;
+}
+.kit dt{ font-size:.6875rem; letter-spacing:.14em; text-transform:uppercase; color:var(--ink-3); }
+.kit dd{ font-size:.9375rem; }
+
+/* ==========================================================================
+   联系
+   ========================================================================== */
+.contact{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  gap:clamp(1.25rem,3vw,2.5rem);
+  align-items:end;
+  padding-top:clamp(1.5rem,3vw,2.5rem);
+}
+.contact h2{
+  font-size:clamp(1.7rem,4.6vw,3.2rem);
+  font-weight:700; letter-spacing:-.038em; line-height:1.06;
+  text-wrap:balance;
+}
+.contact p{ margin-top:.9rem; color:var(--ink-2); max-width:44ch; text-wrap:pretty; }
+
+.mailrow{
+  display:flex; flex-wrap:wrap; gap:.6rem; align-items:center;
+  margin-top:1.6rem;
+}
+.mail{
+  display:inline-flex; align-items:center;
+  min-height:52px;
+  padding:0 1.2rem;
+  border:1px solid var(--ink);
+  border-radius:var(--r-md);
+  font-family:var(--mono);
+  font-size:1.0625rem;
+  text-decoration:none;
+  background:var(--paper-2);
+  transition:background-color .18s var(--ease), color .18s var(--ease);
+}
+.mail:hover{ background:var(--ink); color:var(--paper); }
+.copy{
+  min-height:52px;
+  padding:0 1.1rem;
+  border:1px solid var(--hair-2);
+  border-radius:var(--r-md);
+  background:transparent;
+  font:inherit; font-size:.9375rem;
+  cursor:pointer;
+  transition:border-color .18s var(--ease), color .18s var(--ease);
+}
+.copy:hover{ border-color:var(--ink); }
+.copy[data-done="true"]{ border-color:var(--red); color:var(--red); }
+
+.links{ display:grid; gap:.15rem; min-width:12rem; }
+.links a{
+  display:flex; justify-content:space-between; gap:1.5rem;
+  min-height:44px; align-items:center;
+  padding:0 0 0 0;
+  border-bottom:1px solid var(--hair);
+  font-size:.9375rem; text-decoration:none;
+  transition:padding-left .22s var(--ease), color .22s var(--ease);
+}
+.links a:hover{ padding-left:.5rem; color:var(--red); }
+.links a span{ font-family:var(--mono); font-size:.75rem; color:var(--ink-3); }
+
+/* ==========================================================================
+   页脚色标
+   ========================================================================== */
+.foot{
+  margin-top:clamp(3rem,7vw,6rem);
+  border-top:1px solid var(--ink);
+  padding-block:1.2rem 2.5rem;
+}
+.bar{ display:flex; height:14px; border-radius:2px; overflow:hidden; }
+.bar i{ flex:1 1 auto; }
+.foot__meta{
+  margin-top:1rem;
+  display:flex; flex-wrap:wrap; gap:.4rem 1.5rem;
+  justify-content:space-between;
+  font-family:var(--mono);
+  font-size:.6875rem;
+  color:var(--ink-3);
+  letter-spacing:.08em;
+}
+
+/* ==========================================================================
+   响应式
+   ========================================================================== */
+@media (max-width:900px){
+  .claim,.about,.contact,.case{ grid-template-columns:minmax(0,1fr); }
+  .contact{ align-items:start; }
+  .row__btn{ grid-template-columns:auto minmax(0,1fr) auto; }
+  .row__meta{ grid-column:2; }
+}
+@media (max-width:520px){
+  .row__btn{ grid-template-columns:minmax(0,1fr) auto; gap:.8rem; }
+  .row__no{ grid-column:1; font-size:1.5rem; }
+  .row__title{ grid-column:1; }
+  .row__meta{ grid-column:1; }
+  .row__caret{ grid-column:2; grid-row:1 / span 3; align-self:start; }
+  .regmark{ display:none; }
+  .mailrow .mail,.mailrow .copy{ flex:1 1 100%; justify-content:center; }
+}
+@media (prefers-reduced-motion:reduce){
+  .row__panel{ transition:none; }
+  .row__btn,.row__caret,.links a{ transition:none; }
+}
+</style>
+</head>
+<body>
+
+<div class="sheet">
+  <span class="regmark regmark--tl" aria-hidden="true"><span></span></span>
+  <span class="regmark regmark--tr" aria-hidden="true"><span></span></span>
+
+  <!-- ==================== 身份 ==================== -->
+  <header class="ident">
+    <span class="ident__name">陈墨</span>
+    <span class="ident__role">独立产品设计师 · 界面与交互</span>
+    <span class="ident__spacer"></span>
+    <span class="ident__status">下季度可接一个长期项目</span>
+  </header>
+
+  <main>
+
+    <!-- ==================== 主张 ==================== -->
+    <section class="claim">
+      <div>
+        <h1>我做的不是好看的界面，<br>是<u>少让人做错事</u>的界面。</h1>
+        <p class="claim__body">
+          我只接一种活：产品已经有人用了，但某一段流程一直在出问题——
+          转化掉在某一屏、客服反复回答同一个问题、内部工具没人愿意用。
+        </p>
+        <p class="claim__body">
+          我从看真实的操作记录和客服工单开始，而不是从竞品截图开始。
+          交付里一定包含一份写清「为什么这样改」的说明，因为改完之后
+          维护它的人不会是我。
+        </p>
+      </div>
+
+      <dl class="facts">
+        <div class="fact"><dt>从业</dt><dd><b>9</b> 年，其中 <b>5</b> 年独立</dd></div>
+        <div class="fact"><dt>领域</dt><dd>金融工具 / 医疗信息系统 / 内部后台</dd></div>
+        <div class="fact"><dt>合作方式</dt><dd>按阶段计费，不按工时</dd></div>
+        <div class="fact"><dt>常驻</dt><dd>杭州，远程为主</dd></div>
+        <div class="fact"><dt>交付</dt><dd>Figma 源文件 + 设计说明 + 可交互原型</dd></div>
+      </dl>
+    </section>
+
+    <!-- ==================== 项目索引 ==================== -->
+    <section class="section" id="work">
+      <div class="section__head">
+        <h2>精选项目</h2>
+        <span class="mono">04 项 · 2021 — 2025</span>
+      </div>
+
+      <div class="index" id="index">
+
+        <!-- ---- 01 ---- -->
+        <article class="row">
+          <h3 class="sr">项目 01</h3>
+          <button class="row__btn" type="button" aria-expanded="false" aria-controls="case-1">
+            <span class="row__no" aria-hidden="true">01</span>
+            <span class="row__title">
+              <h3>把开户流程从七步压到三步</h3>
+              <p>一家券商的移动端开户，用户在证件上传这一屏大量放弃。</p>
+            </span>
+            <span class="row__meta" aria-hidden="true">
+              <span>2025</span><span>金融 / 移动端</span>
+            </span>
+            <span class="row__caret" aria-hidden="true"></span>
+          </button>
+
+          <div class="row__panel" id="case-1" data-open="false" role="region">
+            <div class="row__inner">
+              <div class="case">
+                <div>
+                  <div class="case__block">
+                    <h4>问题</h4>
+                    <p>
+                      原流程把风险测评、证件上传、视频认证、银行卡绑定各自做成一屏，
+                      每屏都要求一次性填完。证件上传屏的失败提示只有一句「上传失败」，
+                      用户不知道是网络问题、格式问题还是照片本身不合格。
+                    </p>
+                  </div>
+                  <div class="case__block">
+                    <h4>我做了什么</h4>
+                    <ul>
+                      <li>把七屏重排成三段，每段有明确的完成条件与可退出点</li>
+                      <li>证件识别改为上传即校验，失败时直接指出是反光、缺角还是过期</li>
+                      <li>风险测评的题目按前一题答案裁剪，不再固定十二题</li>
+                      <li>补一份状态说明文档，列清每种失败态该显示什么、该不该重试</li>
+                    </ul>
+                  </div>
+                  <div class="case__block">
+                    <h4>结果</h4>
+                    <p>
+                      上线后客服工单里「上传失败怎么办」这一类问题不再出现在高频前十，
+                      放弃点从证件屏后移到银行卡绑定环节，这成为下一期要处理的问题。
+                    </p>
+                  </div>
+                </div>
+
+                <div>
+                  <dl class="spec">
+                    <div><dt>角色</dt><dd>唯一设计师</dd></div>
+                    <div><dt>周期</dt><dd>11 周</dd></div>
+                    <div><dt>协作</dt><dd>产品 1 · 前端 2 · 合规 1</dd></div>
+                    <div><dt>交付</dt><dd>流程图 / 高保真 / 状态说明</dd></div>
+                  </dl>
+                  <div class="palette">
+                    <h4>配色</h4>
+                    <ul>
+                      <li><i style="background:#12233a"></i>#12233A</li>
+                      <li><i style="background:#2f6fd0"></i>#2F6FD0</li>
+                      <li><i style="background:#f2f5f9"></i>#F2F5F9</li>
+                      <li><i style="background:#c4382a"></i>#C4382A</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <!-- ---- 02 ---- -->
+        <article class="row">
+          <button class="row__btn" type="button" aria-expanded="false" aria-controls="case-2">
+            <span class="row__no" aria-hidden="true">02</span>
+            <span class="row__title">
+              <h3>让护士愿意用的交班系统</h3>
+              <p>三甲医院的护理交班终端，原系统上线一年后仍有人用纸质本子。</p>
+            </span>
+            <span class="row__meta" aria-hidden="true">
+              <span>2024</span><span>医疗 / 桌面端</span>
+            </span>
+            <span class="row__caret" aria-hidden="true"></span>
+          </button>
+
+          <div class="row__panel" id="case-2" data-open="false" role="region">
+            <div class="row__inner">
+              <div class="case">
+                <div>
+                  <div class="case__block">
+                    <h4>问题</h4>
+                    <p>
+                      系统按科室管理逻辑组织信息，但护士交班时是按床位走的。
+                      每交一个病人要在三个标签页之间来回切，而交班窗口只有十几分钟。
+                    </p>
+                  </div>
+                  <div class="case__block">
+                    <h4>我做了什么</h4>
+                    <ul>
+                      <li>在病房蹲了四个夜班，记录每一次切换标签页的原因</li>
+                      <li>把信息重组为「一个病人一屏」，按交班时真正的讲述顺序排列</li>
+                      <li>危急值不再只用红色标注，同时改变排序位置与图形标记</li>
+                      <li>支持全键盘操作，因为多数终端的鼠标位置并不方便</li>
+                    </ul>
+                  </div>
+                  <div class="case__block">
+                    <h4>结果</h4>
+                    <p>
+                      纸质交班本在两个试点病区停用。原系统保留为查询入口，
+                      新界面只承担交班这一个场景，不再试图覆盖全部功能。
+                    </p>
+                  </div>
+                </div>
+                <div>
+                  <dl class="spec">
+                    <div><dt>角色</dt><dd>设计 + 现场调研</dd></div>
+                    <div><dt>周期</dt><dd>16 周</dd></div>
+                    <div><dt>协作</dt><dd>护理部 · 信息科 · 供应商团队</dd></div>
+                    <div><dt>交付</dt><dd>调研记录 / 信息架构 / 组件库</dd></div>
+                  </dl>
+                  <div class="palette">
+                    <h4>配色</h4>
+                    <ul>
+                      <li><i style="background:#0e2a26"></i>#0E2A26</li>
+                      <li><i style="background:#2e7d6b"></i>#2E7D6B</li>
+                      <li><i style="background:#fbfaf6"></i>#FBFAF6</li>
+                      <li><i style="background:#b8341f"></i>#B8341F</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <!-- ---- 03 ---- -->
+        <article class="row">
+          <button class="row__btn" type="button" aria-expanded="false" aria-controls="case-3">
+            <span class="row__no" aria-hidden="true">03</span>
+            <span class="row__title">
+              <h3>一套没人抱怨的内部设计系统</h3>
+              <p>一家四十人公司的后台组件库，此前每个项目都在重造轮子。</p>
+            </span>
+            <span class="row__meta" aria-hidden="true">
+              <span>2023</span><span>设计系统</span>
+            </span>
+            <span class="row__caret" aria-hidden="true"></span>
+          </button>
+
+          <div class="row__panel" id="case-3" data-open="false" role="region">
+            <div class="row__inner">
+              <div class="case">
+                <div>
+                  <div class="case__block">
+                    <h4>问题</h4>
+                    <p>
+                      之前做过两次组件库，都在半年内被绕过。原因不是组件不好，
+                      而是文档只写了「长什么样」，没写「什么时候不该用它」。
+                    </p>
+                  </div>
+                  <div class="case__block">
+                    <h4>我做了什么</h4>
+                    <ul>
+                      <li>从现有五个后台里盘出实际在用的模式，只沉淀出现三次以上的</li>
+                      <li>每个组件的文档必须包含一条「不要用它来做什么」</li>
+                      <li>把间距与层级做成语义令牌，禁止在业务代码里写具体数值</li>
+                      <li>留一条明确的逃生通道：不适用时如何合规地脱离系统</li>
+                    </ul>
+                  </div>
+                  <div class="case__block">
+                    <h4>结果</h4>
+                    <p>
+                      交付两年后仍在维护，且由业务团队自己提交新组件提案。
+                      我只在前六个月参与评审，之后完全交出。
+                    </p>
+                  </div>
+                </div>
+                <div>
+                  <dl class="spec">
+                    <div><dt>角色</dt><dd>系统设计 + 文档</dd></div>
+                    <div><dt>周期</dt><dd>14 周 + 半年陪跑</dd></div>
+                    <div><dt>协作</dt><dd>前端 3 · 各业务线设计 4</dd></div>
+                    <div><dt>交付</dt><dd>令牌 / 组件库 / 使用规范</dd></div>
+                  </dl>
+                  <div class="palette">
+                    <h4>配色</h4>
+                    <ul>
+                      <li><i style="background:#1a1b1f"></i>#1A1B1F</li>
+                      <li><i style="background:#4b5bd6"></i>#4B5BD6</li>
+                      <li><i style="background:#f4f4f2"></i>#F4F4F2</li>
+                      <li><i style="background:#c9a227"></i>#C9A227</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <!-- ---- 04 ---- -->
+        <article class="row">
+          <button class="row__btn" type="button" aria-expanded="false" aria-controls="case-4">
+            <span class="row__no" aria-hidden="true">04</span>
+            <span class="row__title">
+              <h3>把退款做成一件不需要问客服的事</h3>
+              <p>一个跨境电商的售后流程，退款状态只有「处理中」一种说法。</p>
+            </span>
+            <span class="row__meta" aria-hidden="true">
+              <span>2021</span><span>电商 / 全平台</span>
+            </span>
+            <span class="row__caret" aria-hidden="true"></span>
+          </button>
+
+          <div class="row__panel" id="case-4" data-open="false" role="region">
+            <div class="row__inner">
+              <div class="case">
+                <div>
+                  <div class="case__block">
+                    <h4>问题</h4>
+                    <p>
+                      退款要经过平台审核、物流回签、跨境结汇三个环节，
+                      但界面上一律显示「处理中」。用户唯一能做的事是找客服。
+                    </p>
+                  </div>
+                  <div class="case__block">
+                    <h4>我做了什么</h4>
+                    <ul>
+                      <li>把后台真实的状态机画出来，逐个确认哪些可以对用户公开</li>
+                      <li>每个状态配一句说明「现在在等谁」和「大概还要多久」</li>
+                      <li>卡住超过阈值时主动提示可申诉，而不是等用户自己发现</li>
+                      <li>把客服话术同步改写，与界面用同一套说法</li>
+                    </ul>
+                  </div>
+                  <div class="case__block">
+                    <h4>结果</h4>
+                    <p>
+                      售后咨询里「我的退款到哪了」这一类问题明显下降，
+                      客服团队把省下的时间转去处理真正需要人介入的争议单。
+                    </p>
+                  </div>
+                </div>
+                <div>
+                  <dl class="spec">
+                    <div><dt>角色</dt><dd>设计 + 文案</dd></div>
+                    <div><dt>周期</dt><dd>8 周</dd></div>
+                    <div><dt>协作</dt><dd>售后业务 · 后端 2 · 客服培训</dd></div>
+                    <div><dt>交付</dt><dd>状态机 / 界面稿 / 全量文案</dd></div>
+                  </dl>
+                  <div class="palette">
+                    <h4>配色</h4>
+                    <ul>
+                      <li><i style="background:#241f1c"></i>#241F1C</li>
+                      <li><i style="background:#d1743a"></i>#D1743A</li>
+                      <li><i style="background:#f7f4ef"></i>#F7F4EF</li>
+                      <li><i style="background:#3d6b52"></i>#3D6B52</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </article>
+
+      </div>
+
+      <p class="section__note">
+        以上为虚构案例，用于展示叙述结构与版式。正式作品集需替换为真实项目并取得客户授权。
+      </p>
+    </section>
+
+    <!-- ==================== 关于 ==================== -->
+    <section class="section" id="about">
+      <div class="section__head">
+        <h2>关于我</h2>
+        <span class="mono">ABOUT</span>
+      </div>
+
+      <div class="about">
+        <div>
+          <p>
+            我在两家公司做过内部工具的设计，那几年最大的收获是明白了一件事：
+            <b>没人会为了你的界面改变自己的工作方式</b>。想让人换掉手边顺手的东西，
+            新的那个必须在他最忙的那十分钟里更省事，而不是在演示的时候更好看。
+          </p>
+          <p>
+            所以我做项目一定要先看真实数据——不是分析报告，是原始的操作日志、
+            客服工单、甚至纸质表格的照片。这些东西通常很难看，但里面写着用户
+            真正的行为，而不是他们在访谈里说自己的行为。
+          </p>
+          <p>
+            我不做品牌视觉，也不接从零开始的概念项目。
+            我擅长的是接手一个已经在跑、但某处一直别扭的东西，把它理顺。
+          </p>
+        </div>
+
+        <dl class="kit">
+          <div><dt>工具</dt><dd>Figma · Framer · 一点点 HTML / CSS</dd></div>
+          <div><dt>语言</dt><dd>中文 · 英文（可工作）</dd></div>
+          <div><dt>不接</dt><dd>品牌视觉 / 纯概念项目 / 竞标</dd></div>
+          <div><dt>节奏</dt><dd>同时只推进一个主要项目</dd></div>
+          <div><dt>起步</dt><dd>先做一次两周的问题诊断，再决定要不要往下</dd></div>
+        </dl>
+      </div>
+    </section>
+
+    <!-- ==================== 联系 ==================== -->
+    <section class="section" id="contact">
+      <div class="section__head">
+        <h2>联系方式</h2>
+        <span class="mono">CONTACT</span>
+      </div>
+
+      <div class="contact">
+        <div>
+          <h2 style="margin-top:1.2rem">如果你手上正好有一段<br>一直理不顺的流程，</h2>
+          <p>
+            写封邮件告诉我它卡在哪、你已经试过什么。
+            我通常两个工作日内回复，即使我接不了也会说明原因。
+          </p>
+
+          <div class="mailrow">
+            <a class="mail" href="mailto:hi@chenmo.example" id="mail">hi@chenmo.example</a>
+            <button class="copy" type="button" id="copyBtn" data-done="false">复制邮箱</button>
+            <span class="sr" id="copyMsg" role="status" aria-live="polite"></span>
+          </div>
+        </div>
+
+        <nav class="links" aria-label="其他联系方式">
+          <a href="#">微信<span>chenmo_design</span></a>
+          <a href="#">小红书<span>@陈墨的设计笔记</span></a>
+          <a href="#">Dribbble<span>@chenmo</span></a>
+          <a href="#">简历<span>PDF · 1.2 MB</span></a>
+        </nav>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ==================== 页脚 ==================== -->
+  <footer class="foot">
+    <div class="bar" aria-hidden="true">
+      <i style="background:#00a0d8"></i>
+      <i style="background:#e2007a"></i>
+      <i style="background:#ffe800"></i>
+      <i style="background:#16171a"></i>
+      <i style="background:#c4382a"></i>
+      <i style="background:#2e7d6b"></i>
+      <i style="background:#4b5bd6"></i>
+      <i style="background:#efefec"></i>
+    </div>
+    <div class="foot__meta">
+      <span>陈墨 · 独立产品设计师 · 演示页面</span>
+      <span>最后更新 2025.11</span>
+    </div>
+  </footer>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ---- 索引展开：一次只开一行，键盘可用 ---- */
+  var buttons = Array.prototype.slice.call(document.querySelectorAll('.row__btn'));
+
+  buttons.forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var open = btn.getAttribute('aria-expanded') === 'true';
+
+      buttons.forEach(function (b) {
+        b.setAttribute('aria-expanded', 'false');
+        document.getElementById(b.getAttribute('aria-controls')).dataset.open = 'false';
+      });
+
+      if (!open) {
+        btn.setAttribute('aria-expanded', 'true');
+        document.getElementById(btn.getAttribute('aria-controls')).dataset.open = 'true';
+      }
+    });
+  });
+
+  /* ---- 复制邮箱：状态回到原样，不弹 toast ---- */
+  var copyBtn = document.getElementById('copyBtn');
+  var mail = document.getElementById('mail').textContent.trim();
+  var revert = null;
+
+  copyBtn.addEventListener('click', function () {
+    clearTimeout(revert);
+
+    function done(ok) {
+      copyBtn.dataset.done = String(ok);
+      copyBtn.textContent = ok ? '已复制' : '复制失败，请手动选中';
+      document.getElementById('copyMsg').textContent = ok ? '邮箱已复制到剪贴板' : '复制失败';
+      revert = setTimeout(function () {
+        copyBtn.dataset.done = 'false';
+        copyBtn.textContent = '复制邮箱';
+        document.getElementById('copyMsg').textContent = '';
+      }, 2400);
+    }
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(mail).then(function () { done(true); }, function () { done(false); });
+    } else {
+      done(false);
+    }
+  });
+})();
+</script>
+
+</body>
+</html>

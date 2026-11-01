@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ABYSS · 深渊之旅 — GSAP 沉浸式叙事</title>
+<style>
+/* ============================================================
+   ABYSS · 深渊之旅
+   基调：从浅海到深渊的垂直叙事，生物荧光 · 深海恐怖 · 纯粹黑暗
+   ============================================================ */
+:root {
+  --surface: #0b3d5c;
+  --twilight: #061a2e;
+  --midnight: #020810;
+  --abyssal: #010408;
+  --hadal: #000204;
+  --bio-blue: #00e5ff;
+  --bio-green: #76ff03;
+  --bio-pink: #ff4081;
+  --bio-violet: #d500f9;
+  --text-main: #e0e8f0;
+  --text-dim: rgba(192, 208, 224, 0.6);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html { scroll-behavior: auto; }
+
+body {
+  background: #010408;
+  color: var(--text-main);
+  font-family: 'Georgia', 'Noto Serif SC', 'STSong', serif;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  line-height: 1.8;
+  cursor: default;
+}
+
+::selection { background: rgba(0, 229, 255, 0.3); color: #fff; }
+
+/* ---- 画布层 ---- */
+#fluid-canvas {
+  position: fixed; inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* ---- 深度指示器 ---- */
+.depth-gauge {
+  position: fixed;
+  right: 1.5rem;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  font-family: 'Courier New', monospace;
+  pointer-events: none;
+}
+.depth-gauge .meter {
+  width: 2px;
+  height: 200px;
+  background: linear-gradient(to bottom, #5bc0eb, #0b3d5c, #061a2e, #010408);
+  border-radius: 1px;
+  position: relative;
+  box-shadow: 0 0 6px rgba(0, 229, 255, 0.3);
+}
+.depth-gauge .tick {
+  position: absolute;
+  right: 8px;
+  color: rgba(255,255,255,0.3);
+  font-size: 9px;
+  letter-spacing: 1px;
+  transform: translateY(-50%);
+  white-space: nowrap;
+}
+.depth-gauge .tick:nth-child(2) { top: 5%; }
+.depth-gauge .tick:nth-child(3) { top: 30%; }
+.depth-gauge .tick:nth-child(4) { top: 60%; }
+.depth-gauge .tick:nth-child(5) { top: 95%; }
+.depth-gauge .reading {
+  color: var(--bio-blue);
+  font-size: 11px;
+  letter-spacing: 2px;
+  margin-top: 8px;
+  text-shadow: 0 0 8px rgba(0, 229, 255, 0.6);
+}
+
+/* ---- 主内容 ---- */
+main {
+  position: relative;
+  z-index: 10;
+}
+
+/* ---- 段落容器 ---- */
+.chapter {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 2rem;
+  position: relative;
+}
+
+.chapter-inner {
+  max-width: 680px;
+  width: 100%;
+}
+
+/* ---- 标题 ---- */
+.chapter-title {
+  font-size: clamp(2.4rem, 6vw, 5rem);
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: 0.02em;
+  margin-bottom: 1.5rem;
+  background: linear-gradient(180deg, #fff 20%, rgba(255,255,255,0.55) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.chapter-sub {
+  font-size: clamp(1.1rem, 2.5vw, 1.35rem);
+  color: var(--text-dim);
+  letter-spacing: 0.05em;
+  max-width: 480px;
+}
+
+/* ---- 段落文字 ---- */
+.para {
+  font-size: clamp(1rem, 2vw, 1.15rem);
+  color: var(--text-dim);
+  margin-bottom: 1.25rem;
+  line-height: 2;
+}
+
+.para-bright {
+  color: var(--text-main);
+}
+
+/* ---- 分隔线 ---- */
+.divider {
+  width: 60px;
+  height: 1px;
+  background: rgba(255,255,255,0.15);
+  margin: 2rem 0;
+}
+
+/* ---- 生物标签 ---- */
+.creature-label {
+  display: inline-block;
+  padding: 0.3em 1em;
+  border: 1px solid rgba(0, 229, 255, 0.25);
+  border-radius: 999px;
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
+  color: var(--bio-blue);
+  margin-top: 1rem;
+  font-family: 'Courier New', monospace;
+}
+
+/* ---- 荧光闪烁文字 ---- */
+.glow-text {
+  color: var(--bio-green);
+  text-shadow: 0 0 12px rgba(118, 255, 3, 0.5);
+  animation: bio-pulse 3s ease-in-out infinite;
+}
+
+@keyframes bio-pulse {
+  0%, 100% { opacity: 0.7; }
+  50% { opacity: 1; }
+}
+
+/* ---- 底部致谢 ---- */
+.outro {
+  text-align: center;
+  padding: 6rem 2rem;
+  color: rgba(255,255,255,0.2);
+  font-size: 0.85rem;
+  letter-spacing: 0.1em;
+}
+
+/* ---- 鼠标光晕 ---- */
+.cursor-glow {
+  position: fixed;
+  pointer-events: none;
+  z-index: 25;
+  width: 200px;
+  height: 200px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(0, 229, 255, 0.06) 0%, transparent 70%);
+  transform: translate(-50%, -50%);
+  transition: opacity 0.3s;
+}
+
+/* ---- 气泡群（CSS only fallback） ---- */
+.bubble {
+  position: fixed;
+  pointer-events: none;
+  z-index: 5;
+  border-radius: 50%;
+  background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.15), transparent 70%);
+  animation: rise linear infinite;
+}
+@keyframes rise {
+  0% { transform: translateY(0) scale(0.3); opacity: 0; }
+  10% { opacity: 0.5; }
+  90% { opacity: 0.15; }
+  100% { transform: translateY(-110vh) scale(1.2); opacity: 0; }
+}
+
+/* ---- 滚动条 ---- */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: var(--midnight); }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 2px; }
+</style>
+</head>
+<body>
+
+<!-- 鼠标光晕 -->
+<div class="cursor-glow" id="cursorGlow"></div>
+
+<!-- 深度指示器 -->
+<div class="depth-gauge" id="depthGauge">
+  <div class="meter"></div>
+  <span class="tick" style="top:5%">0m</span>
+  <span class="tick" style="top:30%">200m</span>
+  <span class="tick" style="top:60%">1000m</span>
+  <span class="tick" style="top:95%">4000m</span>
+  <span class="reading" id="depthReading">— 0m —</span>
+</div>
+
+<!-- 背景画布 -->
+<canvas id="fluid-canvas"></canvas>
+
+<!-- 叙事内容 -->
+<main>
+  <!-- 第零章：海面 -->
+  <section class="chapter" id="ch0">
+    <div class="chapter-inner">
+      <div style="margin-bottom:1rem;font-family:'Courier New',monospace;font-size:0.75rem;letter-spacing:0.2em;color:rgba(255,255,255,0.35);">THE ABYSSAL PLAIN</div>
+      <h1 class="chapter-title">深渊<br>之旅</h1>
+      <div class="divider"></div>
+      <p class="chapter-sub">从透光的浅海开始，坠入阳光永远无法抵达的深渊。这里是地球最后的未知疆域。</p>
+      <span class="creature-label">▼ 向下滚动开始下潜</span>
+    </div>
+  </section>
+
+  <!-- 第一章：光合作用带 0–200m -->
+  <section class="chapter" id="ch1">
+    <div class="chapter-inner">
+      <div style="font-family:'Courier New',monospace;font-size:0.7rem;letter-spacing:0.15em;color:rgba(255,255,255,0.3);margin-bottom:1.5rem;">EPIPELAGIC · 0–200M</div>
+      <h2 class="chapter-title" style="font-size:clamp(1.8rem,4vw,3rem);">光合<br>作用带</h2>
+      <div class="divider"></div>
+      <p class="para">这里是海洋与天空的交界。阳光穿透水面，在波浪的透镜下分裂成千万条颤动的光柱。浮游植物将光子转化为生命的第一个分子——地球上一半的氧气诞生于此。</p>
+      <p class="para">海豚成群跃出水面，金枪鱼如银色鱼雷般掠过。这片浅浅的蔚蓝，是大多数人类对海洋的全部想象。</p>
+      <p class="para para-bright">但你即将意识到——这仅仅是一个入口。脚下，黑暗正在等待。</p>
+      <span class="creature-label">🐬 长吻飞旋海豚 · 黄鳍金枪鱼</span>
+    </div>
+  </section>
+
+  <!-- 第二章：中层带 200–1000m -->
+  <section class="chapter" id="ch2">
+    <div class="chapter-inner">
+      <div style="font-family:'Courier New',monospace;font-size:0.7rem;letter-spacing:0.15em;color:rgba(255,255,255,0.3);margin-bottom:1.5rem;">MESOPELAGIC · 200–1000M</div>
+      <h2 class="chapter-title" style="font-size:clamp(1.8rem,4vw,3rem);">暮色<br>地带</h2>
+      <div class="divider"></div>
+      <p class="para">阳光在这里衰减到只剩 1%。视线开始变得模糊，四周是永恒的黄昏。水温骤降至 4°C，压力已超过 10 个大气压。</p>
+      <p class="para">但生命没有退场——它们学会了<span class="glow-text">发光</span>。灯笼鱼的腹部亮起幽蓝的荧光，吸引猎物也迷惑捕食者。数以亿计的磷虾组成地球上最大的生物量迁徙，每晚从黑暗中升起 400 米寻找食物。</p>
+      <p class="para para-bright">这是海洋中最大的动物活动——每天发生，而我们直到最近才知道。</p>
+      <span class="creature-label">🐟 灯笼鱼 · 南极磷虾 · 吸血鬼乌贼</span>
+    </div>
+  </section>
+
+  <!-- 第三章：深层带 1000–4000m -->
+  <section class="chapter" id="ch3">
+    <div class="chapter-inner">
+      <div style="font-family:'Courier New',monospace;font-size:0.7rem;letter-spacing:0.15em;color:rgba(255,255,255,0.3);margin-bottom:1.5rem;">BATHYPELAGIC · 1000–4000M</div>
+      <h2 class="chapter-title" style="font-size:clamp(1.8rem,4vw,3rem);">午夜<br>深渊</h2>
+      <div class="divider"></div>
+      <p class="para">阳光已经完全消失。温度恒定在 2°C，压力超过 100 个大气压——相当于每平方厘米承受 100 公斤的重量。</p>
+      <p class="para">这里唯一的照明来自<span class="glow-text">生物荧光</span>——一种演化出的古老语言。琵琶鱼在额前悬挂发光的诱饵，透明的玻璃章鱼把自己变成看不见的幽灵。巨型乌贼与抹香鲸在这片永恒的黑暗中搏斗——没有人见过这场战斗，只在大洋表面发现的伤痕中留下痕迹。</p>
+      <p class="para para-bright">黑暗不是空虚。黑暗是拥挤的、饥饿的、充满计谋的。</p>
+      <span class="creature-label">🦑 大王乌贼 · 深海琵琶鱼 · 玻璃章鱼</span>
+    </div>
+  </section>
+
+  <!-- 第四章：深渊带 4000–6000m -->
+  <section class="chapter" id="ch4">
+    <div class="chapter-inner">
+      <div style="font-family:'Courier New',monospace;font-size:0.7rem;letter-spacing:0.15em;color:rgba(255,255,255,0.3);margin-bottom:1.5rem;">ABYSSOPELAGIC · 4000–6000M</div>
+      <h2 class="chapter-title" style="font-size:clamp(1.8rem,4vw,3rem);">深海<br>平原</h2>
+      <div class="divider"></div>
+      <p class="para">你已经抵达了覆盖地球表面 60% 的深海平原。无尽的灰色软泥上，散布着鲸的骨架——每一具都是一座持续百年的绿洲，养活着数十种只存在于鲸骨上的物种。</p>
+      <p class="para">在这里，生命的时间尺度已经不同。一种叫<span class="glow-text">管虫</span>的生物可以活到 250 岁。这里的海星移动速度每年不到一米。这里的沉默，是我们无法想象的深度安静。</p>
+      <p class="para para-bright">你意识到，你呼吸的每一个氧气分子，都曾经过这些深海生物的循环——我们与这里，从未真正分离。</p>
+      <span class="creature-label">🦴 鲸落 · 巨型管虫 · 深海海参</span>
+    </div>
+  </section>
+
+  <!-- 第五章：超深渊带 6000m+ -->
+  <section class="chapter" id="ch5">
+    <div class="chapter-inner">
+      <div style="font-family:'Courier New',monospace;font-size:0.7rem;letter-spacing:0.15em;color:rgba(255,255,255,0.3);margin-bottom:1.5rem;">HADAL · 6000–11000M</div>
+      <h2 class="chapter-title" style="font-size:clamp(1.8rem,4vw,3rem);">挑战者<br>深渊</h2>
+      <div class="divider"></div>
+      <p class="para">你现在位于海平面以下 11,000 米。压力超过 1,100 个大气压——相当于 50 架波音 747 压在你身上。只有极少数人类曾到达过这里。</p>
+      <p class="para">但你并不孤单。在零度以下的黑暗中，<span class="glow-text">狮子鱼</span>的透明身体在海底山脉间滑行——它们的细胞里含有特殊的分子，可以在足以压碎钢铁的压力下保持膜结构完整。</p>
+      <p class="para">2012 年，詹姆斯·卡梅隆独自潜入这里。他描述的感受不是恐惧，而是"<span class="para-bright">一种深刻的归属感——仿佛回到了生命的起点</span>"。</p>
+      <p class="para para-bright">因为事实就是如此：三十八亿年前，正是在类似这样的深海热液喷口旁，第一个细胞诞生了。深渊不是终点。深渊是故乡。</p>
+      <span class="creature-label">🐡 超深渊狮子鱼 · 端足类甲壳动物</span>
+    </div>
+  </section>
+
+  <!-- 尾声 -->
+  <section class="chapter" id="ch6" style="min-height:60vh;">
+    <div class="chapter-inner" style="text-align:center;">
+      <div class="divider" style="margin:2rem auto;"></div>
+      <p style="color:var(--text-main);font-size:clamp(1.4rem,3vw,2rem);line-height:1.6;">
+        我们探索太空，<br>却对脚下的深渊知之甚少。<br><br>
+        <span style="font-size:0.7em;color:var(--text-dim);">只有 5% 的海洋被探索过。<br>剩下的 95%，仍然在等待。</span>
+      </p>
+      <div class="divider" style="margin:2rem auto;"></div>
+      <span class="creature-label" style="margin-top:0.5rem;">▲ 向上滚动重返海面</span>
+    </div>
+  </section>
+
+  <div class="outro">
+    ABYSS · 深渊之旅 &nbsp;|&nbsp; GSAP + Canvas &nbsp;|&nbsp; 2026
+  </div>
+</main>
+
+<!-- GSAP -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+
+<script>
+/* ============================================================
+   ABYSS CANVAS ENGINE
+   - 粒子系统（海洋雪 / 气泡 / 生物荧光）
+   - 深度驱动的渐变与滤镜
+   - 压力波纹效果
+   ============================================================ */
+const canvas = document.getElementById('fluid-canvas');
+const ctx = canvas.getContext('2d');
+
+let W, H;
+let scrollY = 0;
+let targetScrollY = 0;
+const totalH = () => document.body.scrollHeight - window.innerHeight;
+
+function resize() {
+  W = canvas.width = window.innerWidth;
+  H = canvas.height = window.innerHeight;
+}
+window.addEventListener('resize', resize);
+resize();
+
+// ---- 粒子系统 ----
+const particles = [];
+const MAX = 180;
+
+class Particle {
+  constructor() {
+    this.reset(true);
+  }
+  reset(init = false) {
+    this.x = Math.random() * W;
+    this.y = init ? Math.random() * H : H + 20;
+    this.r = Math.random() * 1.8 + 0.3;
+    this.speed = Math.random() * 1.2 + 0.3;
+    this.opacity = Math.random() * 0.5 + 0.1;
+    this.wobble = Math.random() * 0.5;
+    this.wobbleSpeed = Math.random() * 0.003 + 0.001;
+    this.wobbleOffset = Math.random() * Math.PI * 2;
+    // 粒子类型：0=白色海洋雪, 1=蓝色荧光, 2=绿色荧光, 3=粉色荧光
+    this.type = Math.random() < 0.5 ? 0 : Math.floor(Math.random() * 3) + 1;
+    const colors = ['255,255,255', '0,229,255', '118,255,3', '255,64,129'];
+    this.color = colors[this.type];
+  }
+  update() {
+    this.y -= this.speed;
+    this.x += Math.sin(scrollY * this.wobbleSpeed + this.wobbleOffset) * this.wobble;
+    if (this.y < -20) this.reset();
+  }
+  draw(ctx) {
+    const alpha = this.type === 0 ? this.opacity : this.opacity * 1.3;
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.r, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(${this.color},${alpha})`;
+    if (this.type > 0) {
+      ctx.shadowColor = `rgba(${this.color},${alpha * 0.8})`;
+      ctx.shadowBlur = this.r * 4;
+    }
+    ctx.fill();
+    ctx.shadowBlur = 0;
+  }
+}
+
+for (let i = 0; i < MAX; i++) particles.push(new Particle());
+
+// ---- 生物荧光点 ----
+const bioSpots = [];
+for (let i = 0; i < 25; i++) {
+  bioSpots.push({
+    x: Math.random() * W,
+    y: Math.random() * H,
+    r: Math.random() * 2.5 + 0.8,
+    hue: ['cyan','green','pink','violet'][Math.floor(Math.random()*4)],
+    pulse: Math.random() * Math.PI * 2,
+    pulseSpeed: Math.random() * 0.03 + 0.01,
+    baseAlpha: Math.random() * 0.4 + 0.1,
+  });
+}
+
+// ---- 深度计算 ----
+function getDepth() {
+  const raw = Math.max(0, scrollY / (totalH() || 1));
+  // 非线性映射：开头缓慢（浅海长），末尾也缓慢（深渊感）
+  return Math.pow(raw, 0.85);
+}
+
+// ---- 主渲染循环 ----
+function draw(t) {
+  ctx.clearRect(0, 0, W, H);
+
+  const depth = getDepth();
+  const depthM = Math.round(depth * 11000);
+
+  /* ---- 背景渐变 ---- */
+  // 从浅海蓝 → 深海黑
+  const bgStops = [
+    { pos: 0,   r: 11, g: 61, b: 92 },   // 浅海
+    { pos: 0.1, r: 6,  g: 26, b: 46 },   // 中层
+    { pos: 0.3, r: 2,  g: 8,  b: 16 },   // 深层
+    { pos: 0.6, r: 1,  g: 4,  b: 8 },    // 深渊
+    { pos: 0.9, r: 0,  g: 2,  b: 4 },    // 超深渊
+  ];
+
+  let bgColor;
+  for (let i = bgStops.length - 1; i >= 0; i--) {
+    if (depth >= bgStops[i].pos) {
+      const s = bgStops[i];
+      if (i < bgStops.length - 1) {
+        const e = bgStops[i + 1];
+        const t = (depth - s.pos) / (e.pos - s.pos);
+        bgColor = {
+          r: Math.round(s.r + (e.r - s.r) * t),
+          g: Math.round(s.g + (e.g - s.g) * t),
+          b: Math.round(s.b + (e.b - s.b) * t),
+        };
+      } else {
+        bgColor = s;
+      }
+      break;
+    }
+  }
+
+  const grad = ctx.createLinearGradient(0, 0, 0, H);
+  grad.addColorStop(0, `rgb(${bgColor.r},${bgColor.g},${bgColor.b})`);
+  const gb = Math.max(0, bgColor.b - 5);
+  grad.addColorStop(1, `rgb(${Math.max(0,bgColor.r-3)},${Math.max(0,bgColor.g-2)},${gb})`);
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, W, H);
+
+  /* ---- 光柱 (仅浅层可见) ---- */
+  if (depth < 0.15) {
+    const lightAlpha = (1 - depth / 0.15) * 0.08;
+    for (let i = 0; i < 6; i++) {
+      const lx = (i / 5) * W * 0.7 + W * 0.15 + Math.sin(t * 0.0003 + i) * 30;
+      const lg = ctx.createLinearGradient(lx, 0, lx, H);
+      lg.addColorStop(0, `rgba(180,220,255,${lightAlpha})`);
+      lg.addColorStop(1, 'rgba(180,220,255,0)');
+      ctx.fillStyle = lg;
+      ctx.fillRect(lx - 12, 0, 24, H);
+    }
+  }
+
+  /* ---- 更新 & 绘制粒子 ---- */
+  for (const p of particles) {
+    // 根据深度调整粒子密度视觉
+    const bioProb = Math.min(1, depth * 2.5);
+    if (p.type > 0 && Math.random() > bioProb * 0.02) continue;
+    p.update();
+    p.draw(ctx);
+  }
+
+  /* ---- 生物荧光点 ---- */
+  if (depth > 0.08) {
+    const bioAlpha = Math.min(1, (depth - 0.08) / 0.5);
+    for (const spot of bioSpots) {
+      const pulse = Math.sin(t * spot.pulseSpeed + spot.pulse) * 0.5 + 0.5;
+      const alpha = spot.baseAlpha * pulse * bioAlpha;
+      ctx.beginPath();
+      ctx.arc(spot.x, spot.y, spot.r, 0, Math.PI * 2);
+      const c = spot.hue;
+      const colorMap = { cyan: '0,229,255', green: '118,255,3', pink: '255,64,129', violet: '213,0,249' };
+      ctx.fillStyle = `rgba(${colorMap[c]},${alpha})`;
+      ctx.shadowColor = `rgba(${colorMap[c]},${alpha * 0.6})`;
+      ctx.shadowBlur = spot.r * 5;
+      ctx.fill();
+      ctx.shadowBlur = 0;
+    }
+  }
+
+  /* ---- 压力波纹 (深渊深度) ---- */
+  if (depth > 0.6) {
+    const pressAlpha = (depth - 0.6) / 0.4 * 0.025;
+    ctx.strokeStyle = `rgba(255,255,255,${pressAlpha})`;
+    ctx.lineWidth = 1;
+    for (let i = 0; i < 4; i++) {
+      const py = (i * H / 3 + t * 0.02) % (H * 1.5) - H * 0.25;
+      ctx.beginPath();
+      ctx.moveTo(0, py);
+      for (let x = 0; x < W; x += 30) {
+        ctx.lineTo(x, py + Math.sin(x * 0.005 + t * 0.001 + i) * 4);
+      }
+      ctx.stroke();
+    }
+  }
+
+  /* ---- 深海热液 (仅在极深处) ---- */
+  if (depth > 0.75) {
+    const ventAlpha = (depth - 0.75) / 0.25 * 0.15;
+    for (let i = 0; i < 3; i++) {
+      const vx = W * 0.2 + i * W * 0.3;
+      const vy = H * 0.7 + Math.sin(t * 0.0005 + i) * 20;
+      const vg = ctx.createLinearGradient(vx, vy, vx, vy - 120);
+      vg.addColorStop(0, `rgba(100,100,100,${ventAlpha})`);
+      vg.addColorStop(0.5, `rgba(60,60,60,${ventAlpha * 0.5})`);
+      vg.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = vg;
+      ctx.beginPath();
+      ctx.moveTo(vx - 8, vy + 40);
+      ctx.lineTo(vx + 8, vy + 40);
+      ctx.lineTo(vx + 2, vy - 80);
+      ctx.lineTo(vx - 2, vy - 80);
+      ctx.closePath();
+      ctx.fill();
+    }
+  }
+
+  requestAnimationFrame(draw);
+}
+requestAnimationFrame(draw);
+
+// ---- 滚动同步 ----
+window.addEventListener('scroll', () => {
+  targetScrollY = window.scrollY;
+});
+
+/* ============================================================
+   GSAP 动画
+   ============================================================ */
+gsap.registerPlugin(ScrollTrigger);
+
+// 平滑滚动值（用于 canvas 动画）
+function smoothScroll() {
+  scrollY += (targetScrollY - scrollY) * 0.08;
+  requestAnimationFrame(smoothScroll);
+}
+requestAnimationFrame(smoothScroll);
+
+// 更新深度读数
+function updateDepthGauge() {
+  const depth = getDepth();
+  const m = Math.round(depth * 11000);
+  document.getElementById('depthReading').textContent = `— ${m}m —`;
+
+  // 深度指示器颜色
+  const gauge = document.querySelector('.depth-gauge .reading');
+  if (depth < 0.1) gauge.style.color = '#5bc0eb';
+  else if (depth < 0.3) gauge.style.color = '#22d3ee';
+  else if (depth < 0.6) gauge.style.color = '#00e5ff';
+  else gauge.style.color = '#76ff03';
+
+  requestAnimationFrame(updateDepthGauge);
+}
+requestAnimationFrame(updateDepthGauge);
+
+// 各章节的滚动动画
+document.querySelectorAll('.chapter').forEach((ch, i) => {
+  const inner = ch.querySelector('.chapter-inner');
+  if (!inner) return;
+
+  // 章节进入动画
+  gsap.fromTo(inner, {
+    opacity: 0,
+    y: 80,
+    filter: 'blur(8px)',
+  }, {
+    opacity: 1,
+    y: 0,
+    filter: 'blur(0px)',
+    duration: 1.5,
+    ease: 'power3.out',
+    scrollTrigger: {
+      trigger: ch,
+      start: 'top 75%',
+      end: 'top 45%',
+      scrub: false,
+      toggleActions: 'play none none reverse',
+    },
+  });
+
+  // 章节在视野中时保持可见
+  gsap.to(inner, {
+    opacity: 1,
+    scrollTrigger: {
+      trigger: ch,
+      start: 'top 45%',
+      end: 'bottom 30%',
+      scrub: 0.5,
+    },
+  });
+
+  // 离场
+  gsap.to(inner, {
+    opacity: 0.15,
+    filter: 'blur(12px)',
+    scale: 0.95,
+    scrollTrigger: {
+      trigger: ch,
+      start: 'bottom 40%',
+      end: 'bottom 5%',
+      scrub: 0.8,
+    },
+  });
+});
+
+// 整体深度驱动
+gsap.to('.depth-gauge .meter', {
+  scrollTrigger: {
+    trigger: 'body',
+    start: 'top top',
+    end: 'bottom bottom',
+    scrub: 0.5,
+    onUpdate: (self) => {
+      // 深度指示器刻度高亮
+      const d = self.progress;
+      // 无需额外操作，canvas 已根据 scrollY 渲染
+    },
+  },
+});
+
+// 鼠标光晕跟随
+const glow = document.getElementById('cursorGlow');
+document.addEventListener('mousemove', (e) => {
+  gsap.to(glow, {
+    x: e.clientX,
+    y: e.clientY,
+    duration: 0.8,
+    ease: 'power2.out',
+  });
+});
+
+// 鼠标移出时隐藏光晕
+document.addEventListener('mouseleave', () => {
+  gsap.to(glow, { opacity: 0, duration: 0.4 });
+});
+document.addEventListener('mouseenter', () => {
+  gsap.to(glow, { opacity: 1, duration: 0.4 });
+});
+
+// 初始设置光晕位置到屏幕中央
+gsap.set(glow, { x: W / 2, y: H / 2 });
+
+// 标题视差
+gsap.to('#ch0 .chapter-title', {
+  y: -60,
+  scrollTrigger: {
+    trigger: '#ch0',
+    start: 'top top',
+    end: 'bottom top',
+    scrub: 0.6,
+  },
+});
+
+// 字幕视差
+gsap.to('#ch0 .chapter-sub', {
+  y: -30,
+  opacity: 0,
+  scrollTrigger: {
+    trigger: '#ch0',
+    start: 'top top',
+    end: 'bottom top',
+    scrub: 0.5,
+  },
+});
+
+// 滚动提示闪烁
+gsap.to('.creature-label', {
+  opacity: 0.3,
+  duration: 1.2,
+  yoyo: true,
+  repeat: -1,
+  ease: 'power1.inOut',
+});
+
+// 初始化 ScrollTrigger 刷新
+window.addEventListener('load', () => ScrollTrigger.refresh());
+</script>
+</body>
+</html>

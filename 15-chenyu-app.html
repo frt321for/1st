@@ -1,0 +1,1197 @@
+<!DOCTYPE html>
+<!--
+DIRECTION CONTRACT
+THESIS         首页的样子由「现在几点」决定，而不是由用户点了什么决定：
+               夜里打开是深海的暗，清晨打开是雾白的海面，问候语与推荐内容随之改变。
+               拒绝冥想类默认的紫蓝渐变加漂浮光球。
+OWN-WORLD      海平线是唯一的构图装置——一条横贯的分界，上方是天，下方是水；
+               四个时段各有一套配色，共用同一个暖橙作为唯一强调色；
+               时刻、时长、心率一律等宽表格数字。
+STORY          打开先被告知「现在是什么时候、离你设定的入睡还有多久」，
+               再看到为此刻挑的一段音频，往下是这七天你实际睡成什么样，最后是课程。
+FIRST VIEWPORT 状态栏用真实系统时间；问候区压在海平线之上，
+               推荐卡跨过海平线落在水面，倒计时与主播放键在同一视线上。
+SIGNATURE      海平线：它随时段上下移动、明暗翻转，也是推荐卡的锚点；
+               「我的」里改掉入睡时间，首页倒计时立刻跟着变。
+-->
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>晨屿 · 冥想与助眠</title>
+<style>
+/* ==========================================================================
+   晨屿 · 移动端首页（390 px 优先）
+   ========================================================================== */
+
+:root{
+  --page:#1a1c1d;
+  --page-2:#232628;
+  --page-ink:#e7e9e8;
+  --page-ink-2:#9ba2a1;
+  --page-hair:rgba(231,233,232,.14);
+
+  --font:"PingFang SC","Hiragino Sans GB","Microsoft YaHei",
+         ui-sans-serif,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  --mono:ui-monospace,"SF Mono","Cascadia Mono",Consolas,monospace;
+  --ease:cubic-bezier(.22,.61,.36,1);
+}
+
+/* ---- 四个时段主题 ---- */
+.app[data-tod="night"]{
+  --sky-1:#08141a; --sky-2:#0f2129; --sea-1:#0a1a20; --sea-2:#050d11;
+  --ink:#e9efee; --ink-2:#8fa6a4; --ink-3:#6f8583;
+  --surf:rgba(233,239,238,.07); --surf-2:rgba(233,239,238,.12);
+  --hair:rgba(233,239,238,.15);
+  --accent:#e0a56a; --accent-ink:#2a1a08;
+  --tide:#4e8c86;
+  --horizon:42%;
+}
+.app[data-tod="dawn"]{
+  --sky-1:#e9e4dc; --sky-2:#dfd4c6; --sea-1:#c9cfcc; --sea-2:#aeb9b7;
+  --ink:#16262a; --ink-2:#4b5f5d; --ink-3:#657875;
+  --surf:rgba(22,38,42,.05); --surf-2:rgba(22,38,42,.09);
+  --hair:rgba(22,38,42,.14);
+  --accent:#b2652a; --accent-ink:#fff6ec;
+  --tide:#3d7a72;
+  --horizon:46%;
+}
+.app[data-tod="day"]{
+  --sky-1:#dfe8e8; --sky-2:#cddcdb; --sea-1:#a9c2c1; --sea-2:#88a8a7;
+  --ink:#122225; --ink-2:#425654; --ink-3:#5c706e;
+  --surf:rgba(18,34,37,.05); --surf-2:rgba(18,34,37,.1);
+  --hair:rgba(18,34,37,.15);
+  --accent:#a75e24; --accent-ink:#fff6ec;
+  --tide:#2f6d66;
+  --horizon:50%;
+}
+.app[data-tod="dusk"]{
+  --sky-1:#2a2733; --sky-2:#3b3140; --sea-1:#1e2230; --sea-2:#121620;
+  --ink:#eae7ec; --ink-2:#a09bab; --ink-3:#837f8e;
+  --surf:rgba(234,231,236,.07); --surf-2:rgba(234,231,236,.12);
+  --hair:rgba(234,231,236,.16);
+  --accent:#e59a5c; --accent-ink:#2a1608;
+  --tide:#5f8a92;
+  --horizon:38%;
+}
+
+*,*::before,*::after{ box-sizing:border-box; }
+html,body{ margin:0; padding:0; overflow-x:clip; }
+html{ color-scheme:dark; }
+
+body{
+  min-height:100dvh;
+  background:
+    radial-gradient(90% 60% at 24% 0%, #26292b, transparent 60%),
+    var(--page);
+  color:var(--page-ink);
+  font-family:var(--font);
+  font-size:16px;
+  line-height:1.6;
+  -webkit-font-smoothing:antialiased;
+}
+
+h1,h2,h3,h4,p,ul,ol,dl,dd,dt,figure{ margin:0; padding:0; }
+ul,ol{ list-style:none; }
+button{ font:inherit; }
+
+:focus-visible{ outline:2px solid var(--accent, #e0a56a); outline-offset:2px; border-radius:4px; }
+
+.mono{ font-family:var(--mono); font-variant-numeric:tabular-nums; }
+.sr{
+  position:absolute; width:1px; height:1px; padding:0; margin:-1px;
+  overflow:hidden; clip-path:inset(50%); white-space:nowrap; border:0;
+}
+
+/* ==========================================================================
+   展示台
+   ========================================================================== */
+.stage{
+  min-height:100dvh;
+  display:grid;
+  grid-template-columns:auto minmax(260px,340px);
+  gap:clamp(1.5rem,5vw,4rem);
+  align-items:center;
+  justify-content:center;
+  padding:clamp(1.5rem,4vw,3rem);
+}
+
+.side h1{ font-size:1.45rem; font-weight:680; letter-spacing:-.024em; }
+.side > p{ margin-top:.6rem; color:var(--page-ink-2); font-size:.9375rem; text-wrap:pretty; }
+
+.card{
+  margin-top:1.25rem;
+  background:var(--page-2);
+  border:1px solid var(--page-hair);
+  border-radius:14px;
+  padding:1rem 1.05rem;
+}
+.card h2{
+  font-size:.6875rem; letter-spacing:.18em; text-transform:uppercase;
+  color:var(--page-ink-2); font-weight:640; margin-bottom:.7rem;
+}
+.todseg{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.4rem; }
+.todseg button{
+  min-height:44px;
+  border:1px solid var(--page-hair);
+  border-radius:9px;
+  background:transparent;
+  color:var(--page-ink-2);
+  font-size:.875rem;
+  cursor:pointer;
+  transition:background-color .16s var(--ease), color .16s var(--ease);
+}
+.todseg button:hover{ background:rgba(255,255,255,.06); color:var(--page-ink); }
+.todseg button[aria-pressed="true"]{
+  background:var(--page-ink); color:#1a1c1d; border-color:var(--page-ink); font-weight:620;
+}
+.side small{
+  display:block; margin-top:.7rem;
+  font-size:.75rem; color:var(--page-ink-2); line-height:1.6;
+}
+
+/* ==========================================================================
+   手机
+   ========================================================================== */
+.phone{
+  --w:390px; --h:844px;
+  position:relative;
+  width:var(--w); height:var(--h);
+  border-radius:54px;
+  padding:11px;
+  background:linear-gradient(160deg,#3d4245,#191c1e 40%,#2b2f31);
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,.1),
+    0 46px 90px -34px rgba(0,0,0,.9),
+    inset 0 0 0 2px rgba(0,0,0,.55);
+  flex:0 0 auto;
+}
+/* 侧键 */
+.phone::before,.phone::after{
+  content:""; position:absolute; right:-2px;
+  width:2px; border-radius:2px; background:#4a5053;
+}
+.phone::before{ top:180px; height:64px; }
+.phone::after{ top:258px; height:64px; }
+
+.screen{
+  position:relative;
+  width:100%; height:100%;
+  border-radius:44px;
+  overflow:hidden;
+  background:var(--sea-2);
+  display:flex; flex-direction:column;
+  isolation:isolate;
+}
+
+/* 海与天 */
+.seascape{
+  position:absolute; inset:0; z-index:-1;
+  background:
+    linear-gradient(180deg, var(--sky-1) 0%, var(--sky-2) calc(var(--horizon) - 2%),
+                    var(--sea-1) calc(var(--horizon) + 1%), var(--sea-2) 100%);
+  transition:background 1.1s var(--ease);
+}
+/* 海平线：一条实的分界，不是模糊光斑 */
+.seascape::before{
+  content:"";
+  position:absolute; left:0; right:0;
+  top:var(--horizon);
+  height:1px;
+  background:linear-gradient(90deg, transparent, var(--ink-3) 18%, var(--ink-2) 50%, var(--ink-3) 82%, transparent);
+  opacity:.5;
+  transition:top 1.1s var(--ease);
+}
+/* 岛：一道极简剪影，压在海平线上 */
+.seascape::after{
+  content:"";
+  position:absolute; left:0; right:0;
+  top:calc(var(--horizon) - 26px);
+  height:27px;
+  background:var(--sea-2);
+  opacity:.55;
+  clip-path:polygon(0 100%, 12% 78%, 21% 88%, 34% 52%, 44% 72%, 55% 40%, 66% 66%, 78% 58%, 88% 80%, 100% 70%, 100% 100%);
+  transition:top 1.1s var(--ease);
+}
+/* 水面反光条 */
+.glint{
+  position:absolute; left:0; right:0;
+  top:calc(var(--horizon) + 6px);
+  height:120px;
+  background:repeating-linear-gradient(180deg,
+    color-mix(in srgb, var(--ink) 12%, transparent) 0 1px,
+    transparent 1px 9px);
+  -webkit-mask:radial-gradient(58% 100% at 50% 0%, #000, transparent 74%);
+          mask:radial-gradient(58% 100% at 50% 0%, #000, transparent 74%);
+  opacity:.5;
+  animation:glint 7s ease-in-out infinite alternate;
+  z-index:-1;
+}
+@keyframes glint{ from{ transform:translateY(0); opacity:.36; } to{ transform:translateY(5px); opacity:.6; } }
+
+/* ---- 状态栏（用真实系统时间） ---- */
+.statusbar{
+  flex:0 0 auto;
+  height:52px;
+  padding:0 30px;
+  display:flex; align-items:center; justify-content:space-between;
+  color:var(--ink);
+  font-size:.875rem; font-weight:620;
+  font-family:var(--mono); font-variant-numeric:tabular-nums;
+}
+.statusbar__right{ display:flex; align-items:center; gap:5px; }
+.sig{ display:flex; align-items:flex-end; gap:2px; height:11px; }
+.sig i{ width:3px; background:var(--ink); border-radius:1px; }
+.sig i:nth-child(1){ height:4px; }
+.sig i:nth-child(2){ height:6px; }
+.sig i:nth-child(3){ height:8px; }
+.sig i:nth-child(4){ height:11px; }
+.batt{
+  width:24px; height:12px; border:1.4px solid var(--ink); border-radius:3.5px;
+  position:relative; opacity:.85;
+}
+.batt::before{
+  content:""; position:absolute; inset:2px auto 2px 2px;
+  width:13px; background:var(--ink); border-radius:1.5px;
+}
+.batt::after{
+  content:""; position:absolute; right:-3.4px; top:3.4px;
+  width:1.6px; height:4px; background:var(--ink); border-radius:0 1px 1px 0;
+}
+
+/* ---- 滚动区 ---- */
+.view{
+  flex:1 1 auto;
+  overflow-y:auto;
+  overscroll-behavior:contain;
+  padding:0 20px 96px;
+  color:var(--ink);
+  scrollbar-width:none;
+}
+.view::-webkit-scrollbar{ display:none; }
+.view[hidden]{ display:none; }
+
+/* ==========================================================================
+   问候区
+   ========================================================================== */
+.greet{ padding-top:14px; }
+.greet__tod{
+  display:inline-flex; align-items:center; gap:.45ch;
+  padding:.2rem .6rem;
+  border:1px solid var(--hair);
+  border-radius:99px;
+  font-size:.6875rem;
+  color:var(--ink-2);
+  background:var(--surf);
+}
+.greet__tod::before{
+  content:""; width:5px; height:5px; border-radius:50%; background:var(--accent);
+}
+.greet h1{
+  margin-top:.7rem;
+  font-size:1.75rem; font-weight:680; letter-spacing:-.03em; line-height:1.15;
+}
+.greet p{ margin-top:.4rem; color:var(--ink-2); font-size:.9375rem; text-wrap:pretty; }
+
+.countdown{
+  margin-top:1rem;
+  display:flex; align-items:baseline; gap:.6rem;
+  padding:.75rem .9rem;
+  background:var(--surf);
+  border:1px solid var(--hair);
+  border-radius:14px;
+}
+.countdown b{
+  font-family:var(--mono); font-variant-numeric:tabular-nums;
+  font-size:1.35rem; font-weight:700; letter-spacing:-.02em;
+}
+.countdown span{ font-size:.8125rem; color:var(--ink-2); }
+.countdown a{
+  margin-left:auto; color:var(--accent); font-size:.8125rem;
+  text-decoration:underline; text-underline-offset:3px;
+  background:none; border:0; cursor:pointer; padding:.4rem 0;
+}
+
+/* ==========================================================================
+   推荐卡
+   ========================================================================== */
+.pickcard{
+  margin-top:1.1rem;
+  padding:1.05rem 1.1rem 1.15rem;
+  border-radius:20px;
+  background:var(--surf-2);
+  border:1px solid var(--hair);
+  backdrop-filter:blur(8px);
+}
+.pickcard__why{
+  font-size:.6875rem; letter-spacing:.1em;
+  color:var(--accent); font-weight:640;
+}
+.pickcard h2{
+  margin-top:.5rem;
+  font-size:1.3rem; font-weight:660; letter-spacing:-.024em; line-height:1.2;
+}
+.pickcard__meta{
+  margin-top:.35rem;
+  font-size:.8125rem; color:var(--ink-2);
+  display:flex; flex-wrap:wrap; gap:.2rem .7rem;
+}
+.pickcard__row{
+  display:flex; align-items:center; gap:.9rem;
+  margin-top:1.05rem;
+}
+.playbtn{
+  position:relative;
+  width:60px; height:60px; flex:0 0 auto;
+  border:0; border-radius:50%;
+  background:var(--accent);
+  color:var(--accent-ink);
+  cursor:pointer;
+  display:grid; place-items:center;
+  transition:transform .12s var(--ease), filter .16s var(--ease);
+}
+.playbtn:hover{ filter:brightness(1.08); }
+.playbtn:active{ transform:scale(.96); }
+.playbtn svg{ width:20px; height:20px; }
+.playring{
+  position:absolute; inset:-6px;
+  border-radius:50%;
+  background:conic-gradient(var(--accent) var(--deg,0deg), transparent 0deg);
+  -webkit-mask:radial-gradient(circle, transparent 0 47%, #000 47% 50%, transparent 50%);
+          mask:radial-gradient(circle, transparent 0 47%, #000 47% 50%, transparent 50%);
+  pointer-events:none;
+}
+.pickcard__prog{ flex:1 1 auto; min-width:0; }
+.pickcard__bar{
+  height:4px; border-radius:99px;
+  background:var(--surf-2);
+  overflow:hidden;
+  box-shadow:inset 0 0 0 1px var(--hair);
+}
+.pickcard__bar i{ display:block; height:100%; background:var(--ink); border-radius:99px; width:0; }
+.pickcard__time{
+  display:flex; justify-content:space-between;
+  margin-top:.4rem;
+  font-family:var(--mono); font-size:.6875rem; color:var(--ink-2);
+}
+
+/* ==========================================================================
+   通用小节
+   ========================================================================== */
+.blk{ margin-top:1.6rem; }
+.blk__head{
+  display:flex; align-items:baseline; justify-content:space-between; gap:1ch;
+  margin-bottom:.7rem;
+}
+.blk__head h2{ font-size:1rem; font-weight:660; letter-spacing:-.016em; }
+.blk__head button{
+  background:none; border:0; padding:.4rem 0;
+  color:var(--ink-2); font-size:.8125rem; cursor:pointer;
+}
+.blk__head button:hover{ color:var(--ink); }
+
+/* ---- 睡眠图：入睡到醒来的区间条 ---- */
+.sleep{
+  padding:1rem .9rem .8rem;
+  background:var(--surf);
+  border:1px solid var(--hair);
+  border-radius:16px;
+}
+.sleep__sum{
+  display:flex; align-items:baseline; gap:.5rem; flex-wrap:wrap;
+  margin-bottom:.9rem;
+}
+.sleep__sum b{
+  font-family:var(--mono); font-size:1.5rem; font-weight:700; letter-spacing:-.03em;
+}
+.sleep__sum span{ font-size:.8125rem; color:var(--ink-2); }
+.chart{ position:relative; height:132px; }
+.chart__grid{
+  position:absolute; inset:0 0 20px 30px;
+  border-left:1px solid var(--hair);
+}
+.chart__grid i{
+  position:absolute; left:0; right:0; height:1px; background:var(--hair);
+}
+.chart__ylab{
+  position:absolute; left:0; width:28px;
+  font-family:var(--mono); font-size:.5625rem; color:var(--ink-3);
+  text-align:right; translate:0 -50%;
+}
+.chart__cols{
+  position:absolute; inset:0 0 20px 30px;
+  display:flex; align-items:stretch; gap:6px;
+  padding-left:6px;
+}
+.col{ position:relative; flex:1 1 0; }
+.col i{
+  position:absolute; left:14%; right:14%;
+  border-radius:5px;
+  background:linear-gradient(180deg, var(--tide), color-mix(in srgb, var(--tide) 62%, transparent));
+  box-shadow:inset 0 0 0 1px var(--hair);
+}
+.col[data-today="true"] i{ background:linear-gradient(180deg, var(--accent), color-mix(in srgb, var(--accent) 60%, transparent)); }
+.col span{
+  position:absolute; left:0; right:0; bottom:-19px;
+  text-align:center;
+  font-size:.625rem; color:var(--ink-3);
+}
+.col[data-today="true"] span{ color:var(--ink); font-weight:640; }
+.sleep__note{ margin-top:1.3rem; font-size:.75rem; color:var(--ink-3); text-wrap:pretty; }
+
+/* ---- 课程列表 ---- */
+.courses{ display:grid; gap:.5rem; }
+.course{
+  display:grid;
+  grid-template-columns:52px minmax(0,1fr) auto;
+  gap:.85rem; align-items:center;
+  width:100%;
+  padding:.7rem .8rem;
+  border:1px solid var(--hair);
+  border-radius:14px;
+  background:var(--surf);
+  color:inherit;
+  text-align:left;
+  cursor:pointer;
+  transition:background-color .16s var(--ease), border-color .16s var(--ease);
+}
+.course:hover{ background:var(--surf-2); }
+.course__dur{
+  font-family:var(--mono); font-variant-numeric:tabular-nums;
+  text-align:center;
+}
+.course__dur b{ display:block; font-size:1.05rem; font-weight:700; letter-spacing:-.02em; }
+.course__dur span{ font-size:.5625rem; color:var(--ink-3); letter-spacing:.1em; }
+.course__main b{ display:block; font-size:.9375rem; font-weight:600; }
+.course__main span{
+  display:block; font-size:.75rem; color:var(--ink-2);
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.course__prog{
+  width:34px; height:34px; flex:0 0 auto;
+  border-radius:50%;
+  background:conic-gradient(var(--accent) var(--p,0deg), var(--surf-2) 0deg);
+  -webkit-mask:radial-gradient(circle, transparent 0 40%, #000 40%);
+          mask:radial-gradient(circle, transparent 0 40%, #000 40%);
+}
+.course__new{
+  font-size:.625rem; padding:.1rem .4rem;
+  border:1px solid var(--accent); color:var(--accent);
+  border-radius:99px;
+}
+
+/* ---- 设置行 ---- */
+.rows{ display:grid; gap:.4rem; }
+.row{
+  display:flex; align-items:center; gap:.8rem;
+  padding:.75rem .85rem;
+  border:1px solid var(--hair);
+  border-radius:13px;
+  background:var(--surf);
+  width:100%;
+  color:inherit;
+  text-align:left;
+}
+.row b{ font-size:.9375rem; font-weight:580; }
+.row span{ display:block; font-size:.75rem; color:var(--ink-2); }
+.row .val{
+  margin-left:auto;
+  font-family:var(--mono); font-size:.9375rem; color:var(--ink);
+}
+.row input[type="time"]{
+  margin-left:auto;
+  background:transparent; border:1px solid var(--hair);
+  border-radius:8px; padding:.35rem .5rem;
+  color:var(--ink); font-family:var(--mono); font-size:.9375rem;
+  min-height:40px;
+}
+.sw{
+  margin-left:auto;
+  position:relative; width:44px; height:26px;
+  border:0; border-radius:99px;
+  background:var(--surf-2);
+  box-shadow:inset 0 0 0 1px var(--hair);
+  cursor:pointer; flex:0 0 auto;
+  transition:background-color .18s var(--ease);
+}
+.sw::after{
+  content:""; position:absolute; top:3px; left:3px;
+  width:20px; height:20px; border-radius:50%;
+  background:var(--ink);
+  transition:translate .18s var(--ease);
+}
+.sw[aria-checked="true"]{ background:var(--accent); }
+.sw[aria-checked="true"]::after{ translate:18px 0; background:var(--accent-ink); }
+
+/* ==========================================================================
+   底部 Tab
+   ========================================================================== */
+.tabbar{
+  position:absolute; left:0; right:0; bottom:0;
+  z-index:5;
+  padding:8px 12px calc(8px + 18px);
+  display:grid; grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:4px;
+  background:linear-gradient(180deg, transparent, color-mix(in srgb, var(--sea-2) 92%, transparent) 34%);
+  backdrop-filter:blur(14px);
+  border-top:1px solid var(--hair);
+}
+.tabbar__home{
+  position:absolute; left:50%; bottom:8px;
+  translate:-50% 0;
+  width:126px; height:4px; border-radius:99px;
+  background:var(--ink); opacity:.32;
+}
+.tab{
+  min-height:52px;
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px;
+  border:0; background:transparent;
+  color:var(--ink-3);
+  font-size:.625rem;
+  cursor:pointer;
+  border-radius:12px;
+  transition:color .16s var(--ease);
+}
+.tab svg{ width:20px; height:20px; }
+.tab[aria-selected="true"]{ color:var(--accent); }
+.tab:hover{ color:var(--ink); }
+
+/* ==========================================================================
+   降低动效
+   ========================================================================== */
+@media (prefers-reduced-motion:reduce){
+  .glint{ animation:none; opacity:.42; }
+  .seascape,.seascape::before,.seascape::after{ transition:none; }
+  .playbtn,.course,.sw,.tab{ transition:none; }
+}
+
+/* ==========================================================================
+   展示台响应式
+   ========================================================================== */
+@media (max-width:1000px){
+  .stage{ grid-template-columns:minmax(0,1fr); justify-items:center; }
+  .side{ max-width:420px; order:2; }
+  .phone{ order:1; }
+}
+@media (max-width:460px){
+  .phone{
+    --w:min(100vw - 24px, 390px);
+    --h:min(calc((100vw - 24px) * 2.164), 844px);
+    border-radius:44px; padding:9px;
+  }
+  .screen{ border-radius:36px; }
+  .stage{ padding:1rem .75rem 2rem; }
+}
+</style>
+</head>
+<body>
+
+<div class="stage">
+
+  <!-- ==================== 手机 ==================== -->
+  <div class="phone">
+    <div class="screen app" id="app" data-tod="night">
+      <div class="seascape" aria-hidden="true"></div>
+      <div class="glint" aria-hidden="true"></div>
+
+      <!-- 状态栏 -->
+      <div class="statusbar" aria-hidden="true">
+        <span id="sysTime">--:--</span>
+        <span class="statusbar__right">
+          <span class="sig"><i></i><i></i><i></i><i></i></span>
+          <span class="batt"></span>
+        </span>
+      </div>
+
+      <!-- ---------- 首页 ---------- -->
+      <div class="view" id="v-home" role="tabpanel" aria-label="首页">
+        <section class="greet">
+          <span class="greet__tod" id="todLabel">深夜</span>
+          <h1 id="hello">晚上好，KUN</h1>
+          <p id="helloSub">海面已经静下来了。今晚从呼吸开始。</p>
+
+          <div class="countdown">
+            <b id="cdVal">—</b>
+            <span id="cdLabel">距你设定的入睡时间</span>
+            <button type="button" id="cdEdit">调整</button>
+          </div>
+        </section>
+
+        <!-- 推荐 -->
+        <article class="pickcard">
+          <span class="pickcard__why" id="pickWhy">此刻推荐 · 已过 23 点</span>
+          <h2 id="pickTitle">潮水退去的十二分钟</h2>
+          <p class="pickcard__meta" id="pickMeta">
+            <span>引导 · 陆屿</span><span>呼吸放松</span><span class="mono">12:00</span>
+          </p>
+
+          <div class="pickcard__row">
+            <button class="playbtn" type="button" id="playBtn" aria-label="播放" aria-pressed="false">
+              <span class="playring" id="playRing" aria-hidden="true"></span>
+              <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true" id="playIcon">
+                <path d="M3 2l11 6-11 6z"/>
+              </svg>
+            </button>
+            <div class="pickcard__prog">
+              <div class="pickcard__bar"><i id="playBar"></i></div>
+              <p class="pickcard__time"><span id="playCur">0:00</span><span id="playDur">12:00</span></p>
+            </div>
+          </div>
+        </article>
+
+        <!-- 睡眠 -->
+        <section class="blk">
+          <div class="blk__head">
+            <h2>最近七晚</h2>
+            <button type="button" data-goto="stats">全部</button>
+          </div>
+          <div class="sleep" id="sleepCard"></div>
+        </section>
+
+        <!-- 课程 -->
+        <section class="blk">
+          <div class="blk__head">
+            <h2>继续练习</h2>
+            <button type="button" data-goto="courses">课程库</button>
+          </div>
+          <div class="courses" id="homeCourses"></div>
+        </section>
+      </div>
+
+      <!-- ---------- 课程 ---------- -->
+      <div class="view" id="v-courses" role="tabpanel" aria-label="课程" hidden>
+        <section class="greet" style="padding-bottom:.4rem">
+          <h1 style="font-size:1.5rem">课程库</h1>
+          <p>按你现在需要的状态挑，而不是按时长挑。</p>
+        </section>
+        <section class="blk" style="margin-top:1rem">
+          <div class="blk__head"><h2>入睡</h2></div>
+          <div class="courses" id="listSleep"></div>
+        </section>
+        <section class="blk">
+          <div class="blk__head"><h2>白天专注</h2></div>
+          <div class="courses" id="listFocus"></div>
+        </section>
+        <section class="blk">
+          <div class="blk__head"><h2>情绪缓冲</h2></div>
+          <div class="courses" id="listCalm"></div>
+        </section>
+      </div>
+
+      <!-- ---------- 统计 ---------- -->
+      <div class="view" id="v-stats" role="tabpanel" aria-label="统计" hidden>
+        <section class="greet" style="padding-bottom:.4rem">
+          <h1 style="font-size:1.5rem">睡眠记录</h1>
+          <p>只记录你自己填的入睡与醒来时间，不读取任何传感器。</p>
+        </section>
+
+        <section class="blk" style="margin-top:1rem">
+          <div class="sleep" id="statsCard"></div>
+        </section>
+
+        <section class="blk">
+          <div class="blk__head"><h2>这周的规律</h2></div>
+          <div class="rows">
+            <div class="row"><span><b>平均入睡</b><span>七天中位数</span></span><span class="val" id="mAvgIn">—</span></div>
+            <div class="row"><span><b>平均醒来</b><span>七天中位数</span></span><span class="val" id="mAvgOut">—</span></div>
+            <div class="row"><span><b>最长一晚</b><span>本周</span></span><span class="val" id="mMax">—</span></div>
+            <div class="row"><span><b>最短一晚</b><span>本周</span></span><span class="val" id="mMin">—</span></div>
+            <div class="row"><span><b>入睡时间波动</b><span>越小越规律</span></span><span class="val" id="mVar">—</span></div>
+          </div>
+        </section>
+      </div>
+
+      <!-- ---------- 我的 ---------- -->
+      <div class="view" id="v-me" role="tabpanel" aria-label="我的" hidden>
+        <section class="greet" style="padding-bottom:.4rem">
+          <h1 style="font-size:1.5rem">我的</h1>
+          <p>改动会立刻反映到首页。</p>
+        </section>
+
+        <section class="blk" style="margin-top:1rem">
+          <div class="blk__head"><h2>作息</h2></div>
+          <div class="rows">
+            <label class="row" for="bedtime">
+              <span><b>目标入睡时间</b><span>首页倒计时以此为准</span></span>
+              <input type="time" id="bedtime" value="23:30">
+            </label>
+            <label class="row" for="waketime">
+              <span><b>目标起床时间</b><span>用于计算目标睡眠时长</span></span>
+              <input type="time" id="waketime" value="07:00">
+            </label>
+            <div class="row">
+              <span><b>目标睡眠时长</b><span>由上面两项推出</span></span>
+              <span class="val" id="targetLen">7:30</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="blk">
+          <div class="blk__head"><h2>提醒</h2></div>
+          <div class="rows">
+            <div class="row">
+              <span id="lb-r1"><b>入睡前 30 分钟提醒</b><span>提示该把屏幕放下了</span></span>
+              <button class="sw" role="switch" aria-checked="true" aria-labelledby="lb-r1" type="button"></button>
+            </div>
+            <div class="row">
+              <span id="lb-r2"><b>早晨记录提醒</b><span>起床后询问昨晚睡得如何</span></span>
+              <button class="sw" role="switch" aria-checked="true" aria-labelledby="lb-r2" type="button"></button>
+            </div>
+            <div class="row">
+              <span id="lb-r3"><b>播放结束后自动静音</b><span>不再自动续播下一段</span></span>
+              <button class="sw" role="switch" aria-checked="false" aria-labelledby="lb-r3" type="button"></button>
+            </div>
+          </div>
+        </section>
+
+        <section class="blk">
+          <div class="blk__head"><h2>外观</h2></div>
+          <div class="rows">
+            <div class="row">
+              <span id="lb-r4"><b>随时段变换配色</b><span>关闭后固定为夜间配色</span></span>
+              <button class="sw" role="switch" aria-checked="true" aria-labelledby="lb-r4" type="button" id="swAuto"></button>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <!-- 底部 Tab -->
+      <nav class="tabbar" role="tablist" aria-label="主导航">
+        <button class="tab" role="tab" type="button" data-view="home" aria-selected="true">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+            <path d="M2.5 12.5C5 12.5 5 10 7.5 10s2.5 2.5 5 2.5S15 10 17.5 10"/>
+            <path d="M2.5 16C5 16 5 13.5 7.5 13.5S10 16 12.5 16 15 13.5 17.5 13.5"/>
+            <circle cx="14" cy="5" r="2.4"/>
+          </svg>
+          首页
+        </button>
+        <button class="tab" role="tab" type="button" data-view="courses" aria-selected="false">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+            <rect x="3" y="3.5" width="14" height="13" rx="2"/>
+            <path d="M3 7h14M7 3.5v13"/>
+          </svg>
+          课程
+        </button>
+        <button class="tab" role="tab" type="button" data-view="stats" aria-selected="false">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+            <path d="M3 16.5V10M8 16.5V4.5M13 16.5V12M18 16.5V7"/>
+          </svg>
+          记录
+        </button>
+        <button class="tab" role="tab" type="button" data-view="me" aria-selected="false">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+            <circle cx="10" cy="7" r="3.2"/>
+            <path d="M3.5 17c.8-3.4 3.4-5 6.5-5s5.7 1.6 6.5 5"/>
+          </svg>
+          我的
+        </button>
+        <span class="tabbar__home" aria-hidden="true"></span>
+      </nav>
+
+    </div>
+  </div>
+
+  <!-- ==================== 说明与时段预览 ==================== -->
+  <aside class="side">
+    <h1>晨屿 · 冥想与助眠</h1>
+    <p>
+      这版首页的主张是：界面由「现在几点」决定。四个时段有各自的海与天，
+      问候语、推荐内容与海平线高度都跟着变。
+    </p>
+
+    <div class="card">
+      <h2>时段预览</h2>
+      <div class="todseg" id="todSeg">
+        <button type="button" data-tod="dawn"  aria-pressed="false">清晨 05–09</button>
+        <button type="button" data-tod="day"   aria-pressed="false">白天 09–17</button>
+        <button type="button" data-tod="dusk"  aria-pressed="false">黄昏 17–21</button>
+        <button type="button" data-tod="night" aria-pressed="true">夜间 21–05</button>
+      </div>
+      <small>
+        默认按本机时间自动判断。在「我的 → 外观」里关掉自动，
+        或在这里点任一时段可强制预览。
+      </small>
+    </div>
+
+    <div class="card">
+      <h2>可以试的</h2>
+      <small>
+        在「我的」里改目标入睡时间，回到首页看倒计时立刻变；<br>
+        点推荐卡的播放键，进度环与波形条会一起走；<br>
+        底部四个 Tab 都是真的，不是占位。<br><br>
+        睡眠数据与课程为演示内容。
+      </small>
+    </div>
+  </aside>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  function $(id){ return document.getElementById(id); }
+  function pad(n){ return String(n).padStart(2,'0'); }
+  function hm(mins){
+    mins = ((mins % 1440) + 1440) % 1440;
+    return Math.floor(mins/60) + ':' + pad(mins % 60);
+  }
+
+  var app = $('app');
+  var autoTod = true, forcedTod = null;
+
+  /* ======================================================================
+     时段
+     ====================================================================== */
+  var TOD = {
+    dawn:  { label:'清晨', hi:'早上好，KUN', sub:'雾还没散。先醒神，再开始一天。',
+             why:'此刻推荐 · 刚起床',       title:'雾散之前的六分钟', dur:360, tag:'唤醒呼吸' },
+    day:   { label:'白天', hi:'下午好，KUN', sub:'把注意力从屏幕上拿回来一会儿。',
+             why:'此刻推荐 · 工作时段',     title:'两次呼吸之间',     dur:300, tag:'专注重置' },
+    dusk:  { label:'黄昏', hi:'傍晚好，KUN', sub:'先把今天放下，再考虑晚上。',
+             why:'此刻推荐 · 下班前后',     title:'退潮线',           dur:540, tag:'情绪缓冲' },
+    night: { label:'深夜', hi:'晚上好，KUN', sub:'海面已经静下来了。今晚从呼吸开始。',
+             why:'此刻推荐 · 已过 23 点',   title:'潮水退去的十二分钟', dur:720, tag:'呼吸放松' }
+  };
+
+  function todOfHour(h){
+    if (h >= 5 && h < 9) return 'dawn';
+    if (h >= 9 && h < 17) return 'day';
+    if (h >= 17 && h < 21) return 'dusk';
+    return 'night';
+  }
+
+  function applyTod(key){
+    app.dataset.tod = key;
+    var t = TOD[key];
+    $('todLabel').textContent = t.label;
+    $('hello').textContent = t.hi;
+    $('helloSub').textContent = t.sub;
+    $('pickWhy').textContent = t.why;
+    $('pickTitle').textContent = t.title;
+    $('pickMeta').innerHTML =
+      '<span>引导 · 陆屿</span><span>' + t.tag + '</span><span class="mono"></span>';
+    $('pickMeta').lastElementChild.textContent = fmt(t.dur);
+    audio.dur = t.dur;
+    audio.pos = Math.min(audio.pos, t.dur);
+    $('playDur').textContent = fmt(t.dur);
+    paintAudio();
+
+    Array.prototype.forEach.call($('todSeg').children, function(b){
+      b.setAttribute('aria-pressed', String(b.dataset.tod === key));
+    });
+  }
+
+  $('todSeg').addEventListener('click', function(e){
+    var b = e.target.closest('button');
+    if (!b) return;
+    forcedTod = b.dataset.tod;
+    autoTod = false;
+    $('swAuto').setAttribute('aria-checked','false');
+    applyTod(forcedTod);
+  });
+
+  /* ======================================================================
+     时钟：状态栏 + 倒计时 + 自动时段
+     ====================================================================== */
+  var lastMin = -1;
+
+  function tickClock(){
+    var d = new Date();
+    $('sysTime').textContent = pad(d.getHours()) + ':' + pad(d.getMinutes());
+
+    if (d.getMinutes() !== lastMin){
+      lastMin = d.getMinutes();
+      if (autoTod) applyTod(todOfHour(d.getHours()));
+      paintCountdown(d);
+    }
+  }
+
+  function paintCountdown(d){
+    var bt = $('bedtime').value.split(':');
+    var bed = (+bt[0]) * 60 + (+bt[1]);
+    var now = d.getHours() * 60 + d.getMinutes();
+
+    // 距下一次入睡时间还有多久（分钟，跨零点回绕）
+    var toGo = ((bed - now) % 1440 + 1440) % 1440;
+    // 已经过去了多久
+    var since = 1440 - toGo;
+
+    // 入睡时间之后的 4 小时内，显示「已超过」；其余时间显示倒计时
+    if (toGo !== 0 && since <= 240){
+      var oh = Math.floor(since / 60), om = since % 60;
+      $('cdVal').textContent = (oh ? oh + ' 小时 ' : '') + om + ' 分钟';
+      $('cdLabel').textContent = '已超过你设定的入睡时间';
+    } else {
+      var h = Math.floor(toGo / 60), m = toGo % 60;
+      $('cdVal').textContent = toGo === 0 ? '就是现在' : ((h ? h + ' 小时 ' : '') + m + ' 分钟');
+      $('cdLabel').textContent = toGo === 0 ? '到了你设定的入睡时间' : '距你设定的入睡时间';
+    }
+  }
+
+  $('cdEdit').addEventListener('click', function(){
+    switchView('me');
+    setTimeout(function(){ $('bedtime').focus(); }, 60);
+  });
+
+  ['bedtime','waketime'].forEach(function(id){
+    $(id).addEventListener('change', function(){
+      paintCountdown(new Date());
+      var a = $('bedtime').value.split(':'), b = $('waketime').value.split(':');
+      var len = ((+b[0]*60 + +b[1]) - (+a[0]*60 + +a[1]) + 1440) % 1440;
+      $('targetLen').textContent = hm(len);
+    });
+  });
+
+  /* ======================================================================
+     播放（无音频，用计时器驱动，行为与真实一致）
+     ====================================================================== */
+  var audio = { playing:false, pos:0, dur:720 };
+  var last = null;
+
+  function fmt(s){
+    s = Math.max(0, s);
+    return Math.floor(s/60) + ':' + pad(Math.floor(s % 60));
+  }
+
+  function paintAudio(){
+    var frac = audio.dur ? audio.pos / audio.dur : 0;
+    $('playBar').style.width = (frac*100).toFixed(2) + '%';
+    $('playRing').style.setProperty('--deg', (frac*360).toFixed(2) + 'deg');
+    $('playCur').textContent = fmt(audio.pos);
+    $('playBtn').setAttribute('aria-pressed', String(audio.playing));
+    $('playBtn').setAttribute('aria-label', audio.playing ? '暂停' : '播放');
+    $('playIcon').innerHTML = audio.playing
+      ? '<path d="M4 2h3.2v12H4zM8.8 2H12v12H8.8z"/>'
+      : '<path d="M3 2l11 6-11 6z"/>';
+  }
+
+  $('playBtn').addEventListener('click', function(){
+    audio.playing = !audio.playing;
+    last = null;
+    paintAudio();
+  });
+
+  function loop(now){
+    if (audio.playing){
+      if (last === null) last = now;
+      audio.pos += (now - last) / 1000;
+      if (audio.pos >= audio.dur){ audio.pos = audio.dur; audio.playing = false; }
+      paintAudio();
+    }
+    last = now;
+    tickClock();
+    requestAnimationFrame(loop);
+  }
+
+  /* ======================================================================
+     睡眠数据
+     ====================================================================== */
+  var NIGHTS = [
+    { d:'一', inMin:23*60+52, outMin:7*60+10 },
+    { d:'二', inMin:24*60+35, outMin:7*60+2  },
+    { d:'三', inMin:23*60+18, outMin:6*60+48 },
+    { d:'四', inMin:24*60+12, outMin:7*60+26 },
+    { d:'五', inMin:25*60+6,  outMin:8*60+14 },
+    { d:'六', inMin:24*60+48, outMin:9*60+2  },
+    { d:'日', inMin:23*60+34, outMin:7*60+0  }
+  ];
+  var AXIS_TOP = 22*60, AXIS_BOT = 10*60 + 1440;   // 22:00 → 次日 10:00
+
+  function buildSleep(host, today){
+    var lens = NIGHTS.map(function(n){ return n.outMin + 1440 - n.inMin; });
+    var avg = lens.reduce(function(a,b){ return a+b; },0) / lens.length;
+
+    var wrap = document.createElement('div');
+
+    var sum = document.createElement('div');
+    sum.className = 'sleep__sum';
+    sum.innerHTML = '<b>' + hm(Math.round(avg)) + '</b><span>七晚平均睡眠时长</span>';
+    wrap.appendChild(sum);
+
+    var chart = document.createElement('div');
+    chart.className = 'chart';
+
+    var grid = document.createElement('div');
+    grid.className = 'chart__grid';
+    [22*60, 24*60, 26*60, 28*60, 30*60].forEach(function(t){
+      var y = (t - AXIS_TOP) / (AXIS_BOT - AXIS_TOP) * 100;
+      var i = document.createElement('i');
+      i.style.top = y + '%';
+      grid.appendChild(i);
+      var lab = document.createElement('span');
+      lab.className = 'chart__ylab';
+      lab.style.top = y + '%';
+      lab.textContent = pad((t/60) % 24) + ':00';
+      chart.appendChild(lab);
+    });
+    chart.appendChild(grid);
+
+    var cols = document.createElement('div');
+    cols.className = 'chart__cols';
+    NIGHTS.forEach(function(n, i){
+      var col = document.createElement('div');
+      col.className = 'col';
+      if (i === NIGHTS.length - 1 && today) col.dataset.today = 'true';
+      var start = n.inMin, end = n.outMin + 1440;
+      var top = (start - AXIS_TOP) / (AXIS_BOT - AXIS_TOP) * 100;
+      var bot = (end - AXIS_TOP) / (AXIS_BOT - AXIS_TOP) * 100;
+      var bar = document.createElement('i');
+      bar.style.top = top.toFixed(2) + '%';
+      bar.style.height = (bot - top).toFixed(2) + '%';
+      var lbl = document.createElement('span');
+      lbl.textContent = n.d;
+      col.appendChild(bar); col.appendChild(lbl);
+      col.setAttribute('role','img');
+      col.setAttribute('aria-label',
+        '周' + n.d + '：' + hm(n.inMin) + ' 入睡，' + hm(n.outMin) + ' 醒来，共 ' + hm(end - start));
+      cols.appendChild(col);
+    });
+    chart.appendChild(cols);
+    wrap.appendChild(chart);
+
+    var note = document.createElement('p');
+    note.className = 'sleep__note';
+    note.textContent = '柱子的上端是入睡时刻，下端是醒来时刻。位置比长度更重要——规律的作息，柱子的上端应该对齐。';
+    wrap.appendChild(note);
+
+    host.textContent = '';
+    host.appendChild(wrap);
+
+    return { avg:avg, lens:lens };
+  }
+
+  /* ======================================================================
+     课程
+     ====================================================================== */
+  var COURSES = {
+    sleep:[
+      { t:'潮水退去的十二分钟', s:'引导 · 陆屿 · 呼吸放松', m:12, p:0.62 },
+      { t:'把今天关在门外',     s:'引导 · 沈眠 · 思绪清理', m:18, p:0.15 },
+      { t:'一片没有风的海',     s:'环境音 · 无引导',       m:45, p:0,   n:true },
+      { t:'四七八呼吸',         s:'引导 · 陆屿 · 入睡前',   m:8,  p:1 }
+    ],
+    focus:[
+      { t:'两次呼吸之间',       s:'引导 · 沈眠 · 专注重置', m:5,  p:0.4 },
+      { t:'开会前的九十秒',     s:'引导 · 陆屿 · 快速回神', m:2,  p:0 },
+      { t:'午后的一次停顿',     s:'引导 · 沈眠 · 疲劳缓解', m:10, p:0.8 }
+    ],
+    calm:[
+      { t:'退潮线',             s:'引导 · 陆屿 · 情绪缓冲', m:9,  p:0 },
+      { t:'把烦躁写在沙上',     s:'引导 · 沈眠 · 书写引导', m:15, p:0.25, n:true },
+      { t:'雨落在礁石上',       s:'环境音 · 无引导',       m:60, p:0 }
+    ]
+  };
+
+  function renderCourses(host, list){
+    host.textContent = '';
+    list.forEach(function(c){
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'course';
+
+      var dur = document.createElement('span');
+      dur.className = 'course__dur';
+      dur.innerHTML = '<b>' + c.m + '</b><span>MIN</span>';
+
+      var main = document.createElement('span');
+      main.className = 'course__main';
+      var bb = document.createElement('b'); bb.textContent = c.t;
+      var ss = document.createElement('span'); ss.textContent = c.s;
+      main.appendChild(bb); main.appendChild(ss);
+
+      var right;
+      if (c.n){
+        right = document.createElement('span');
+        right.className = 'course__new';
+        right.textContent = '新';
+      } else {
+        right = document.createElement('span');
+        right.className = 'course__prog';
+        right.style.setProperty('--p', (c.p * 360).toFixed(0) + 'deg');
+        right.setAttribute('role','img');
+        right.setAttribute('aria-label', '已完成 ' + Math.round(c.p*100) + '%');
+      }
+
+      b.appendChild(dur); b.appendChild(main); b.appendChild(right);
+      b.setAttribute('aria-label', c.t + '，' + c.m + ' 分钟，' + c.s);
+      b.addEventListener('click', function(){
+        $('pickTitle').textContent = c.t;
+        $('pickWhy').textContent = '你刚选的';
+        $('pickMeta').innerHTML = '<span>' + c.s + '</span>';
+        audio.dur = c.m * 60;
+        audio.pos = 0;
+        audio.playing = true;
+        last = null;
+        $('playDur').textContent = fmt(audio.dur);
+        paintAudio();
+        switchView('home');
+      });
+      host.appendChild(b);
+    });
+  }
+
+  /* ======================================================================
+     Tab
+     ====================================================================== */
+  var VIEWS = ['home','courses','stats','me'];
+
+  function switchView(name){
+    VIEWS.forEach(function(v){ $('v-' + v).hidden = (v !== name); });
+    document.querySelectorAll('.tab').forEach(function(t){
+      t.setAttribute('aria-selected', String(t.dataset.view === name));
+    });
+    var host = $('v-' + name);
+    if (host) host.scrollTop = 0;
+  }
+
+  document.querySelectorAll('.tab').forEach(function(t){
+    t.addEventListener('click', function(){ switchView(t.dataset.view); });
+  });
+  document.querySelectorAll('[data-goto]').forEach(function(b){
+    b.addEventListener('click', function(){ switchView(b.dataset.goto); });
+  });
+
+  document.querySelectorAll('.sw').forEach(function(sw){
+    sw.addEventListener('click', function(){
+      var on = sw.getAttribute('aria-checked') !== 'true';
+      sw.setAttribute('aria-checked', String(on));
+      if (sw.id === 'swAuto'){
+        autoTod = on;
+        if (on){ applyTod(todOfHour(new Date().getHours())); }
+      }
+    });
+  });
+
+  /* ======================================================================
+     启动
+     ====================================================================== */
+  var stats = buildSleep($('sleepCard'), true);
+  buildSleep($('statsCard'), true);
+  renderCourses($('homeCourses'), COURSES.sleep.slice(0,3));
+  renderCourses($('listSleep'), COURSES.sleep);
+  renderCourses($('listFocus'), COURSES.focus);
+  renderCourses($('listCalm'), COURSES.calm);
+
+  (function fillStats(){
+    var ins = NIGHTS.map(function(n){ return n.inMin; }).sort(function(a,b){ return a-b; });
+    var outs = NIGHTS.map(function(n){ return n.outMin; }).sort(function(a,b){ return a-b; });
+    var lens = stats.lens.slice().sort(function(a,b){ return a-b; });
+    var mean = ins.reduce(function(a,b){ return a+b; },0) / ins.length;
+    var sd = Math.sqrt(ins.reduce(function(a,b){ return a + (b-mean)*(b-mean); },0) / ins.length);
+
+    $('mAvgIn').textContent = hm(ins[3]);
+    $('mAvgOut').textContent = hm(outs[3]);
+    $('mMax').textContent = hm(lens[lens.length-1]);
+    $('mMin').textContent = hm(lens[0]);
+    $('mVar').textContent = '± ' + Math.round(sd) + ' 分钟';
+  })();
+
+  applyTod(todOfHour(new Date().getHours()));
+  paintCountdown(new Date());
+  paintAudio();
+  requestAnimationFrame(loop);
+})();
+</script>
+
+</body>
+</html>

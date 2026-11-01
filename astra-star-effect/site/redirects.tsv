@@ -1,0 +1,7 @@
+CODE	FROM	TO
+308	https://openai.com/index/gpt-6-astra	/index/gpt-6-astra/
+302	https://openai.com/cdn-cgi/challenge-platform/scripts/jsd/main.js	/cdn-cgi/challenge-platform/h/g/scripts/jsd/330e41bb475c/main.js?
+302	https://unpkg.com/react-dom@18/umd/react-dom.development.js	/react-dom@18.3.1/umd/react-dom.development.js
+302	https://unpkg.com/@babel/standalone/babel.min.js	/@babel/standalone@8.0.4/babel.min.js
+302	https://unpkg.com/react@18/umd/react.development.js	/react@18.3.1/umd/react.development.js
+302	https://unpkg.com/react@18/umd/react.production.min.js	/react@18.3.1/umd/react.production.min.js

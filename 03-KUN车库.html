@@ -1,0 +1,769 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KUN'S GARAGE · KUN 的在线车库</title>
+<style>
+:root{
+  --bg:#0b0d0c; --panel:rgba(16,19,18,.82); --line:rgba(255,255,255,.09);
+  --lime:#c9f24b; --lime-dim:rgba(201,242,75,.14);
+  --txt:#e8ece6; --dim:#8b938b; --gold:#e8c877;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%}
+body{background:var(--bg);color:var(--txt);font-family:"PingFang SC","Microsoft YaHei",sans-serif;overflow:hidden}
+#app{position:fixed;inset:0}
+canvas{display:block}
+button{font:inherit;color:inherit;background:none;border:none;cursor:pointer;-webkit-tap-highlight-color:transparent}
+button:focus-visible{outline:2px solid var(--lime);outline-offset:2px}
+
+/* ---------- 载入 ---------- */
+#loader{position:fixed;inset:0;background:var(--bg);z-index:50;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;transition:opacity .7s ease,visibility .7s}
+#loader.done{opacity:0;visibility:hidden}
+#loader .mark{font-size:clamp(22px,4vmin,34px);letter-spacing:.5em;text-indent:.5em;font-weight:700}
+#loader .mark i{font-style:normal;color:var(--lime)}
+#loader .bar{width:min(300px,60vw);height:2px;background:rgba(255,255,255,.1);overflow:hidden;border-radius:2px}
+#loader .bar i{display:block;height:100%;width:40%;background:var(--lime);animation:ld 1.1s ease-in-out infinite;border-radius:2px}
+@keyframes ld{0%{transform:translateX(-110%)}100%{transform:translateX(280%)}}
+#loader .tip{font-size:11px;letter-spacing:.3em;color:var(--dim)}
+
+/* ---------- 顶栏 ---------- */
+header{position:fixed;top:0;left:0;right:0;z-index:10;display:flex;align-items:center;justify-content:space-between;padding:18px clamp(16px,3vw,36px);pointer-events:none}
+header>*{pointer-events:auto}
+.logo{font-weight:800;letter-spacing:.28em;font-size:clamp(15px,2vmin,20px)}
+.logo i{font-style:normal;color:var(--lime)}
+.logo small{display:block;font-size:9px;letter-spacing:.42em;color:var(--dim);font-weight:400;margin-top:3px}
+.badge{font-size:10px;letter-spacing:.24em;color:var(--dim);border:1px solid var(--line);padding:8px 14px;border-radius:999px;background:var(--panel);backdrop-filter:blur(8px)}
+
+/* ---------- 左侧车辆列表 ---------- */
+nav#fleet{
+  position:fixed;left:clamp(10px,2vw,24px);top:50%;transform:translateY(-50%);z-index:10;
+  display:flex;flex-direction:column;gap:6px;max-height:76vh;overflow:auto;scrollbar-width:none;
+}
+nav#fleet::-webkit-scrollbar{display:none}
+nav#fleet button{
+  display:flex;align-items:center;gap:10px;padding:9px 14px 9px 10px;border-radius:12px;
+  border:1px solid transparent;color:var(--dim);font-size:12px;letter-spacing:.1em;
+  transition:.2s;white-space:nowrap;background:transparent;
+}
+nav#fleet button .no{font-size:10px;font-variant-numeric:tabular-nums;opacity:.55;width:20px}
+nav#fleet button:hover{color:var(--txt);background:rgba(255,255,255,.05)}
+nav#fleet button.active{
+  color:#0d0f0c;background:linear-gradient(135deg,var(--lime),#9ed635);font-weight:600;
+  box-shadow:0 6px 22px rgba(201,242,75,.25);
+}
+nav#fleet button.active .no{opacity:.75}
+
+/* ---------- 右侧数据面板 ---------- */
+aside#specs{
+  position:fixed;right:clamp(10px,2vw,24px);top:50%;transform:translateY(-50%);z-index:10;
+  width:min(300px,72vw);display:flex;flex-direction:column;gap:12px;
+}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px 18px;backdrop-filter:blur(10px)}
+#vname{font-size:clamp(18px,2.4vmin,24px);font-weight:700;letter-spacing:.06em}
+#vmodel{font-size:11px;letter-spacing:.22em;color:var(--dim);margin-top:4px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px 14px;margin-top:12px}
+.grid .k{font-size:9px;letter-spacing:.26em;color:var(--dim)}
+.grid .v{font-size:14px;font-weight:600;margin-top:2px;font-variant-numeric:tabular-nums}
+.grid .v em{font-style:normal;font-size:10px;color:var(--dim);margin-left:2px}
+#vquote{margin-top:12px;font-size:12px;line-height:1.8;color:#b9c1b6;border-left:2px solid var(--lime);padding-left:10px}
+/* 漆色 */
+.swatches{display:flex;gap:9px;margin-top:12px;flex-wrap:wrap}
+.swatches b{width:100%;font-size:9px;letter-spacing:.26em;color:var(--dim);font-weight:400;margin-bottom:-2px}
+.sw{width:26px;height:26px;border-radius:50%;border:2px solid rgba(255,255,255,.18);position:relative;transition:.15s}
+.sw:hover{transform:scale(1.12)}
+.sw.on{border-color:var(--lime);box-shadow:0 0 0 3px var(--lime-dim),0 0 14px rgba(201,242,75,.3)}
+
+/* ---------- 底部控制 ---------- */
+footer{position:fixed;left:50%;bottom:clamp(12px,3vh,26px);transform:translateX(-50%);z-index:10;display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:center;padding:0 12px}
+.ctl{display:flex;gap:4px;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:5px;backdrop-filter:blur(10px)}
+.ctl button{padding:9px 15px;border-radius:10px;font-size:12px;letter-spacing:.1em;color:var(--dim);transition:.18s;white-space:nowrap}
+.ctl button:hover{color:var(--txt);background:rgba(255,255,255,.06)}
+.ctl button.on{background:var(--lime);color:#0d0f0c;font-weight:600}
+.ctl.sep{width:1px;background:var(--line);margin:6px 4px}
+.hint{position:fixed;bottom:clamp(58px,10vh,80px);left:50%;transform:translateX(-50%);z-index:9;font-size:10px;letter-spacing:.3em;color:var(--dim);opacity:.8;pointer-events:none;text-align:center}
+
+/* ---------- 大字号车名水印 ---------- */
+#watermark{
+  position:fixed;left:50%;bottom:-2vh;transform:translateX(-50%);z-index:1;pointer-events:none;
+  font-size:clamp(80px,22vmin,240px);font-weight:900;letter-spacing:.04em;line-height:1;
+  color:transparent;-webkit-text-stroke:1px rgba(255,255,255,.07);user-select:none;white-space:nowrap;
+  font-family:"Arial Black","PingFang SC",sans-serif;
+}
+
+@media (max-width:880px){
+  nav#fleet{top:auto;bottom:76px;left:0;right:0;transform:none;flex-direction:row;overflow-x:auto;padding:0 12px;max-height:none}
+  aside#specs{top:auto;bottom:132px;transform:none;right:12px;width:min(280px,86vw)}
+  .hint{display:none}
+  #watermark{display:none}
+}
+</style>
+</head>
+<body>
+
+<div id="loader">
+  <div class="mark">KUN<i>'</i>S GARAGE</div>
+  <div class="bar"><i></i></div>
+  <div class="tip">正在点亮展厅……</div>
+</div>
+
+<div id="app"></div>
+<div id="watermark" aria-hidden="true">WULING</div>
+
+<header>
+  <div class="logo">KUN<i>'S</i> GARAGE<small>主理人 · KUN 的九席车库</small></div>
+  <div class="badge" id="counter">01 / 09</div>
+</header>
+
+<nav id="fleet" aria-label="载具列表"></nav>
+
+<aside id="specs">
+  <div class="card">
+    <div id="vname">—</div>
+    <div id="vmodel">—</div>
+    <div class="grid" id="vgrid"></div>
+    <p id="vquote">—</p>
+  </div>
+  <div class="card">
+    <div class="swatches" id="swatches"><b>涂装 PAINT</b></div>
+  </div>
+</aside>
+
+<div class="hint">拖动环视 · 滚轮推近 · ←/→ 切换载具</div>
+
+<footer>
+  <div class="ctl" id="views" role="group" aria-label="机位">
+    <button data-view="hero" class="on">3/4 站位</button>
+    <button data-view="front">正面</button>
+    <button data-view="side">侧面</button>
+    <button data-view="rear">尾部</button>
+    <button data-view="top">俯瞰</button>
+  </div>
+  <div class="ctl" role="group" aria-label="展示">
+    <button id="spin" class="on">转台 · 开</button>
+    <button id="drive">开出去兜一圈</button>
+  </div>
+</footer>
+
+<script type="importmap">
+{"imports":{
+  "three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+}}
+</script>
+<script type="module">
+import * as THREE from 'three';
+import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
+import {RoomEnvironment} from 'three/addons/environments/RoomEnvironment.js';
+import {Reflector} from 'three/addons/objects/Reflector.js';
+
+/* ================= 基础舞台 ================= */
+const app=document.getElementById('app');
+const renderer=new THREE.WebGLRenderer({antialias:true});
+renderer.setSize(innerWidth,innerHeight);
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.shadowMap.enabled=true;
+renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+renderer.toneMapping=THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure=1.05;
+app.appendChild(renderer.domElement);
+
+const scene=new THREE.Scene();
+scene.background=new THREE.Color(0x0b0d0c);
+scene.fog=new THREE.Fog(0x0b0d0c,18,42);
+const pmrem=new THREE.PMREMGenerator(renderer);
+scene.environment=pmrem.fromScene(new RoomEnvironment(),0.04).texture;
+
+const camera=new THREE.PerspectiveCamera(40,innerWidth/innerHeight,0.1,100);
+camera.position.set(6.2,2.6,7.4);
+const controls=new OrbitControls(camera,renderer.domElement);
+controls.target.set(0,1.05,0);
+controls.enableDamping=true;controls.dampingFactor=.06;
+controls.minDistance=3;controls.maxDistance=16;
+controls.minPolarAngle=.12;controls.maxPolarAngle=Math.PI*.49;controls.enablePan=false;
+
+/* 灯光 */
+const key=new THREE.SpotLight(0xfff4e0,260,30,.55,.45,1.6);
+key.position.set(4.5,9,3.5);key.castShadow=true;
+key.shadow.mapSize.set(2048,2048);key.shadow.bias=-0.0004;
+scene.add(key);
+const rim=new THREE.SpotLight(0x9ecbff,120,30,.7,.6,1.6);
+rim.position.set(-7,5,-6);scene.add(rim);
+const lime=new THREE.SpotLight(0xc9f24b,18,26,.8,.7,1.8);
+lime.position.set(0,4.5,-9);scene.add(lime);
+const frontFill=new THREE.DirectionalLight(0xbfd4ff,.65);
+frontFill.position.set(-2,3,-7);scene.add(frontFill);
+scene.add(new THREE.AmbientLight(0x30352f,.5));
+
+/* 地面：镜面 + 压暗层 */
+const mirror=new Reflector(new THREE.CircleGeometry(14,72),{
+  textureWidth:1024,textureHeight:1024,color:0x9aa39a,clipBias:.003
+});
+mirror.rotation.x=-Math.PI/2;mirror.position.y=0;scene.add(mirror);
+const dimmer=new THREE.Mesh(
+  new THREE.CircleGeometry(14,72),
+  new THREE.MeshBasicMaterial({color:0x0b0d0c,transparent:true,opacity:.72})
+);
+dimmer.rotation.x=-Math.PI/2;dimmer.position.y=.002;scene.add(dimmer);
+/* 展台 */
+const podium=new THREE.Mesh(
+  new THREE.CylinderGeometry(3.1,3.3,.14,72),
+  new THREE.MeshStandardMaterial({color:0x151816,metalness:.6,roughness:.4})
+);
+podium.position.y=.07;podium.receiveShadow=true;scene.add(podium);
+const podiumRing=new THREE.Mesh(
+  new THREE.TorusGeometry(3.1,.025,10,90),
+  new THREE.MeshBasicMaterial({color:0xc9f24b})
+);
+podiumRing.rotation.x=Math.PI/2;podiumRing.position.y=.145;scene.add(podiumRing);
+/* 背景墙字 */
+(function wallText(){
+  const cv=document.createElement('canvas');cv.width=1024;cv.height=256;
+  const c=cv.getContext('2d');
+  c.fillStyle='#0e100f';c.fillRect(0,0,1024,256);
+  c.font='900 150px Arial';c.textAlign='center';c.textBaseline='middle';
+  c.fillStyle='rgba(201,242,75,.16)';c.fillText('KUN',512,120);
+  c.font='700 34px Arial';c.fillStyle='rgba(255,255,255,.22)';
+  c.fillText('G A R A G E   N O . 0 9',512,212);
+  const tx=new THREE.CanvasTexture(cv);
+  const wall=new THREE.Mesh(new THREE.PlaneGeometry(24,6),new THREE.MeshBasicMaterial({map:tx}));
+  wall.position.set(0,3.2,-11);scene.add(wall);
+})();
+
+/* ================= 建模工具箱 ================= */
+const mat=(c,o={})=>new THREE.MeshStandardMaterial({color:c,metalness:o.m??.3,roughness:o.r??.55,...o.extra});
+const paintMat=(c)=>new THREE.MeshPhysicalMaterial({color:c,metalness:.82,roughness:.3,clearcoat:1,clearcoatRoughness:.08,envMapIntensity:1.15});
+const glassMat=()=>new THREE.MeshStandardMaterial({color:0x0c0f11,metalness:.95,roughness:.08,envMapIntensity:1.4});
+const chromeMat=()=>new THREE.MeshStandardMaterial({color:0xd7dde2,metalness:1,roughness:.14});
+const tireMat=()=>mat(0x141414,{r:.92,m:0});
+function M(geo,material,x=0,y=0,z=0){
+  const m=new THREE.Mesh(geo,material);m.position.set(x,y,z);m.castShadow=true;m.receiveShadow=true;return m;
+}
+const B=(w,h,d)=>new THREE.BoxGeometry(w,h,d);
+const CYL=(rt,rb,h,s=24)=>new THREE.CylinderGeometry(rt,rb,h,s);
+function wheel(r,w,spokes=6){
+  const g=new THREE.Group();
+  const tire=M(new THREE.TorusGeometry(r,r*.32,14,36),tireMat());tire.rotation.y=Math.PI/2;g.add(tire);
+  const hub=M(CYL(r*.62,r*.62,w*.8,20),chromeMat());hub.rotation.z=Math.PI/2;g.add(hub);
+  for(let i=0;i<spokes;i++){
+    const s=M(B(w*.16,r*1.7,r*.16),chromeMat());
+    s.rotation.x=i*Math.PI*2/spokes;g.add(s);
+  }
+  return g;
+}
+/* Q 版司机：大头小身，可调姿势 */
+function driver(suit,skin=0xf2c9a0,helm=null,sit=true){
+  const g=new THREE.Group();
+  const body=M(new THREE.CapsuleGeometry(.16,.24,6,14),mat(suit,{r:.5}));
+  body.position.y=.42;g.add(body);
+  const head=M(new THREE.SphereGeometry(.24,20,16),helm?mat(helm,{r:.25,m:.6}):mat(skin,{r:.6,m:0}));
+  head.position.y=.86;g.add(head);
+  if(helm){
+    const visor=M(new THREE.SphereGeometry(.245,20,12,0,Math.PI*2,-.5,.6),glassMat());
+    visor.position.y=.87;visor.rotation.x=-.15;g.add(visor);
+  }else{
+    const eyeL=M(new THREE.SphereGeometry(.028,8,8),mat(0x1a1a1a));eyeL.position.set(.09,.88,.2);g.add(eyeL);
+    const eyeR=eyeL.clone();eyeR.position.x=-.09;g.add(eyeR);
+  }
+  const armGeo=new THREE.CapsuleGeometry(.05,.26,4,10);
+  const aL=M(armGeo,mat(suit,{r:.5}));aL.position.set(.2,.55,.1);aL.rotation.x=-1.15;g.add(aL);
+  const aR=aL.clone();aR.position.x=-.2;g.add(aR);
+  if(sit){
+    const legGeo=new THREE.CapsuleGeometry(.055,.22,4,10);
+    const lL=M(legGeo,mat(suit,{r:.5}));lL.position.set(.11,.14,.14);lL.rotation.x=-1.35;g.add(lL);
+    const lR=lL.clone();lR.position.x=-.11;g.add(lR);
+  }
+  g.userData.scale=1;
+  return g;
+}
+
+/* ================= 九台载具 ================= */
+const vehicles=[];
+function register(def){vehicles.push(def)}
+
+/* 1 · 公路自行车 */
+register({
+  id:'bike',name:'公路自行车',model:'VELOCE · TEAM EDITION',
+  paints:[0xd6273a,0x111111,0xe8e6e0,0x1f6fd6,0xc9f24b],
+  spec:{动力:'双腿 ×2',极速:'52 km/h',整备:'7.4 kg',价值:'¥ 26,800'},
+  quote:'车库里的清洁能源旗舰，零油耗，顿顿干饭。',
+  build(p){
+    const g=new THREE.Group(),fr=paintMat(p);
+    const tube=(a,b,r=.028)=>{ // 车架管件
+      const v=new THREE.Vector3().subVectors(b,a),len=v.length();
+      const m=M(new THREE.CylinderGeometry(r,r,len,12),fr);
+      m.position.copy(a).add(b).multiplyScalar(.5);
+      m.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),v.normalize());return m;
+    };
+    const V=(x,y,z)=>new THREE.Vector3(x,y,z);
+    /* 车架几何：五通 BB(0,.5,.12) / 头管 (0,.9~1.0,-.75) / 前轮轴 (0,.34,-.78) / 后轮轴 (0,.34,.82) */
+    g.add(tube(V(0,.5,.12),V(0,.78,.14),.03));          // 座管
+    g.add(tube(V(0,.88,-.74),V(0,.5,.12),.032));        // 下管
+    g.add(tube(V(0,.78,.14),V(0,.97,-.7),.024));        // 上管
+    g.add(tube(V(0,.34,.82),V(0,.76,.15),.02));         // 后上叉
+    g.add(tube(V(0,.5,.12),V(0,.34,.82),.02));          // 后下叉
+    g.add(tube(V(0,.88,-.74),V(0,.34,-.78),.024));      // 前叉
+    const wF=wheel(.34,.05,10);wF.position.set(0,.34,-.78);g.add(wF);
+    const wR=wheel(.34,.05,10);wR.position.set(0,.34,.82);g.add(wR);
+    const barM=M(new THREE.CylinderGeometry(.02,.02,.4,10),chromeMat());barM.rotation.z=Math.PI/2;barM.position.set(0,1.05,-.72);g.add(barM);
+    const stem=tube(V(0,.97,-.7),V(0,1.05,-.72),.02,chromeMat());g.add(stem);
+    const saddle=M(B(.08,.03,.26),mat(0x141414));saddle.position.set(0,.81,.14);g.add(saddle);
+    const crank=M(CYL(.05,.05,.16,12),chromeMat());crank.rotation.z=Math.PI/2;crank.position.set(0,.5,.12);g.add(crank);
+    const d=driver(0xe23b4a,null);d.scale.setScalar(.92);d.position.set(0,.68,.2);d.rotation.x=.62;g.add(d);
+    g.userData.wheels=[wF,wR];
+    return g;
+  }
+});
+/* 2 · 电动踏板车 */
+register({
+  id:'scooter',name:'智能电动踏板车',model:'NQI · URBAN GT',
+  paints:[0xdfe3e6,0x18b6a8,0x232323,0xf2b632],
+  spec:{动力:'5 kW 电机',极速:'75 km/h',续航:'105 km',价值:'¥ 9,999'},
+  quote:'全车库唯一不用找停车位的成员，KUN 通勤主力。',
+  build(p){
+    const g=new THREE.Group(),body=paintMat(p);
+    const deck=M(B(.34,.1,1.05),body);deck.position.set(0,.3,.05);g.add(deck);
+    const front=M(B(.3,.42,.5),body);front.position.set(0,.55,-.52);g.add(front);
+    const seatM=M(B(.3,.14,.5),mat(0x1a1a1a,{r:.8}));seatM.position.set(0,.72,.28);g.add(seatM);
+    const tail=M(B(.3,.3,.4),body);tail.position.set(0,.62,.62);g.add(tail);
+    const column=M(CYL(.04,.05,.62,12),body);column.position.set(0,.85,-.6);column.rotation.x=.32;g.add(column);
+    const barM=M(B(.52,.04,.05),chromeMat());barM.position.set(0,1.12,-.68);g.add(barM);
+    const lamp=M(new THREE.SphereGeometry(.07,14,12),new THREE.MeshStandardMaterial({color:0xfff6d8,emissive:0xffedb0,emissiveIntensity:1.6}));
+    lamp.position.set(0,.72,-.76);g.add(lamp);
+    [[.35,.5],[.35,.7]].forEach(([r,z])=>{const mg=new THREE.Mesh(new THREE.CircleGeometry(.05,12),new THREE.MeshStandardMaterial({color:0xd7dde2,metalness:1,roughness:.2}));mg.position.set(0,1.16,z-.05);mg.rotation.x=-.2;g.add(mg)});
+    const wF=wheel(.2,.09,4);wF.position.set(0,.2,-.6);g.add(wF);
+    const wR=wheel(.22,.11,4);wR.position.set(0,.22,.66);g.add(wR);
+    const d=driver(0x2f7cf6,0xf2c9a0);d.scale.setScalar(.95);d.position.set(0,.6,.1);g.add(d);
+    g.userData.wheels=[wF,wR];
+    return g;
+  }
+});
+/* 3 · 仿赛机车 */
+register({
+  id:'sportbike',name:'公升级仿赛',model:'H2R · SUPERCHARGED',
+  paints:[0x0fae5e,0x141414,0x1a4fd6,0xd6273a],
+  spec:{动力:'310 hp 机械增压',极速:'380 km/h',整备:'216 kg',价值:'¥ 720,000'},
+  quote:'车库里唯一需要签免责声明的成员——放心，KUN 只在梦里骑到 300。',
+  build(p){
+    const g=new THREE.Group(),fair=paintMat(p);
+    const nose=M(B(.4,.3,.5),fair);nose.position.set(0,.78,-.72);g.add(nose);
+    const belly=M(B(.36,.34,.9),fair);belly.position.set(0,.52,-.3);g.add(belly);
+    const tank=M(B(.34,.26,.5),fair);tank.position.set(0,.8,.05);g.add(tank);
+    const seatM=M(B(.3,.1,.44),mat(0x141414,{r:.85}));seatM.position.set(0,.82,.4);g.add(seatM);
+    const tailUp=M(B(.26,.16,.42),fair);tailUp.position.set(0,.9,.72);tailUp.rotation.x=.28;g.add(tailUp);
+    const screen=M(B(.3,.16,.06),glassMat());screen.position.set(0,1.0,-.86);screen.rotation.x=-.5;g.add(screen);
+    const wind=M(B(.34,.2,.4),fair);wind.position.set(0,.62,-.58);g.add(wind);
+    const ex=M(CYL(.05,.05,.75,10),chromeMat());ex.position.set(.14,.34,.5);ex.rotation.x=1.35;g.add(ex);
+    const engine=M(B(.3,.24,.44),mat(0x33383c,{m:.9,r:.4}));engine.position.set(0,.42,-.15);g.add(engine);
+    const barM=M(B(.5,.035,.035),chromeMat());barM.position.set(0,.94,-.5);g.add(barM);
+    const wF=wheel(.3,.11,5);wF.position.set(0,.3,-.78);g.add(wF);
+    const wR=wheel(.31,.15,5);wR.position.set(0,.31,.72);g.add(wR);
+    const swing=M(B(.09,.09,.6),mat(0x2a2f33,{m:.8}));swing.position.set(0,.36,.42);g.add(swing);
+    const d=driver(0x111111,0x222222,0xd6273a);d.scale.setScalar(.9);d.position.set(0,.66,.18);d.rotation.x=1.05;g.add(d);
+    g.userData.wheels=[wF,wR];
+    return g;
+  }
+});
+/* 4 · 三蹦子 */
+register({
+  id:'tuk',name:'客运三轮摩托',model:'TS200 · 带棚豪华版',
+  paints:[0xd8a012,0xc23b2e,0x2e7d4f,0x3a6ea8],
+  spec:{动力:'200 cc 单缸',极速:'65 km/h',载客:'4+1 人',价值:'¥ 18,600'},
+  quote:'县城川流之王。挂牌「KUN·0001」，起步价看心情。',
+  build(p){
+    const g=new THREE.Group(),cab=paintMat(p);
+    const floor=M(B(.9,.08,1.7),mat(0x4a4034,{r:.8}));floor.position.set(0,.3,.1);g.add(floor);
+    const nose=M(B(.5,.5,.4),cab);nose.position.set(0,.62,-.95);g.add(nose);
+    const grille=M(B(.42,.16,.05),chromeMat());grille.position.set(0,.6,-1.16);g.add(grille);
+    const lampL=M(new THREE.SphereGeometry(.06,10,10),new THREE.MeshStandardMaterial({color:0xfff2c8,emissive:0xffe9a8,emissiveIntensity:1.4}));lampL.position.set(.17,.72,-1.12);g.add(lampL);
+    const lampR=lampL.clone();lampR.position.x=-.17;g.add(lampR);
+    const bar=M(CYL(.02,.02,.62,10),chromeMat());bar.rotation.z=Math.PI/2;bar.position.set(0,1.0,-.92);g.add(bar);
+    const column=M(CYL(.035,.035,.4,10),chromeMat());column.position.set(0,.86,-.92);g.add(column);
+    const seatD=M(B(.72,.12,.5),mat(0x8a2f2a,{r:.75}));seatD.position.set(0,.66,-.35);g.add(seatD);
+    const backD=M(B(.72,.5,.08),mat(0x8a2f2a,{r:.75}));backD.position.set(0,.94,-.12);g.add(backD);
+    // 帆布顶棚
+    const roof=M(new THREE.CylinderGeometry(.5,.5,1.9,18,1,true,0,Math.PI),paintMat(0xb03a2e,{extra:{side:THREE.DoubleSide}}));
+    roof.rotation.z=Math.PI/2;roof.rotation.y=Math.PI/2;roof.position.set(0,1.62,-.35);roof.scale.y=.5;g.add(roof);
+    [[.4,-.9],[-.4,-.9],[.4,.35],[-.4,.35]].forEach(([x,z])=>{
+      const post=M(CYL(.02,.02,.9,8),chromeMat());post.position.set(x,1.1,z);g.add(post);
+    });
+    // 货斗围板
+    const bed=M(B(.95,.3,1.15),mat(0x6b5636,{r:.85}));bed.position.set(0,.5,.55);g.add(bed);
+    const wF=wheel(.24,.12,4);wF.position.set(0,.24,-.98);g.add(wF);
+    const wRL=wheel(.26,.14,4);wRL.position.set(.56,.26,.62);g.add(wRL);
+    const wRR=wheel(.26,.14,4);wRR.position.set(-.56,.26,.62);g.add(wRR);
+    const d=driver(0xd8a012);d.scale.setScalar(.98);d.position.set(0,.55,-.42);g.add(d);
+    g.userData.wheels=[wF,wRL,wRR];
+    return g;
+  }
+});
+/* 5 · 五菱宏光 */
+register({
+  id:'wuling',name:'国民神车',model:'HONGGUANG S · 1.5L 豪华型',
+  paints:[0xc9ccd1,0x8d939a,0xf4f4f0,0x33418c],
+  spec:{动力:'112 hp 自吸',极速:'155 km/h',整备:'1,180 kg',价值:'¥ 52,800'},
+  quote:'秋名山传说本身。车轮一转，全家吃饭；后排放倒，装下梦想。',
+  build(p){
+    const g=new THREE.Group(),body=paintMat(p);
+    const lower=M(B(1.62,.52,3.6),body);lower.position.set(0,.52,0);g.add(lower);
+    const cabin=M(B(1.56,.6,2.5),body);cabin.position.set(0,1.05,-.1);g.add(cabin);
+    const roofR=M(B(1.6,.1,2.6),body);roofR.position.set(0,1.38,-.1);g.add(roofR);
+    const hood=M(B(1.58,.3,.9),body);hood.position.set(0,.93,-1.45);g.add(hood);
+    // 深色玻璃带
+    const glass=M(B(1.58,.42,2.3),glassMat());glass.position.set(0,1.12,-.1);g.add(glass);
+    const windshield=M(B(1.5,.5,.06),glassMat());windshield.position.set(0,1.1,-1.32);windshield.rotation.x=-.32;g.add(windshield);
+    const rearG=M(B(1.5,.5,.06),glassMat());rearG.position.set(0,1.12,1.16);rearG.rotation.x=.28;g.add(rearG);
+    // 前脸
+    const grille=M(B(1.1,.16,.06),mat(0x1a1c1e,{m:.8,r:.35}));grille.position.set(0,.72,-1.82);g.add(grille);
+    const chromeStrip=M(B(1.14,.03,.07),chromeMat());chromeStrip.position.set(0,.82,-1.81);g.add(chromeStrip);
+    const hlGeo=new THREE.CylinderGeometry(.09,.09,.06,16);
+    const hlL=M(hlGeo,mat(0xfff6d8,{extra:{emissive:0xffedb0,emissiveIntensity:.9}}));
+    hlL.rotation.x=Math.PI/2;hlL.position.set(.6,.9,-1.81);g.add(hlL);
+    const hlR=hlL.clone();hlR.position.x=-.6;g.add(hlR);
+    const bumper=M(B(1.66,.22,.14),mat(0x232629,{r:.7}));bumper.position.set(0,.42,-1.79);g.add(bumper);
+    const bumperR=bumper.clone();bumperR.position.z=1.79;g.add(bumperR);
+    const wmi=M(new THREE.CylinderGeometry(.02,.02,.04,8),mat(0xd23c2e));wmi.rotation.x=Math.PI/2;wmi.position.set(0,.72,-1.86);g.add(wmi);
+    const ws=[];
+    [[.88,-1.25],[-.88,-1.25],[.88,1.2],[-.88,1.2]].forEach(([x,z])=>{
+      const w=wheel(.31,.2,5);w.position.set(x,.31,z);g.add(w);ws.push(w);
+    });
+    const plate=M(B(.4,.12,.02),mat(0x2c62d1));plate.position.set(0,.42,-1.87);g.add(plate);
+    g.userData.wheels=ws;
+    return g;
+  }
+});
+/* 6 · 特斯拉 Model 3 */
+register({
+  id:'tesla',name:'纯电轿跑',model:'MODEL 3 · 长续航全轮驱动',
+  paints:[0xf2f3f4,0x1c1e20,0x27437a,0x8d1414],
+  spec:{动力:'498 hp 双电机',极速:'261 km/h',零百:'3.3 s',价值:'¥ 285,900'},
+  quote:'车里静得能听见 KUN 的野心。一脚电门，三位数的安静暴力。',
+  build(p){
+    const g=new THREE.Group(),body=paintMat(p);
+    const lower=M(B(1.6,.44,3.9),body);lower.position.set(0,.5,0);g.add(lower);
+    const mid=M(B(1.72,.3,3.7),body);mid.position.set(0,.3,0);g.add(mid);
+    // 溜背车顶：拉长的球冠
+    const dome=M(new THREE.SphereGeometry(.92,28,20,0,Math.PI*2,0,Math.PI/2),body);
+    dome.scale.set(.86,.62,2.05);dome.position.set(0,.94,-.15);g.add(dome);
+    const canopy=M(new THREE.SphereGeometry(.9,28,18,0,Math.PI*2,0,Math.PI/2.4),glassMat());
+    canopy.scale.set(.84,.6,1.9);canopy.position.set(0,.96,-.15);g.add(canopy);
+    const noseW=M(B(1.62,.16,.5),body);noseW.position.set(0,.62,-1.85);noseW.rotation.x=.1;g.add(noseW);
+    const lightbar=M(B(1.3,.05,.05),mat(0xfff6d8,{extra:{emissive:0xfff1bd,emissiveIntensity:1.6}}));
+    lightbar.position.set(0,.6,-1.92);g.add(lightbar);
+    const tailbar=M(B(1.42,.06,.05),mat(0xff3b30,{extra:{emissive:0xff2418,emissiveIntensity:2}}));
+    tailbar.position.set(0,.78,1.95);g.add(tailbar);
+    const lip=M(B(1.5,.08,.2),mat(0x141618,{r:.5}));lip.position.set(0,.26,-1.98);g.add(lip);
+    const lipR=lip.clone();lipR.position.z=1.96;lipR.rotation.x=-.08;g.add(lipR);
+    const ws=[];
+    [[.92,-1.2],[-.92,-1.2],[.92,1.18],[-.92,1.18]].forEach(([x,z])=>{
+      const w=wheel(.33,.22,5);w.position.set(x,.33,z);g.add(w);ws.push(w);
+    });
+    const badge=M(new THREE.CylinderGeometry(.045,.045,.02,12),mat(0xdfe3e6,{m:.9,r:.3}));
+    badge.rotation.x=Math.PI/2;badge.position.set(0,.72,-1.9);g.add(badge);
+    g.userData.wheels=ws;
+    return g;
+  }
+});
+/* 7 · 小米 SU7 */
+register({
+  id:'su7',name:'海湾蓝轿跑',model:'SU7 MAX · 双电机',
+  paints:[0x3f8fb8,0x28c8b2,0x9aa0a6,0x16181a,0xf2f3f4],
+  spec:{动力:'673 ps 双电机',极速:'265 km/h',零百:'2.78 s',价值:'¥ 299,900'},
+  quote:'人车家全生态——上车是驾驶，下车是发布会。',
+  build(p){
+    const g=new THREE.Group(),body=paintMat(p);
+    const lower=M(B(1.66,.42,4.1),body);lower.position.set(0,.48,0);g.add(lower);
+    const shoulder=M(B(1.78,.26,3.9),body);shoulder.position.set(0,.3,0);g.add(shoulder);
+    const dome=M(new THREE.SphereGeometry(.95,30,20,0,Math.PI*2,0,Math.PI/2),body);
+    dome.scale.set(.84,.6,2.25);dome.position.set(0,.9,-.2);g.add(dome);
+    const canopy=M(new THREE.SphereGeometry(.93,30,18,0,Math.PI*2,0,Math.PI/2.35),glassMat());
+    canopy.scale.set(.82,.58,2.1);canopy.position.set(0,.92,-.2);g.add(canopy);
+    // 水滴大灯
+    const hlGeo=new THREE.SphereGeometry(.09,14,12);
+    const hlL=M(hlGeo,mat(0xeaf4ff,{extra:{emissive:0xbfe0ff,emissiveIntensity:1.8}}));hlL.scale.set(1.5,.8,1);hlL.position.set(.62,.62,-1.98);g.add(hlL);
+    const hlR=hlL.clone();hlR.position.x=-.62;g.add(hlR);
+    const halo=M(new THREE.TorusGeometry(.09,.018,8,20),mat(0x9fd8ff,{extra:{emissive:0x66b8ff,emissiveIntensity:2.2}}));
+    halo.rotation.x=Math.PI/2;halo.position.set(.62,.66,-2.02);g.add(halo);
+    const halo2=halo.clone();halo2.position.x=-.62;g.add(halo2);
+    const tail=M(B(1.5,.07,.06),mat(0xff3b30,{extra:{emissive:0xff2418,emissiveIntensity:2.2}}));
+    tail.position.set(0,.86,2.02);g.add(tail);
+    const duck=M(B(1.5,.06,.3),body);duck.position.set(0,.96,1.86);duck.rotation.x=-.14;g.add(duck);
+    const ws=[];
+    [[.95,-1.28],[-.95,-1.28],[.95,1.3],[-.95,1.3]].forEach(([x,z])=>{
+      const w=wheel(.335,.24,5);w.position.set(x,.335,z);g.add(w);ws.push(w);
+    });
+    const lipY=M(B(1.58,.05,.24),mat(0x0eae9a,{r:.4}));lipY.position.set(0,.22,-2.04);g.add(lipY);
+    g.userData.wheels=ws;
+    return g;
+  }
+});
+/* 8 · 保时捷 911 */
+register({
+  id:'p911',name:'德系跑车标杆',model:'911 CARRERA S · 992',
+  paints:[0xe8b21e,0x0e7a8a,0xd6273a,0xf2f3f4,0x141618],
+  spec:{动力:'450 hp 水平对置六缸',极速:'308 km/h',零百:'3.5 s',价值:'¥ 1,638,000'},
+  quote:'青蛙眼大灯，溜背车身。KUN 说这是理性的浪漫。',
+  build(p){
+    const g=new THREE.Group(),body=paintMat(p);
+    const lower=M(B(1.72,.4,4.0),body);lower.position.set(0,.5,0);g.add(lower);
+    // 前圆后溜的经典轮廓：多段车顶
+    const cabin=M(B(1.5,.42,1.7),body);cabin.position.set(0,.98,.15);g.add(cabin);
+    const rearSlope=M(B(1.46,.3,1.5),body);rearSlope.position.set(0,.9,1.2);rearSlope.rotation.x=.3;g.add(rearSlope);
+    const frontSlope=M(B(1.5,.3,.9),body);frontSlope.position.set(0,.94,-1.2);frontSlope.rotation.x=-.42;g.add(frontSlope);
+    const frogNose=M(B(1.66,.22,.8),body);frogNose.position.set(0,.6,-1.7);frogNose.rotation.x=.12;g.add(frogNose);
+    // 圆灯（青蛙眼）
+    const lampGeo=new THREE.SphereGeometry(.11,16,14);
+    const lampL=M(lampGeo,mat(0xfff8e0,{extra:{emissive:0xffedb0,emissiveIntensity:1.3}}));lampL.scale.set(1,.7,1);lampL.position.set(.58,.78,-1.62);g.add(lampL);
+    const lampR=lampL.clone();lampR.position.x=-.58;g.add(lampR);
+    // 后置引擎格栅
+    const deck=M(B(1.44,.08,.7),mat(0x101214,{r:.7}));deck.position.set(0,1.06,1.5);g.add(deck);
+    for(let i=0;i<5;i++){const fin=M(B(.04,.07,.6),mat(0x1c1f22));fin.position.set(-.4+i*.2,1.1,1.5);g.add(fin)}
+    const lightbar=M(B(1.2,.05,.05),mat(0xff3b30,{extra:{emissive:0xff2418,emissiveIntensity:2}}));
+    lightbar.position.set(0,.92,1.9);g.add(lightbar);
+    const spoiler=M(B(1.4,.04,.24),body);spoiler.position.set(0,1.12,1.72);g.add(spoiler);
+    const ws=[];
+    [[.95,-1.22],[-.95,-1.22],[.95,1.28],[-.95,1.28]].forEach(([x,z])=>{
+      const w=wheel(.34,.26,5);w.position.set(x,.34,z);g.add(w);ws.push(w);
+    });
+    g.userData.wheels=ws;
+    return g;
+  }
+});
+/* 9 · Mark III 战甲 */
+register({
+  id:'mk3',name:'钢铁战甲',model:'MARK III · 经典红金',
+  paints:[0xb02318,0x1a6f8a,0x24282c,0xd8b13c],
+  spec:{动力:'方舟反应堆',极速:'超声速',输出:'8.4 GJ',价值:'无价'},
+  quote:'车库唯一会自己走路的藏品。KUN：借你穿可以，别刮漆。',
+  build(p){
+    const g=new THREE.Group();
+    const mkPaint=c=>new THREE.MeshPhysicalMaterial({color:c,metalness:.85,roughness:.3,clearcoat:1,clearcoatRoughness:.1});
+    const RED=mkPaint(0xb02318);
+    const GOLD=new THREE.MeshStandardMaterial({color:0xd8b13c,metalness:.95,roughness:.2});
+    // 展台光柱
+    const beam=new THREE.Mesh(new THREE.CylinderGeometry(1.1,1.4,3.6,32,1,true),
+      new THREE.MeshBasicMaterial({color:0x74d8ff,transparent:true,opacity:.06,side:THREE.DoubleSide}));
+    beam.position.y=1.8;g.add(beam);
+    // 腿
+    [[.22],[-.22]].forEach(([x])=>{
+      const thigh=M(new THREE.CapsuleGeometry(.11,.34,6,14),RED);thigh.position.set(x,.62,0);g.add(thigh);
+      const shin=M(new THREE.CapsuleGeometry(.09,.34,6,14),RED);shin.position.set(x,.2,0);g.add(shin);
+      const boot=M(B(.2,.1,.32),GOLD);boot.position.set(x,.05,.04);g.add(boot);
+      const knee=M(new THREE.SphereGeometry(.09,12,12),GOLD);knee.position.set(x,.44,.05);g.add(knee);
+    });
+    // 骨盆与胸腹
+    const pelvis=M(B(.44,.18,.3),GOLD);pelvis.position.set(0,.86,0);g.add(pelvis);
+    const chest=M(new THREE.CylinderGeometry(.3,.22,.5,18),RED);chest.position.set(0,1.24,0);g.add(chest);
+    const abL=M(new THREE.CapsuleGeometry(.08,.3,6,12),RED);abL.position.set(.14,1.06,.1);abL.rotation.x=.2;g.add(abL);
+    const abR=abL.clone();abR.position.x=-.14;g.add(abR);
+    // 反应堆
+    const reactor=M(new THREE.CylinderGeometry(.075,.075,.03,20),new THREE.MeshStandardMaterial({color:0xdff6ff,emissive:0x7fe3ff,emissiveIntensity:3}));
+    reactor.rotation.x=Math.PI/2;reactor.position.set(0,1.34,.24);g.add(reactor);
+    const rLight=new THREE.PointLight(0x7fe3ff,3,2.4);rLight.position.set(0,1.34,.4);g.add(rLight);
+    // 肩臂
+    [[.4],[-.4]].forEach(([x])=>{
+      const shoulder=M(new THREE.SphereGeometry(.14,14,12),RED);shoulder.position.set(x,1.42,0);g.add(shoulder);
+      const upper=M(new THREE.CapsuleGeometry(.075,.3,6,12),RED);upper.position.set(x*.92,1.16,.02);upper.rotation.z=x>0?.12:-.12;g.add(upper);
+      const fore=M(new THREE.CapsuleGeometry(.065,.28,6,12),GOLD);fore.position.set(x*.98,.86,.08);fore.rotation.z=x>0?.06:-.06;g.add(fore);
+      const hand=M(new THREE.SphereGeometry(.07,10,10),GOLD);hand.position.set(x,.66,.12);g.add(hand);
+    });
+    // 头盔
+    const helm=M(new THREE.SphereGeometry(.16,20,16),RED);helm.position.set(0,1.66,.02);helm.scale.set(.9,1.05,.95);g.add(helm);
+    const jaw=M(B(.2,.08,.1),GOLD);jaw.position.set(0,1.58,.13);g.add(jaw);
+    const faceplate=M(new THREE.SphereGeometry(.155,18,14,0,Math.PI*2,-.6,.8),GOLD);
+    faceplate.position.set(0,1.66,.06);faceplate.rotation.x=.22;faceplate.scale.set(.92,1,1);g.add(faceplate);
+    // 眼缝发光
+    const eyeMat=new THREE.MeshStandardMaterial({color:0xeaffff,emissive:0x8ff2ff,emissiveIntensity:4});
+    const eL=M(B(.05,.018,.02),eyeMat);eL.position.set(.055,1.68,.16);g.add(eL);
+    const eR=M(B(.05,.018,.02),eyeMat);eR.position.set(-.055,1.68,.16);g.add(eR);
+    g.userData.eyes=[eL,eR];g.userData.reactor=reactor;
+    return g;
+  }
+});
+
+/* ================= 九台载具（统一抬高到转台面 y=.145） ================= */
+const live=[]; // {group, paints:[materials], wheels, def}
+vehicles.forEach((def,i)=>{
+  const group=def.build(def.paints[0]);
+  group.visible=false;
+  group.position.y=.145;
+  group.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true}});
+  scene.add(group);
+  live.push({group,def,paintMats:collectPaint(group),wheelSpin:0});
+});
+function collectPaint(group){
+  const arr=[];
+  group.traverse(o=>{
+    if(o.isMesh&&o.material&&o.material.isMeshPhysicalMaterial&&o.material.clearcoat===1)arr.push(o.material);
+  });
+  return arr.length?arr:null;
+}
+let cur=8; // 默认展示 Mark III —— 开场即高光
+let prev=cur;
+
+/* 换车滑入/滑出 */
+const tweens=[];
+function tween(dur,fn,done){tweens.push({t:0,dur,fn,done})}
+function switchTo(i){
+  if(i===cur)return;
+  const from=live[cur],to=live[i];
+  prev=cur;cur=i;
+  updateUI(i);
+  to.group.visible=true;
+  from.leaving=true;
+  tween(.6,(k)=>{
+    const e=k*k*(3-2*k); // smoothstep
+    from.group.position.x=-9*e;
+    to.group.position.x=9*(1-e);
+  },()=>{from.group.visible=false;from.group.position.x=0;from.leaving=false;});
+  if(i===8)flashArmor(live[8]);
+}
+function flashArmor(l){
+  if(!l)return;
+  const eyes=l.group.userData.eyes;if(!eyes)return;
+  tween(1.2,(k)=>{eyes.forEach(e=>e.material.emissiveIntensity=4*(1-k)+8*k)});
+}
+/* 换漆：从当前颜色平滑过渡到目标色 */
+function applyPaint(hex){
+  const l=live[cur];if(!l.paintMats)return;
+  l.paintMats.forEach(m=>{
+    m.userData.from=m.color.clone(); // 以当前色为起点，避免闪回
+    const to=new THREE.Color(hex);
+    tween(.35,k=>m.color.lerpColors(m.userData.from,to,k));
+  });
+}
+/* 转台 */
+function spinOn(){return document.getElementById('spin').classList.contains('on')}
+
+/* ================= UI ================= */
+const fleetEl=document.getElementById('fleet');
+vehicles.forEach((v,i)=>{
+  const b=document.createElement('button');
+  b.innerHTML=`<span class="no">${String(i+1).padStart(2,'0')}</span>${v.name}`;
+  b.addEventListener('click',()=>switchTo(i));
+  fleetEl.appendChild(b);
+});
+const swBox=document.getElementById('swatches');
+function updateUI(i){
+  const v=vehicles[i];
+  [...fleetEl.children].forEach((b,j)=>b.classList.toggle('active',j===i));
+  document.getElementById('vname').textContent=v.name;
+  document.getElementById('vmodel').textContent=v.model;
+  document.getElementById('vgrid').innerHTML=Object.entries(v.spec).map(([k,val])=>`<div><div class="k">${k}</div><div class="v">${val}</div></div>`).join('');
+  document.getElementById('vquote').textContent=v.quote;
+  document.getElementById('counter').textContent=`${String(i+1).padStart(2,'0')} / 09`;
+  document.getElementById('watermark').textContent=v.id==='wuling'?'WULING':v.id==='tesla'?'TESLA':v.id==='su7'?'SU7':v.id==='p911'?'911':v.id==='mk3'?'MARK III':v.id==='sportbike'?'H2R':v.id==='tuk'?'TUK TUK':v.id==='scooter'?'EV':'VELO';
+  swBox.querySelectorAll('.sw').forEach(s=>s.remove());
+  v.paints.forEach((c,j)=>{
+    const b=document.createElement('button');
+    b.className='sw'+(j===0?' on':'');
+    b.style.background='#'+c.toString(16).padStart(6,'0');
+    b.setAttribute('aria-label',`涂装 ${j+1}`);
+    b.addEventListener('click',()=>{
+      swBox.querySelectorAll('.sw').forEach(s=>s.classList.remove('on'));
+      b.classList.add('on');applyPaint(c);
+    });
+    swBox.appendChild(b);
+  });
+}
+/* 机位 */
+/* 机位：车头朝 -Z，方位角按真实朝向标注 */
+const VIEWS={
+  hero:{r:8.6,polar:1.22,az:2.4,t:1.05},
+  front:{r:7.4,polar:1.42,az:Math.PI,t:1.0},
+  side:{r:7.6,polar:1.4,az:Math.PI*.5,t:1.0},
+  rear:{r:7.8,polar:1.36,az:0,t:1.0},
+  top:{r:9.5,polar:.34,az:2.4,t:.8},
+};
+let camGoal=null;
+document.getElementById('views').addEventListener('click',e=>{
+  const b=e.target.closest('button');if(!b)return;
+  [...e.currentTarget.children].forEach(x=>x.classList.toggle('on',x===b));
+  const v=VIEWS[b.dataset.view];
+  camGoal={...v};
+});
+/* 兜圈模式：车滑出绕场一圈回来 */
+let driving=false;
+document.getElementById('drive').addEventListener('click',()=>{
+  if(driving)return;driving=true;
+  const l=live[cur];
+  const rot0=l.group.rotation.y;
+  document.getElementById('drive').classList.add('on');
+  tween(4.2,k=>{
+    const e=k<.5?2*k*k:1-Math.pow(-2*k+2,2)/2;
+    /* 半径渐扩渐收：起步驶离转台、回程驶上转台，高度随之过渡 */
+    const R=5.2*Math.min(1,e*3,(1-e)*6);
+    l.group.position.x=Math.sin(e*Math.PI*2)*R;
+    l.group.position.z=Math.cos(e*Math.PI*2)*R;
+    l.group.position.y=.145*(1-R/5.2);
+    /* 车头沿切线方向：切角 = 参数角 - π/2 */
+    l.group.rotation.y=rot0+e*Math.PI*2-Math.PI/2;
+    spinWheels(l,Math.PI*2*e*4,true);
+  },()=>{
+    l.group.position.set(0,.145,0);l.group.rotation.y=rot0;
+    driving=false;
+    document.getElementById('drive').classList.remove('on');
+  });
+});
+function spinWheels(l,angle,absolute){
+  (l.group.userData.wheels||[]).forEach(w=>{
+    /* 轮轴沿 X：滚动绕 X 轴 */
+    if(absolute)w.rotation.x=-angle;else w.rotation.x-=angle;
+  });
+}
+/* 转台开关 */
+document.getElementById('spin').addEventListener('click',e=>{
+  e.currentTarget.classList.toggle('on');
+  e.currentTarget.textContent=e.currentTarget.classList.contains('on')?'转台 · 开':'转台 · 关';
+});
+/* 键盘 */
+addEventListener('keydown',e=>{
+  if(e.key==='ArrowRight')switchTo((cur+1)%vehicles.length);
+  if(e.key==='ArrowLeft')switchTo((cur-1+vehicles.length)%vehicles.length);
+});
+addEventListener('resize',()=>{
+  camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth,innerHeight);
+});
+
+/* ================= 主循环 ================= */
+const clock=new THREE.Clock();
+function animate(){
+  requestAnimationFrame(animate);
+  const dt=clock.getDelta(),t=clock.elapsedTime;
+  // tweens
+  for(let i=tweens.length-1;i>=0;i--){
+    const tw=tweens[i];tw.t+=dt;
+    const k=Math.min(tw.t/tw.dur,1);
+    tw.fn(k);
+    if(k>=1){tweens.splice(i,1);tw.done&&tw.done()}
+  }
+  // 转台（换车动画期间暂停）
+  if(spinOn()&&!driving&&!tweens.length){
+    live[cur].group.rotation.y+=dt*.25;
+  }
+  // 展示车呼吸灯 & 反应堆
+  const l=live[cur];
+  if(l.group.userData.reactor)l.group.userData.reactor.material.emissiveIntensity=2.4+Math.sin(t*3)*.9;
+  // 霓虹圈流动
+  podiumRing.material.color.setHSL(.21,.85,.5+Math.sin(t*1.4)*.06);
+  // 相机预设插值
+  if(camGoal){
+    const sph=new THREE.Spherical().setFromVector3(camera.position.clone().sub(controls.target));
+    const dp=camGoal.polar-sph.phi, dz=camGoal.az-sph.theta, dr=camGoal.r-sph.radius;
+    sph.phi+=dp*Math.min(1,dt*4);sph.theta+=dz*Math.min(1,dt*4);sph.radius+=dr*Math.min(1,dt*4);
+    camera.position.setFromSpherical(sph).add(controls.target);
+    controls.target.y+=(camGoal.t-controls.target.y)*Math.min(1,dt*4);
+    if(Math.abs(dp)<.005&&Math.abs(dz)<.005&&Math.abs(dr)<.05)camGoal=null;
+  }
+  controls.update();
+  renderer.render(scene,camera);
+}
+updateUI(cur);
+live[cur].group.visible=true;
+setTimeout(()=>document.getElementById('loader').classList.add('done'),500);
+animate();
+</script>
+</body>
+</html>

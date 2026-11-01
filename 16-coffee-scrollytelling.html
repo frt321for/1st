@@ -1,0 +1,957 @@
+<!DOCTYPE html>
+<!--
+DIRECTION CONTRACT
+THESIS         这不是一篇配了插图的文章，而是三张图表在讲，正文是它们的注解。
+               每一章由一张图主导，滚动到位时先落图形、后落数字，读者永远先看到形状再读到解释。
+               拒绝「大字标题 + 通栏配图 + 三段文字」的杂志默认版式。
+OWN-WORLD      冷白报纸底（中性偏冷，不是米色）+ 近黑正文 + 语义双色：
+               生豆绿代表精品，烘焙橙代表速溶与工业对照；坐标、年份、百分比一律等宽表格数字。
+STORY          题头先给一句判断，导语说清这十年争的是什么，
+               三章分别回答「长了多少 / 谁在赢 / 谁在喝」，最后落到署名与数据说明。
+FIRST VIEWPORT 标题占据左侧两行，右侧是全文唯一的门店数折线缩影与署名栏；
+               顶部一条阅读进度线贯穿全文。
+SIGNATURE      章节图表的入场：折线沿时间轴描出来、对比条从基线长出、方格图逐格点亮，
+               每张只演一次，之后页面就安静下来。
+-->
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>速溶之外 —— 中国精品咖啡的十年</title>
+<style>
+/* ==========================================================================
+   速溶之外 · 滚动叙事长文
+   ========================================================================== */
+
+:root{
+  --paper:#f3f3f1;
+  --paper-2:#fbfbfa;
+  --paper-3:#e6e6e3;
+
+  --ink:#131415;
+  --ink-2:#45484a;
+  --ink-3:#5a5e60;
+
+  --hair:#d6d6d2;
+  --hair-2:#b8b8b3;
+
+  /* 语义双色 */
+  --bean:#2f4a33;         /* 精品 / 生豆绿 */
+  --bean-2:#4a6b4e;
+  --bean-3:#7f9c82;
+  --bean-4:#b8cbb9;
+  --roast:#b4551e;        /* 速溶 / 工业对照 */
+  --roast-2:#d98a4e;
+
+  --r-sm:4px; --r-md:9px; --r-lg:14px;
+
+  --font:"PingFang SC","Hiragino Sans GB","Microsoft YaHei",
+         ui-sans-serif,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  --mono:ui-monospace,"SF Mono","Cascadia Mono",Consolas,monospace;
+  --ease:cubic-bezier(.22,.61,.36,1);
+}
+
+*,*::before,*::after{ box-sizing:border-box; }
+html,body{ margin:0; padding:0; overflow-x:clip; }
+html{ color-scheme:light; }
+
+body{
+  min-height:100dvh;
+  background:var(--paper);
+  color:var(--ink);
+  font-family:var(--font);
+  font-size:17px;
+  line-height:1.78;
+  -webkit-font-smoothing:antialiased;
+}
+
+h1,h2,h3,h4,p,ul,ol,dl,dd,dt,figure,figcaption,blockquote{ margin:0; padding:0; }
+ul,ol{ list-style:none; }
+
+:focus-visible{ outline:2px solid var(--bean); outline-offset:3px; border-radius:3px; }
+
+.mono{ font-family:var(--mono); font-variant-numeric:tabular-nums; }
+.sr{
+  position:absolute; width:1px; height:1px; padding:0; margin:-1px;
+  overflow:hidden; clip-path:inset(50%); white-space:nowrap; border:0;
+}
+
+.col{ max-width:1180px; margin-inline:auto; padding-inline:clamp(1.1rem,5vw,3.5rem); }
+.prose{ max-width:64ch; }
+.prose p + p{ margin-top:1.15rem; }
+.prose p{ text-wrap:pretty; }
+.prose b{ font-weight:640; }
+
+/* ==========================================================================
+   阅读进度
+   ========================================================================== */
+.progress{
+  position:fixed; left:0; top:0; right:0;
+  height:3px; z-index:60;
+  background:transparent;
+}
+.progress i{
+  display:block; height:100%; width:0;
+  background:var(--bean);
+}
+
+/* 章节浮标 */
+.chapmark{
+  position:fixed;
+  left:clamp(.6rem,2vw,1.6rem); top:50%;
+  translate:0 -50%;
+  z-index:50;
+  display:none;
+  writing-mode:vertical-rl;
+  font-family:var(--mono);
+  font-size:.6875rem;
+  letter-spacing:.22em;
+  color:var(--ink-3);
+  padding:.6rem .3rem;
+  border-left:2px solid var(--bean);
+}
+@media (min-width:1240px){ .chapmark{ display:block; } }
+
+/* ==========================================================================
+   编者按
+   ========================================================================== */
+.editor{
+  border-bottom:1px solid var(--hair);
+  background:var(--paper-3);
+}
+.editor p{
+  padding-block:.6rem;
+  font-size:.8125rem;
+  color:var(--ink-2);
+}
+.editor b{ color:var(--ink); }
+
+/* ==========================================================================
+   题头
+   ========================================================================== */
+.masthead{
+  padding-block:clamp(2.5rem,7vw,6rem) clamp(2rem,5vw,4rem);
+  border-bottom:2px solid var(--ink);
+}
+.kicker{
+  display:inline-block;
+  font-family:var(--mono);
+  font-size:.75rem;
+  letter-spacing:.2em;
+  color:var(--roast);
+  border:1px solid var(--roast);
+  padding:.2rem .6rem;
+  border-radius:99px;
+}
+.masthead__grid{
+  display:grid;
+  grid-template-columns:minmax(0,1.55fr) minmax(0,1fr);
+  gap:clamp(1.5rem,4vw,3.5rem);
+  align-items:end;
+  margin-top:1.4rem;
+}
+.masthead h1{
+  font-size:clamp(2.4rem,7.2vw,5.4rem);
+  line-height:.98;
+  font-weight:760;
+  letter-spacing:-.045em;
+  text-wrap:balance;
+}
+.masthead h1 span{ display:block; }
+.masthead h1 .thin{
+  font-weight:400;
+  color:var(--ink-2);
+  font-size:.44em;
+  letter-spacing:-.02em;
+  line-height:1.25;
+  margin-top:.6rem;
+}
+.byline{
+  border-top:1px solid var(--hair);
+  padding-top:.9rem;
+}
+.byline dl{ display:grid; gap:0; }
+.byline div{
+  display:grid; grid-template-columns:minmax(0,5.5em) minmax(0,1fr);
+  gap:.8rem; padding:.35rem 0;
+  border-bottom:1px solid var(--hair);
+  font-size:.8125rem;
+}
+.byline dt{ color:var(--ink-3); }
+.byline dd{ font-family:var(--mono); }
+
+/* 题头缩影图 */
+.spark{ margin-top:1.2rem; }
+.spark svg{ width:100%; height:auto; display:block; }
+.spark figcaption{
+  margin-top:.5rem;
+  font-size:.75rem; color:var(--ink-3);
+}
+
+/* ==========================================================================
+   导语
+   ========================================================================== */
+.lede{
+  padding-block:clamp(2rem,5vw,3.5rem);
+  border-bottom:1px solid var(--hair);
+}
+.lede p{
+  font-size:clamp(1.1rem,2.1vw,1.4rem);
+  line-height:1.62;
+  max-width:52ch;
+  text-wrap:pretty;
+}
+.lede p + p{ margin-top:1rem; }
+.lede p:first-child::first-letter{
+  float:left;
+  font-size:3.4em;
+  line-height:.86;
+  font-weight:760;
+  margin:.06em .12em 0 0;
+  color:var(--bean);
+}
+
+/* ==========================================================================
+   章节
+   ========================================================================== */
+.chapter{ padding-block:clamp(3rem,8vw,6.5rem); border-bottom:1px solid var(--hair); }
+.chapter__head{
+  display:flex; flex-wrap:wrap; align-items:baseline; gap:.6rem 1.2rem;
+  margin-bottom:1.6rem;
+}
+.chapter__n{
+  font-family:var(--mono);
+  font-size:.75rem; letter-spacing:.2em;
+  color:var(--roast);
+  font-weight:640;
+}
+.chapter h2{
+  font-size:clamp(1.65rem,4vw,2.75rem);
+  line-height:1.1; font-weight:720; letter-spacing:-.036em;
+  text-wrap:balance;
+  width:100%;
+}
+.chapter__q{
+  font-size:1.0625rem; color:var(--ink-2); max-width:50ch;
+}
+
+.figwrap{
+  margin-block:clamp(1.5rem,3.5vw,2.5rem);
+  background:var(--paper-2);
+  border:1px solid var(--hair);
+  border-radius:var(--r-lg);
+  padding:clamp(1rem,2.6vw,1.9rem);
+}
+.figwrap h3{
+  font-size:.9375rem; font-weight:660; letter-spacing:-.012em;
+}
+.figwrap .sub{ font-size:.8125rem; color:var(--ink-3); margin-top:.15rem; }
+.figwrap figure{ margin-top:1.1rem; }
+.figwrap svg{ width:100%; height:auto; display:block; }
+.figwrap figcaption{
+  margin-top:.9rem; padding-top:.8rem;
+  border-top:1px solid var(--hair);
+  font-size:.8125rem; color:var(--ink-3);
+  text-wrap:pretty;
+}
+
+/* 图表元素 */
+.ax{ stroke:var(--hair-2); stroke-width:1; }
+.gl{ stroke:var(--hair); stroke-width:1; }
+.axt{ fill:var(--ink-3); font-family:var(--mono); font-size:11px; }
+.lblt{ fill:var(--ink); font-family:var(--mono); font-size:12px; font-weight:600; }
+
+.draw{ stroke-dasharray:var(--len); stroke-dashoffset:var(--len); }
+.chapter[data-in="true"] .draw{
+  transition:stroke-dashoffset 1.5s var(--ease) .1s;
+  stroke-dashoffset:0;
+}
+.grow{ transform:scaleY(0); transform-origin:bottom; }
+.chapter[data-in="true"] .grow{
+  transition:transform .8s var(--ease);
+  transform:scaleY(1);
+}
+.growx{ transform:scaleX(0); transform-origin:left; }
+.chapter[data-in="true"] .growx{
+  transition:transform .85s var(--ease);
+  transform:scaleX(1);
+}
+.fadein{ opacity:0; }
+.chapter[data-in="true"] .fadein{ transition:opacity .6s var(--ease) .5s; opacity:1; }
+
+/* ---- 华夫格 ---- */
+.waffle{
+  display:grid;
+  grid-template-columns:repeat(10, minmax(0,1fr));
+  gap:4px;
+  max-width:420px;
+}
+.waffle i{
+  aspect-ratio:1;
+  border-radius:2px;
+  background:var(--paper-3);
+  transform:scale(.4);
+  opacity:0;
+}
+.chapter[data-in="true"] .waffle i{
+  transition:transform .38s var(--ease), opacity .38s var(--ease);
+  transform:scale(1);
+  opacity:1;
+}
+.waffle-wrap{
+  display:grid;
+  grid-template-columns:auto minmax(0,1fr);
+  gap:clamp(1.25rem,3vw,2.5rem);
+  align-items:start;
+}
+.wkey{ display:grid; gap:.7rem; align-content:start; }
+.wkey div{
+  display:grid; grid-template-columns:14px minmax(0,1fr) auto;
+  gap:.6rem; align-items:baseline;
+  font-size:.875rem;
+  padding-bottom:.6rem;
+  border-bottom:1px solid var(--hair);
+}
+.wkey i{ width:14px; height:14px; border-radius:3px; }
+.wkey b{ font-family:var(--mono); font-variant-numeric:tabular-nums; font-weight:660; }
+.wkey span{ color:var(--ink-2); }
+
+/* ==========================================================================
+   大数字
+   ========================================================================== */
+.bignum{
+  padding-block:clamp(2rem,5vw,3.5rem);
+  display:grid;
+  grid-template-columns:minmax(0,auto) minmax(0,1fr);
+  gap:clamp(1.25rem,4vw,3rem);
+  align-items:center;
+}
+.bignum b{
+  display:block;
+  font-family:var(--mono); font-variant-numeric:tabular-nums;
+  font-size:clamp(3.4rem,11vw,8rem);
+  font-weight:760;
+  letter-spacing:-.06em;
+  line-height:.86;
+  color:var(--bean);
+}
+.bignum b small{ font-size:.34em; letter-spacing:-.02em; margin-left:.06em; }
+.bignum--roast b{ color:var(--roast); }
+.bignum p{ max-width:46ch; color:var(--ink-2); text-wrap:pretty; }
+
+/* ==========================================================================
+   引语
+   ========================================================================== */
+.pull{
+  padding-block:clamp(2rem,5vw,3.5rem);
+  border-block:1px solid var(--ink);
+  margin-block:clamp(1.5rem,4vw,3rem);
+}
+.pull blockquote{
+  font-size:clamp(1.3rem,3.2vw,2.1rem);
+  line-height:1.28;
+  font-weight:600;
+  letter-spacing:-.028em;
+  max-width:24ch;
+  text-wrap:balance;
+}
+.pull blockquote::before{
+  content:"「";
+  color:var(--bean);
+  margin-left:-.5em;
+}
+.pull blockquote::after{ content:"」"; color:var(--bean); }
+.pull figcaption{
+  margin-top:1.1rem;
+  font-size:.875rem;
+  color:var(--ink-3);
+}
+.pull figcaption b{ color:var(--ink); font-weight:620; display:block; }
+
+/* ==========================================================================
+   结尾
+   ========================================================================== */
+.ending{ padding-block:clamp(2.5rem,6vw,4.5rem); }
+.sign{
+  margin-top:2.2rem;
+  padding-top:1.4rem;
+  border-top:2px solid var(--ink);
+  display:grid;
+  grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+  gap:clamp(1.25rem,4vw,3rem);
+}
+.sign h3{
+  font-size:.6875rem; letter-spacing:.18em; text-transform:uppercase;
+  color:var(--ink-3); font-weight:640; margin-bottom:.5rem;
+}
+.sign p{ font-size:.875rem; color:var(--ink-2); text-wrap:pretty; }
+.sign p + p{ margin-top:.5rem; }
+.sign .name{ font-size:1.05rem; font-weight:660; color:var(--ink); letter-spacing:-.015em; }
+
+.foot{
+  border-top:1px solid var(--hair);
+  padding-block:1.2rem 3rem;
+  font-size:.75rem;
+  color:var(--ink-3);
+  display:flex; flex-wrap:wrap; gap:.4rem 1.6rem; justify-content:space-between;
+}
+
+/* ==========================================================================
+   响应式
+   ========================================================================== */
+@media (max-width:900px){
+  .masthead__grid{ grid-template-columns:minmax(0,1fr); align-items:start; }
+  .bignum{ grid-template-columns:minmax(0,1fr); gap:1rem; }
+  .waffle-wrap{ grid-template-columns:minmax(0,1fr); }
+  .sign{ grid-template-columns:minmax(0,1fr); }
+}
+@media (max-width:520px){
+  body{ font-size:16px; }
+  .waffle{ gap:3px; }
+}
+
+@media (prefers-reduced-motion:reduce){
+  .chapter[data-in="true"] .draw,
+  .chapter[data-in="true"] .grow,
+  .chapter[data-in="true"] .growx,
+  .chapter[data-in="true"] .fadein,
+  .chapter[data-in="true"] .waffle i{ transition:none; }
+  .draw{ stroke-dashoffset:0; }
+  .grow{ transform:scaleY(1); }
+  .growx{ transform:scaleX(1); }
+  .fadein{ opacity:1; }
+  .waffle i{ transform:none; opacity:1; }
+}
+</style>
+</head>
+<body>
+
+<div class="progress" aria-hidden="true"><i id="prog"></i></div>
+<div class="chapmark" id="chapmark" aria-hidden="true">导语</div>
+
+<!-- ==================== 编者按 ==================== -->
+<div class="editor">
+  <div class="col"><p><b>编者按：</b>本文为版式与叙事结构演示，文中所有数据均为示例，不代表真实市场情况，不可引用。</p></div>
+</div>
+
+<article>
+
+  <!-- ==================== 题头 ==================== -->
+  <header class="masthead">
+    <div class="col">
+      <span class="kicker">深度 · 消费</span>
+
+      <div class="masthead__grid">
+        <h1>
+          <span>速溶之外</span>
+          <span class="thin">中国精品咖啡的十年，<br>争的从来不是谁更好喝</span>
+        </h1>
+
+        <div class="byline">
+          <dl>
+            <div><dt>作者</dt><dd>沈知远</dd></div>
+            <div><dt>数据</dt><dd>示例数据集</dd></div>
+            <div><dt>发布</dt><dd>2026.08.23</dd></div>
+            <div><dt>阅读</dt><dd>约 9 分钟</dd></div>
+          </dl>
+
+          <figure class="spark">
+            <svg id="sparkSvg" viewBox="0 0 320 72" role="img"
+                 aria-label="十年门店数量缩影折线，自左向右持续上升，2021 年后斜率明显变陡。"></svg>
+            <figcaption>全国精品咖啡门店数，2016 – 2025（示例）</figcaption>
+          </figure>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ==================== 导语 ==================== -->
+  <section class="lede">
+    <div class="col prose">
+      <p>
+        十年前，如果你在一座二线城市的街边说要一杯手冲，店员多半会给你端来一杯用挂耳包冲的东西，
+        然后收你三十五块钱。那时候「精品」两个字更像是定价理由，而不是品质承诺。
+      </p>
+      <p>
+        十年后，同一条街上可能开着四家自烘焙的小店，每家都在墙上贴着产区、处理法和烘焙日期。
+        变化确实发生了，但它并不是「大家都开始喝得更讲究」这么简单。
+        这十年真正被改写的，是咖啡在一个人一天里的位置。
+      </p>
+    </div>
+  </section>
+
+  <!-- ==================== 章节一：趋势 ==================== -->
+  <section class="chapter" id="ch1" data-in="false" data-mark="一 · 长了多少">
+    <div class="col">
+      <div class="chapter__head">
+        <span class="chapter__n">章节一 · 趋势</span>
+        <h2>先看它长成了什么样</h2>
+        <p class="chapter__q">
+          门店数量是最粗糙但最诚实的指标：它同时包含了资本的耐心与消费者的复购。
+        </p>
+      </div>
+
+      <div class="figwrap">
+        <h3>精品咖啡门店数与连锁咖啡门店数</h3>
+        <p class="sub">单位：万家。绿线为独立及小型连锁精品店，橙线为规模化连锁品牌。</p>
+        <figure>
+          <svg id="chart1" viewBox="0 0 760 340" role="img"
+               aria-label="双折线图：2016 至 2025 年，精品咖啡门店数由 0.4 万增至 5.2 万；规模化连锁门店数由 1.1 万增至 8.9 万，2021 年后两者同步加速。"></svg>
+        </figure>
+        <figcaption>
+          两条线在 2021 年同时转陡。那一年发生的不是消费升级，而是外卖平台把咖啡纳入了「三十分钟送达」的品类，
+          门店的服务半径被重新定义了。
+        </figcaption>
+      </div>
+
+      <div class="prose">
+        <p>
+          把两条线放在一起看，会发现一件违反直觉的事：<b>连锁店的扩张并没有挤死独立店</b>。
+          在 2021 到 2023 这三年里，两类门店同时增长，而且精品店的增速反而更高。
+        </p>
+        <p>
+          原因很朴素。连锁品牌用低价把大量从没喝过现磨咖啡的人拉进了这个品类，
+          这些人里的一小部分，最终会走进街角那家墙上贴着产区海报的小店。
+          连锁做的是普及，精品做的是承接。
+        </p>
+      </div>
+
+      <div class="bignum">
+        <b id="big1">0<small>×</small></b>
+        <p>
+          2025 年的精品咖啡门店数，是 2016 年的十三倍。同期规模化连锁门店数增长约八倍。
+          增速差距不大，但基数差距被拉平了。
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== 引语一 ==================== -->
+  <div class="col">
+    <figure class="pull">
+      <blockquote>低价连锁不是我们的敌人，是我们的上游漏斗</blockquote>
+      <figcaption>
+        <b>一位在成都开了七年独立烘焙店的店主</b>
+        受访于 2025 年冬（示例引语）
+      </figcaption>
+    </figure>
+  </div>
+
+  <!-- ==================== 章节二：对比 ==================== -->
+  <section class="chapter" id="ch2" data-in="false" data-mark="二 · 谁在赢">
+    <div class="col">
+      <div class="chapter__head">
+        <span class="chapter__n">章节二 · 对比</span>
+        <h2>三种咖啡，三条完全不同的曲线</h2>
+        <p class="chapter__q">
+          把速溶、现磨连锁、精品自烘三类放在同一张图上，会看到它们抢的根本不是同一批时间。
+        </p>
+      </div>
+
+      <div class="figwrap">
+        <h3>三类咖啡的年消费杯量占比变化</h3>
+        <p class="sub">单位：%。同一年内三类相加为 100%。</p>
+        <figure>
+          <svg id="chart2" viewBox="0 0 760 360" role="img"
+               aria-label="分组柱状图：2016 年速溶占 86%，现磨连锁 11%，精品自烘 3%；2025 年速溶降至 41%，现磨连锁升至 42%，精品自烘升至 17%。"></svg>
+        </figure>
+        <figcaption>
+          速溶让出的份额，绝大部分被现磨连锁接走。精品自烘的增长稳定但缓慢，
+          它从来没有试图去抢速溶的早晨。
+        </figcaption>
+      </div>
+
+      <div class="prose">
+        <p>
+          速溶的下滑不是因为难喝——它一直都那么难喝，而且过去二十年里大家也一直在喝。
+          真正让它退场的是<b>时间成本被重新计价</b>：当楼下就有一家三十秒出杯、二十块以内的连锁店时，
+          在工位上等水烧开这件事变得不划算了。
+        </p>
+        <p>
+          精品自烘的曲线则完全是另一回事。它的增长几乎全部发生在周末的下午和非工作日，
+          也就是说，它抢的不是速溶的早晨，而是奶茶店的下午。
+        </p>
+      </div>
+
+      <div class="bignum bignum--roast">
+        <b id="big2">0<small>%</small></b>
+        <p>
+          十年间速溶咖啡的杯量占比跌幅。这是三类里唯一持续下降的一条曲线，
+          且下降速度在 2021 年后明显加快。
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== 引语二 ==================== -->
+  <div class="col">
+    <figure class="pull">
+      <blockquote>我们卖的不是咖啡，是一个不用回工位的四十分钟</blockquote>
+      <figcaption>
+        <b>一位精品咖啡品牌的主理人</b>
+        受访于 2026 年春（示例引语）
+      </figcaption>
+    </figure>
+  </div>
+
+  <!-- ==================== 章节三：占比 ==================== -->
+  <section class="chapter" id="ch3" data-in="false" data-mark="三 · 谁在喝">
+    <div class="col">
+      <div class="chapter__head">
+        <span class="chapter__n">章节三 · 占比</span>
+        <h2>那么，是谁在喝</h2>
+        <p class="chapter__q">
+          把 2025 年的精品咖啡消费按场景拆开，答案和大多数人的想象不太一样。
+        </p>
+      </div>
+
+      <div class="figwrap">
+        <h3>精品咖啡消费场景构成（2025）</h3>
+        <p class="sub">每一格代表 1%。共 100 格。</p>
+        <figure>
+          <div class="waffle-wrap">
+            <div class="waffle" id="waffle" role="img"
+                 aria-label="方格图：通勤自取 34%，店内久坐 27%，居家自冲 21%，办公室配送 12%，礼赠与其他 6%。"></div>
+            <div class="wkey" id="wkey"></div>
+          </div>
+        </figure>
+        <figcaption>
+          「店内久坐」加上「居家自冲」接近一半。这两者的共同点是：
+          咖啡不是被用来提神的，而是被用来划出一段属于自己的时间。
+        </figcaption>
+      </div>
+
+      <div class="prose">
+        <p>
+          通勤自取仍然是最大的一块，但它的增速在 2024 年之后已经放缓——
+          这块需求本质上和连锁店重叠，价格敏感度高，很难继续往上走。
+        </p>
+        <p>
+          真正还在快速扩大的是居家自冲。
+          手摇磨豆机和电子秤的销量曲线，和这一格的增长几乎完全吻合。
+          这也意味着，未来十年精品咖啡最大的竞争对手，
+          可能是它自己卖出去的那包豆子。
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== 结尾 ==================== -->
+  <section class="ending">
+    <div class="col">
+      <div class="prose">
+        <p>
+          回到最初那条街。四家自烘焙小店里，大概率会有两家在三年内关掉。
+          但这不代表这十年白走——它意味着这个品类终于进入了它该有的状态：
+          有人做普及，有人做深度，中间那段模糊的、靠「精品」二字定价的空间，正在被挤掉。
+        </p>
+        <p>
+          十年前那杯三十五块的挂耳，问题从来不在于它是挂耳，
+          而在于卖它的人也说不清它凭什么值三十五块。现在，至少这个问题有答案了。
+        </p>
+      </div>
+
+      <div class="sign">
+        <div>
+          <h3>署名</h3>
+          <p class="name">沈知远</p>
+          <p>长期关注消费与城市生活方式，本文为其「品类十年」系列第三篇。</p>
+          <p>编辑：林岸　　视觉：陈墨</p>
+        </div>
+        <div>
+          <h3>关于数据</h3>
+          <p>
+            本文所有图表数据均为演示用示例数据，由编辑部为版式测试构造，
+            不来自任何真实统计口径，不可用于研究、报道或商业决策引用。
+          </p>
+          <p>
+            正式发表版本需替换为标注来源、口径与采集时间的真实数据，
+            并在每张图表下方注明数据提供方。
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+</article>
+
+<footer class="foot">
+  <div class="col" style="display:flex;flex-wrap:wrap;gap:.4rem 1.6rem;justify-content:space-between;width:100%">
+    <span>速溶之外 · 中国精品咖啡的十年</span>
+    <span>版式演示页面 · 2026</span>
+  </div>
+</footer>
+
+<script>
+(function () {
+  'use strict';
+
+  function $(id){ return document.getElementById(id); }
+  var NS = 'http://www.w3.org/2000/svg';
+  var reduce = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+  function el(tag, attrs, cls){
+    var n = document.createElementNS(NS, tag);
+    for (var k in attrs) n.setAttribute(k, attrs[k]);
+    if (cls) n.setAttribute('class', cls);
+    return n;
+  }
+
+  /* ======================================================================
+     数据（示例）
+     ====================================================================== */
+  var YEARS = [2016,2017,2018,2019,2020,2021,2022,2023,2024,2025];
+  var SPEC  = [0.4, 0.6, 0.9, 1.3, 1.5, 2.1, 3.0, 3.9, 4.6, 5.2];   // 万家
+  var CHAIN = [1.1, 1.5, 2.1, 2.8, 3.1, 4.2, 5.6, 7.0, 8.1, 8.9];
+
+  var SHARE = {
+    2016:{ instant:86, chain:11, spec:3 },
+    2019:{ instant:72, chain:22, spec:6 },
+    2022:{ instant:56, chain:33, spec:11 },
+    2025:{ instant:41, chain:42, spec:17 }
+  };
+
+  var SCENE = [
+    { k:'通勤自取',   v:34, c:'var(--bean)'   },
+    { k:'店内久坐',   v:27, c:'var(--bean-2)' },
+    { k:'居家自冲',   v:21, c:'var(--bean-3)' },
+    { k:'办公室配送', v:12, c:'var(--roast)'  },
+    { k:'礼赠与其他', v:6,  c:'var(--roast-2)'}
+  ];
+
+  /* ======================================================================
+     题头缩影
+     ====================================================================== */
+  (function spark(){
+    var svg = $('sparkSvg');
+    var W = 320, H = 72, P = 4;
+    var max = Math.max.apply(null, SPEC);
+    var pts = SPEC.map(function(v,i){
+      return [P + i / (SPEC.length-1) * (W - P*2), H - P - v / max * (H - P*2)];
+    });
+    var d = pts.map(function(p,i){ return (i?'L':'M') + p[0].toFixed(1) + ' ' + p[1].toFixed(1); }).join(' ');
+
+    svg.appendChild(el('path', {
+      d: d + ' L' + (W-P) + ' ' + (H-P) + ' L' + P + ' ' + (H-P) + ' Z',
+      fill:'var(--bean-4)', opacity:'.55'
+    }));
+    svg.appendChild(el('path', { d:d, fill:'none', stroke:'var(--bean)', 'stroke-width':'2',
+      'stroke-linejoin':'round', 'stroke-linecap':'round' }));
+    svg.appendChild(el('circle', { cx:pts[pts.length-1][0], cy:pts[pts.length-1][1], r:'3.4', fill:'var(--bean)' }));
+    svg.appendChild(el('line', { x1:P, y1:H-P, x2:W-P, y2:H-P, stroke:'var(--hair-2)', 'stroke-width':'1' }));
+  })();
+
+  /* ======================================================================
+     图一：双折线
+     ====================================================================== */
+  (function chart1(){
+    var svg = $('chart1');
+    var W = 760, H = 340, P = { t:22, r:22, b:44, l:52 };
+    var iw = W - P.l - P.r, ih = H - P.t - P.b;
+    var max = 10;
+
+    function X(i){ return P.l + i / (YEARS.length - 1) * iw; }
+    function Y(v){ return P.t + ih - v / max * ih; }
+
+    for (var t = 0; t <= 5; t++){
+      var v = t * 2, y = Y(v);
+      svg.appendChild(el('line', { x1:P.l, y1:y, x2:W-P.r, y2:y }, 'gl'));
+      var tx = el('text', { x:P.l-9, y:y+4, 'text-anchor':'end' }, 'axt');
+      tx.textContent = v;
+      svg.appendChild(tx);
+    }
+    var unit = el('text', { x:P.l-9, y:P.t-8, 'text-anchor':'end' }, 'axt');
+    unit.textContent = '万家';
+    svg.appendChild(unit);
+
+    YEARS.forEach(function(y, i){
+      if (i % 2 !== 0 && i !== YEARS.length-1) return;
+      var tx = el('text', { x:X(i), y:H-18, 'text-anchor':'middle' }, 'axt');
+      tx.textContent = y;
+      svg.appendChild(tx);
+    });
+    svg.appendChild(el('line', { x1:P.l, y1:H-P.b, x2:W-P.r, y2:H-P.b }, 'ax'));
+
+    // 2021 标注
+    var mx = X(5);
+    svg.appendChild(el('line', { x1:mx, y1:P.t, x2:mx, y2:H-P.b,
+      stroke:'var(--roast)', 'stroke-width':'1', 'stroke-dasharray':'3 3', opacity:'.6' }, 'fadein'));
+    var mt = el('text', { x:mx+7, y:P.t+12 }, 'axt fadein');
+    mt.setAttribute('fill','var(--roast)');
+    mt.textContent = '2021 外卖纳入品类';
+    svg.appendChild(mt);
+
+    function line(data, color, label){
+      var d = data.map(function(v,i){ return (i?'L':'M') + X(i).toFixed(1) + ' ' + Y(v).toFixed(1); }).join(' ');
+      var p = el('path', { d:d, fill:'none', stroke:color, 'stroke-width':'2.6',
+        'stroke-linejoin':'round', 'stroke-linecap':'round' }, 'draw');
+      svg.appendChild(p);
+      var len = p.getTotalLength ? p.getTotalLength() : 1200;
+      p.style.setProperty('--len', len);
+
+      var last = data.length - 1;
+      svg.appendChild(el('circle', { cx:X(last), cy:Y(data[last]), r:'4.5', fill:color }, 'fadein'));
+      var t = el('text', { x:X(last)-8, y:Y(data[last])-13, 'text-anchor':'end' }, 'lblt fadein');
+      t.setAttribute('fill', color);
+      t.textContent = label + ' ' + data[last];
+      svg.appendChild(t);
+    }
+
+    line(CHAIN, 'var(--roast)', '连锁');
+    line(SPEC, 'var(--bean)', '精品');
+  })();
+
+  /* ======================================================================
+     图二：分组柱状
+     ====================================================================== */
+  (function chart2(){
+    var svg = $('chart2');
+    var W = 760, H = 360, P = { t:26, r:22, b:56, l:52 };
+    var iw = W - P.l - P.r, ih = H - P.t - P.b;
+    var years = Object.keys(SHARE);
+    var series = [
+      { k:'instant', n:'速溶',     c:'var(--roast)'  },
+      { k:'chain',   n:'现磨连锁', c:'var(--bean-3)' },
+      { k:'spec',    n:'精品自烘', c:'var(--bean)'   }
+    ];
+    var max = 90;
+
+    for (var t = 0; t <= 3; t++){
+      var v = t * 30, y = P.t + ih - v / max * ih;
+      svg.appendChild(el('line', { x1:P.l, y1:y, x2:W-P.r, y2:y }, 'gl'));
+      var tx = el('text', { x:P.l-9, y:y+4, 'text-anchor':'end' }, 'axt');
+      tx.textContent = v + '%';
+      svg.appendChild(tx);
+    }
+    svg.appendChild(el('line', { x1:P.l, y1:H-P.b, x2:W-P.r, y2:H-P.b }, 'ax'));
+
+    var gw = iw / years.length;
+    var bw = gw / (series.length + 1.4);
+
+    years.forEach(function(yr, gi){
+      var gx = P.l + gi * gw;
+      var lab = el('text', { x:gx + gw/2, y:H-30, 'text-anchor':'middle' }, 'axt');
+      lab.textContent = yr;
+      svg.appendChild(lab);
+
+      series.forEach(function(s, si){
+        var v = SHARE[yr][s.k];
+        var h = v / max * ih;
+        var x = gx + gw/2 - (series.length * bw)/2 + si * bw + bw*0.08;
+        var y = P.t + ih - h;
+        var r = el('rect', {
+          x:x.toFixed(1), y:y.toFixed(1), width:(bw*0.84).toFixed(1), height:h.toFixed(1),
+          fill:s.c, rx:'2'
+        }, 'grow');
+        r.style.transformOrigin = (x + bw*0.42) + 'px ' + (P.t + ih) + 'px';
+        r.style.transitionDelay = (0.06 * (gi * series.length + si)) + 's';
+        svg.appendChild(r);
+
+        var vt = el('text', { x:(x + bw*0.42).toFixed(1), y:(y-7).toFixed(1), 'text-anchor':'middle' }, 'axt fadein');
+        vt.setAttribute('fill', s.c);
+        vt.textContent = v;
+        svg.appendChild(vt);
+      });
+    });
+
+    // 图例
+    series.forEach(function(s, i){
+      var lx = P.l + i * 128;
+      svg.appendChild(el('rect', { x:lx, y:H-14, width:11, height:11, fill:s.c, rx:'2' }));
+      var t = el('text', { x:lx+17, y:H-4 }, 'axt');
+      t.setAttribute('fill','var(--ink-2)');
+      t.textContent = s.n;
+      svg.appendChild(t);
+    });
+  })();
+
+  /* ======================================================================
+     图三：华夫格
+     ====================================================================== */
+  (function waffle(){
+    var host = $('waffle'), key = $('wkey');
+    var cells = [];
+    SCENE.forEach(function(s){
+      for (var i = 0; i < s.v; i++) cells.push(s);
+    });
+    cells.forEach(function(s, i){
+      var c = document.createElement('i');
+      c.style.background = s.c;
+      c.style.transitionDelay = (i * 0.008).toFixed(3) + 's';
+      host.appendChild(c);
+    });
+
+    SCENE.forEach(function(s){
+      var row = document.createElement('div');
+      var i = document.createElement('i'); i.style.background = s.c;
+      var n = document.createElement('span'); n.textContent = s.k;
+      var b = document.createElement('b'); b.textContent = s.v + '%';
+      row.appendChild(i); row.appendChild(n); row.appendChild(b);
+      key.appendChild(row);
+    });
+  })();
+
+  /* ======================================================================
+     入场与计数
+     ====================================================================== */
+  function countUp(node, target, suffix, dur){
+    if (reduce.matches){ node.innerHTML = target + suffix; return; }
+    var t0 = null;
+    function step(ts){
+      if (t0 === null) t0 = ts;
+      var k = Math.min(1, (ts - t0) / dur);
+      var e = 1 - Math.pow(1 - k, 3);
+      node.innerHTML = Math.round(target * e) + suffix;
+      if (k < 1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+  }
+
+  var chapters = Array.prototype.slice.call(document.querySelectorAll('.chapter'));
+
+  if ('IntersectionObserver' in window){
+    var io = new IntersectionObserver(function(entries){
+      entries.forEach(function(e){
+        if (!e.isIntersecting) return;
+        e.target.dataset.in = 'true';
+        io.unobserve(e.target);
+        if (e.target.id === 'ch1') countUp($('big1'), 13, '<small>×</small>', 1200);
+        if (e.target.id === 'ch2') countUp($('big2'), 45, '<small>%</small>', 1200);
+      });
+    }, { rootMargin:'0px 0px -18% 0px', threshold:0.12 });
+    chapters.forEach(function(c){ io.observe(c); });
+  } else {
+    chapters.forEach(function(c){ c.dataset.in = 'true'; });
+    $('big1').innerHTML = '13<small>×</small>';
+    $('big2').innerHTML = '45<small>%</small>';
+  }
+
+  /* ---- 进度条与章节浮标 ---- */
+  var prog = $('prog'), mark = $('chapmark');
+  var ticking = false, docH = 0;
+
+  function measure(){ docH = document.documentElement.scrollHeight - window.innerHeight; }
+
+  function paint(){
+    ticking = false;
+    var p = docH > 0 ? window.scrollY / docH : 0;
+    prog.style.width = (Math.max(0, Math.min(1, p)) * 100).toFixed(2) + '%';
+
+    var current = '导语';
+    var mid = window.scrollY + window.innerHeight * 0.4;
+    chapters.forEach(function(c){
+      if (c.offsetTop <= mid) current = c.dataset.mark;
+    });
+    if (mark.textContent !== current) mark.textContent = current;
+  }
+
+  window.addEventListener('scroll', function(){
+    if (!ticking){ ticking = true; requestAnimationFrame(paint); }
+  }, { passive:true });
+  window.addEventListener('resize', function(){ measure(); paint(); });
+  window.addEventListener('load', function(){ measure(); paint(); });
+  measure(); paint();
+})();
+</script>
+
+</body>
+</html>
